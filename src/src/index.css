@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-size: 13px;
+}
+
+/* эх projectcosmo.html-ийн scrollbar загвар (нимгэн, mobile-style) */
+::-webkit-scrollbar { width: 1.5px; height: 1.5px; }
+::-webkit-scrollbar-thumb { border-radius: 3px; }
