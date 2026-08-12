@@ -1,18 +1,26 @@
+import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
+import LoginPage from './pages/LoginPage';
 import PageInProgress from './pages/PageInProgress';
 import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
-import { MENU_SECTIONS } from './config/menu';
+import { MENU_SECTIONS, SUPERSYSADMIN } from './config/menu';
 
-const ALL_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
+const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN];
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
+  // TODO: Supabase auth session-оор солих — одоогоор зөвхөн UI урсгал шалгах local state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  if (!isLoggedIn) {
+    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
@@ -28,9 +36,9 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/residents" element={<Residents />} />
-            {/* Цэсний бусад бүх линк — хуудас бүтээгдэх хүртэл ижил fallback */}
-            {ALL_ITEMS.filter((i) => !['/dashboard', '/residents'].includes(i.path)).map((item) => (
+            <Route path="/owners" element={<Residents />} />
+            {/* Цэсний бусад бүх линк (49 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
+            {ALL_ITEMS.filter((i) => !['/dashboard', '/owners'].includes(i.path)).map((item) => (
               <Route key={item.path} path={item.path} element={<PageInProgress />} />
             ))}
           </Routes>

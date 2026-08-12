@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
-import { MENU_SECTIONS } from '../config/menu';
+import { MENU_SECTIONS, SUPERSYSADMIN } from '../config/menu';
 
-const ALL_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
+const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN];
 
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();

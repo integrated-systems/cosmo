@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
-import { MENU_SECTIONS } from '../config/menu';
+import { MENU_SECTIONS, SUPERSYSADMIN } from '../config/menu';
 
-const ALL_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
+const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN];
 
 // projectcosmo.html-ийн fallback (мөр ~802-806) — цэсэнд байгаа ч
 // хараахан хуудас нь бүтээгдээгүй бүх линкэнд ижил анхдагч дэлгэц.

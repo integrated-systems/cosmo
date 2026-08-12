@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { MENU_SECTIONS, SIDEBAR_STATS } from '../config/menu';
+import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN } from '../config/menu';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
@@ -33,10 +33,10 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
           Integrated Systems брэнд (тогтмол), доод мөр тухайн СөХ-ийн нэр
           (backend-ээс dynamic ирнэ, одоогоор жишээ утга). */}
       <div className="h-[50px] px-3 flex items-center gap-2 border-b border-slate-200 dark:border-bordercol">
-        <img src="/logo.svg" alt="" className="w-7 h-7 shrink-0" />
+        <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="" className="w-7 h-7 shrink-0 rounded-md" />
         <div className="min-w-0 leading-[1.2]">
-          <div className="font-semibold text-slate-900 dark:text-white text-[13px] truncate">Integrated Systems</div>
-          <div className="text-slate-500 dark:text-mutedtext text-[11px] truncate">Cosmo Edition</div>
+          <div className="font-semibold text-slate-900 dark:text-white text-[13px] truncate">COSMO™</div>
+          <div className="text-slate-500 dark:text-mutedtext text-[11px] truncate">Integrated Systems®</div>
         </div>
       </div>
 
@@ -63,6 +63,15 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
             ))}
           </div>
         ))}
+        {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь */}
+        <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-bordercol">
+          <NavLink
+            to={SUPERSYSADMIN.path}
+            className={({ isActive }) => `${navItemBase} font-bold ${isActive ? navItemActive : navItemInactive}`}
+          >
+            <span>{SUPERSYSADMIN.label}</span>
+          </NavLink>
+        </div>
       </nav>
 
       {/* Доод карт хэсэг */}
