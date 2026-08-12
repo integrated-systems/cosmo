@@ -32,9 +32,12 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
       {/* Толгой хэсэг — олон СөХ (multi-tenant) архитектур: дээд мөр
           Integrated Systems брэнд (тогтмол), доод мөр тухайн СөХ-ийн нэр
           (backend-ээс dynamic ирнэ, одоогоор жишээ утга). */}
-      <div className="h-[50px] px-4 flex flex-col justify-center border-b border-slate-200 dark:border-bordercol">
-        <div className="text-slate-500 dark:text-mutedtext text-[12px] leading-[1.2]">Integrated Systems</div>
-        <div className="font-semibold text-slate-900 dark:text-white mt-[1px] leading-[1.2]">Сууц өмчлөгчдийн холбоо</div>
+      <div className="h-[50px] px-3 flex items-center gap-2 border-b border-slate-200 dark:border-bordercol">
+        <img src="/logo.svg" alt="" className="w-7 h-7 shrink-0" />
+        <div className="min-w-0 leading-[1.2]">
+          <div className="font-semibold text-slate-900 dark:text-white text-[13px] truncate">Integrated Systems</div>
+          <div className="text-slate-500 dark:text-mutedtext text-[11px] truncate">Cosmo Edition</div>
+        </div>
       </div>
 
       {/* Меню хэсэг */}
