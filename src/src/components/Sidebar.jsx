@@ -1,11 +1,16 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN } from '../config/menu';
+import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
+import HoaSwitcher, { EXAMPLE_HOAS } from './HoaSwitcher';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
 const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menuactive border-r-[3px] border-blue-600 dark:border-blue-500';
 
-export default function Sidebar({ isOpen, isMobile, onToggle }) {
+export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = true }) {
+  // TODO: isSuperSysAdmin-ийг бодит auth/role-оос авах (одоогоор жинхэнэ
+  // эрхийн систем холбогдоогүй тул анхдагчаар true — UI урсгал шалгах зорилготой).
+  const [selectedHoa, setSelectedHoa] = useState(EXAMPLE_HOAS[0].id);
   return (
     <aside
       className={`w-[208px] h-screen bg-slate-50 dark:bg-sidebg border-r border-slate-200 dark:border-bordercol
@@ -40,11 +45,15 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
         </div>
       </div>
 
+      {/* SUPERSYSADMIN-д зөвхөн харагдах СөХ context switcher — "ҮНДСЭН"
+          бүлгийн эхэнд, менюгээс тусад нь. */}
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} />
+
       {/* Меню хэсэг */}
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU_SECTIONS.map((section) => (
           <div key={section.title}>
-            <div className="text-[10px] text-darktext px-4 py-1.5 tracking-[0.5px] font-bold uppercase mt-1.5 first:mt-0">
+            <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-bold uppercase mt-1.5 first:mt-0">
               {section.title}
             </div>
             {section.items.map((item) => (
@@ -63,7 +72,10 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
             ))}
           </div>
         ))}
-        {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь */}
+        {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь.
+            Дэд SaaS удирдлагын цэс (Billing г.м) зөвхөн HoaSwitcher-ээс
+            СөХ сонгосон үед л харагдана — эдгээр нь тухайн сонгосон
+            СөХ-той холбоотой үйлдэл тул. */}
         <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-bordercol">
           <NavLink
             to={SUPERSYSADMIN.path}
@@ -71,6 +83,15 @@ export default function Sidebar({ isOpen, isMobile, onToggle }) {
           >
             <span>{SUPERSYSADMIN.label}</span>
           </NavLink>
+          {isSuperSysAdmin && selectedHoa && SUPERSYSADMIN_TENANT_ITEMS.map((item) => (
+            <NavLink
+              key={item.key}
+              to={item.path}
+              className={({ isActive }) => `${navItemBase} pl-7 ${isActive ? navItemActive : navItemInactive}`}
+            >
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
         </div>
       </nav>
 

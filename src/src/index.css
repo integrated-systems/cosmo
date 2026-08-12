@@ -14,3 +14,52 @@ body {
 /* эх projectcosmo.html-ийн scrollbar загвар (нимгэн, mobile-style) */
 ::-webkit-scrollbar { width: 1.5px; height: 1.5px; }
 ::-webkit-scrollbar-thumb { border-radius: 3px; }
+
+/* ============================================================
+   ГЛОБАЛ ХҮСНЭГЭЛИЙН КЛАСС ("Сууц өмчлөгчийн бүртгэл" хуудсаас
+   гарган авсан загвар) — хэрэглэгчийн 2026-08-12 тодорхой заавар:
+   "цаашид үүсэх таблицууд яг тийм өнгө дизайнтай байх ёстой".
+   Шинэ хүснэгэл бүрд ЭНЭ классуудыг л ашиглана, utility давтахгүй.
+   ============================================================ */
+@layer components {
+  .ds-card {
+    @apply bg-white dark:bg-[#070d1d] border border-slate-200 dark:border-[#1a2642] rounded-lg;
+  }
+  .ds-toolbar {
+    @apply ds-card flex flex-wrap items-center justify-between gap-2 p-3 shrink-0;
+  }
+  .ds-select, .ds-input {
+    @apply bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-[#1a2642]
+      text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 outline-none focus:border-blue-500;
+  }
+  .ds-btn-secondary {
+    @apply bg-slate-200 dark:bg-[#1a2642] hover:bg-slate-300 dark:hover:bg-[#24345c]
+      text-slate-900 dark:text-white text-xs px-3 py-1.5 rounded transition-colors;
+  }
+  .ds-btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors;
+  }
+  .ds-table-wrap {
+    @apply ds-card p-3 flex flex-col flex-1 min-h-0;
+  }
+  .ds-table {
+    @apply w-full text-left text-xs text-slate-500 dark:text-[#8a99ad] border-collapse;
+  }
+  .ds-table thead {
+    @apply sticky top-0 bg-white dark:bg-[#070d1d] z-10 text-[#5c6c84] uppercase text-[10px]
+      border-b border-slate-200 dark:border-[#1a2642];
+  }
+  .ds-table th {
+    @apply py-2.5 px-3;
+  }
+  .ds-table td {
+    @apply py-2.5 px-3;
+  }
+  .ds-table tbody tr {
+    @apply hover:bg-slate-100 dark:hover:bg-menuhover transition-colors;
+  }
+  .ds-table-summary {
+    @apply flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-[#1a2642]
+      text-[11px] text-slate-500 dark:text-[#8a99ad] shrink-0;
+  }
+}

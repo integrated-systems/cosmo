@@ -6,13 +6,14 @@
 // Residents) л бүрэн бүтээгдсэн).
 export const MENU_SECTIONS = [
   {
-    title: 'ҮНДСЭН ҮЙЛ АЖИЛЛАГАА',
+    title: 'ҮНДСЭН',
     items: [
       { key: 'Dashboard', label: 'Хянах самбар', path: '/dashboard' },
       { key: 'News', label: 'Мэдээ, мэдээлэл', path: '/news' },
       { key: 'Payments', label: 'Төлбөр төлөлт', path: '/payments' },
-      { key: 'Notific', label: 'Зар, мэдэгдэл', path: '/notific' },
+      { key: 'anndunn', label: 'Зарлал, мэдэгдэл', path: '/anndunn' },
       { key: 'CCcenter', label: 'CC center', path: '/cccenter' },
+      { key: 'concierge', label: 'Консьерж үйлчилгээ', path: '/concierge' },
       { key: 'Emails', label: 'Имэйл', path: '/emails' },
       { key: 'VAT', label: 'ИБаримт', path: '/vat' },
     ],
@@ -103,6 +104,21 @@ export const MENU_SECTIONS = [
 // tenant-level СИСАДМИН-аас тусад нь, sidebar-ийн доод хэсэгт тусдаа
 // харагдана (7 бүлгийн жагсаалтад БИШ).
 export const SUPERSYSADMIN = { key: 'SuperSysAdmin', label: 'SUPERSYSADMIN', path: '/supersysadmin' };
+
+// SUPERSYSADMIN-ийн СөХ-специфик SaaS удирдлагын дэд цэс — HoaSwitcher-ээс
+// тодорхой СөХ сонгосон үед л харагдана (2026-08-13 хэрэглэгчтэй хийсэн
+// ярианаас: Integrated Systems→hoa1 чиглэлийн төлбөр/эрх/багц, hoa1-ийн
+// өөрийн оршин суугчид руу чиглэсэн PaymentConfig-тай АНДУУРАХГҮЙ).
+// Нэрс зориудаар англиар — Монгол орчуулгаар ойлголтын зөрүү гарахгүйн тулд.
+export const SUPERSYSADMIN_TENANT_ITEMS = [
+  { key: 'Billing', label: 'Billing', path: '/billing' },
+  { key: 'Renewal', label: 'Renewal', path: '/renewal' },
+  { key: 'Plan', label: 'Plan', path: '/plan' },
+  { key: 'Usage', label: 'Usage', path: '/usage' },
+  { key: 'TenantStatus', label: 'Tenant Status', path: '/tenant-status' },
+  { key: 'Contract', label: 'Contract', path: '/contract' },
+  { key: 'Support', label: 'Support', path: '/support' },
+];
 
 export const SIDEBAR_STATS = [
   { label: 'suh', value: null },

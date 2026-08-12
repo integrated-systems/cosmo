@@ -8,9 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
-import { MENU_SECTIONS, SUPERSYSADMIN } from './config/menu';
+import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from './config/menu';
 
-const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN];
+const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();

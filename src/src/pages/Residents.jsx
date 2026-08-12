@@ -62,37 +62,34 @@ export default function Residents() {
 
   return (
     <>
-      {/* Toolbar: шүүлтүүр + Хэвлэх/Экспортлох/Нэмэх */}
-      <div className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-[#070d1d] border border-slate-200 dark:border-[#1a2642] rounded-lg p-3 shrink-0">
+      {/* Toolbar: шүүлтүүр + Хэвлэх/Экспортлох/Нэмэх — глобал .ds-* класс ашиглав */}
+      <div className="ds-toolbar">
         <div className="flex flex-wrap items-center gap-2">
-          <select className="bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-[#1a2642] text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 outline-none">
+          <select className="ds-select">
             <option>Бүх байр</option>
           </select>
-          <select className="bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-[#1a2642] text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 outline-none">
+          <select className="ds-select">
             <option>Бүх орц</option>
           </select>
           <div className="relative min-w-[200px]">
-            <input
-              type="text" placeholder="Хайх..."
-              className="w-full bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-[#1a2642] text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 pl-8 outline-none focus:border-blue-500"
-            />
+            <input type="text" placeholder="Хайх..." className="ds-input w-full pl-8" />
             <svg className="w-4 h-4 text-slate-400 dark:text-[#8a99ad] absolute left-2.5 top-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="bg-slate-200 dark:bg-[#1a2642] hover:bg-slate-300 dark:hover:bg-[#24345c] text-slate-900 dark:text-white text-xs px-3 py-1.5 rounded transition-colors">Хэвлэх</button>
-          <button className="bg-slate-200 dark:bg-[#1a2642] hover:bg-slate-300 dark:hover:bg-[#24345c] text-slate-900 dark:text-white text-xs px-3 py-1.5 rounded transition-colors">Экспортлох</button>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors">+ Сууц өмчлөгч нэмэх</button>
+          <button className="ds-btn-secondary">Хэвлэх</button>
+          <button className="ds-btn-secondary">Экспортлох</button>
+          <button className="ds-btn-primary">+ Сууц өмчлөгч нэмэх</button>
         </div>
       </div>
 
-      {/* Хүснэгэл (sticky толгойтой, зөвхөн мөрүүд дотооддоо скроллдог) */}
-      <div className="bg-white dark:bg-[#070d1d] border border-slate-200 dark:border-[#1a2642] rounded-lg p-3 flex flex-col flex-1 min-h-0">
+      {/* Хүснэгэл (sticky толгойтой, зөвхөн мөрүүд дотооддоо скроллдог) — глобал .ds-table класс */}
+      <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-xs text-slate-500 dark:text-[#8a99ad] border-collapse">
-            <thead className="sticky top-0 bg-white dark:bg-[#070d1d] z-10 text-[#5c6c84] uppercase text-[10px] border-b border-slate-200 dark:border-[#1a2642]">
+          <table className="ds-table">
+            <thead>
               <tr>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
@@ -115,7 +112,7 @@ export default function Residents() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-[#1a2642]/50">
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-100 dark:hover:bg-menuhover transition-colors">
+                <tr key={r.id}>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium flex items-center gap-1.5">
                     <span className={`w-2 h-2 rounded-full inline-block ${r.hasBalance ? 'bg-customRed' : 'bg-customGreen'}`} />
                     {r.building}
@@ -152,7 +149,7 @@ export default function Residents() {
           </table>
         </div>
 
-        <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-[#1a2642] text-[11px] text-slate-500 dark:text-[#8a99ad] shrink-0">
+        <div className="ds-table-summary">
           <div>Нийт: {rows.length} өмчлөгч</div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customGreen inline-block" /> Төлбөрийн үлдэгдэлгүй: {rows.length - withBalance}</span>
