@@ -18,9 +18,8 @@ export const MENU_SECTIONS = [
       { key: 'dashboard', label: 'Хянах самбар', path: '/dashboard' },
       { key: 'news', label: 'Мэдээ, мэдээлэл', path: '/news' },
       { key: 'payments', label: 'Төлбөр төлөлт', path: '/payments' },
-      { key: 'anndunn', label: 'Зарлал, мэдэгдэл', path: '/anndunn' },
+      { key: 'anndunn', label: 'Мэдэгдэл', path: '/anndunn' },
       { key: 'cccenter', label: 'CC center', path: '/cccenter' },
-      { key: 'concierge', label: 'Консьерж', path: '/concierge' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
       { key: 'vat', label: 'ИБаримт', path: '/vat' },
     ],
@@ -82,7 +81,7 @@ export const MENU_SECTIONS = [
       { key: 'accounts', label: 'Хэрэглэгчийн удирдлага', path: '/accounts' },
       { key: 'uappconfig', label: 'UserApp тохиргоо', path: '/uappconfig' },
       { key: 'cosmorules', label: 'Cosmo rules', path: '/cosmorules' },
-      { key: 'hoaconfig', label: 'СөХ тохиргоо', path: '/hoaconfig' },
+      { key: 'hoaconfig', label: 'СӨХ тохиргоо', path: '/hoaconfig' },
       { key: 'addressing', label: 'Хаягжилт тохиргоо', path: '/addressing' },
       { key: 'accconfig', label: 'НББ тохиргоо', path: '/accconfig' },
       { key: 'paymentconfig', label: 'Тариф тохиргоо', path: '/paymentconfig' },
@@ -114,7 +113,6 @@ export const SUPERSYSADMIN_TENANT_ITEMS = [
 ];
 
 export const SIDEBAR_STATS = [
-  { label: 'suh', value: null },
   { label: '16 байр · 18 орц', value: null },
   { label: 'Оршин суугч', value: 65 },
   { label: 'Хүүхэд 0-5 нас', value: 13 },

@@ -136,7 +136,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
               </div>
             ))}
           </div>
-          <div className="mt-2 text-[9px] text-darktext">Management system v1.0.0</div>
+          <div className="mt-2 text-[9px] text-darktext">Version 3.11.260814</div>
         </div>
       </div>
     </aside>

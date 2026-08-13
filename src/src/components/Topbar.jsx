@@ -26,8 +26,9 @@ export default function Topbar({ theme, onToggleTheme }) {
           flex items-center justify-center text-slate-600 dark:text-mutedtext hover:text-slate-900
           dark:hover:text-white transition-colors cursor-pointer"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-          <path fillRule="evenodd" clipRule="evenodd" d="M3.75 5.25L3 6V18L3.75 18.75H20.25L21 18V6L20.25 5.25H3.75ZM4.5 7.6955V17.25H19.5V7.69525L11.9999 14.5136L4.5 7.6955ZM18.3099 6.75H5.68986L11.9999 12.4864L18.3099 6.75Z" />
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="0.5" y="0.5" width="15" height="11" rx="1" />
+          <path d="M0.5 1L8 7L15.5 1" />
         </svg>
       </button>
 
