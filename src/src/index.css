@@ -40,7 +40,7 @@ body {
     @apply bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors;
   }
   .ds-table-wrap {
-    @apply ds-card p-3 flex flex-col flex-1 min-h-0;
+    @apply ds-card p-3 flex flex-col flex-1 min-h-0 min-w-0;
   }
   .ds-table {
     @apply w-full text-left text-xs text-slate-500 dark:text-mutedtext border-collapse;

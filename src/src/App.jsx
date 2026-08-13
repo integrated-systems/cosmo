@@ -25,12 +25,12 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
       <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} />
 
       <div
-        className="flex-1 h-screen flex flex-col transition-[margin-left] duration-300 ease-in-out relative"
+        className="flex-1 min-w-0 h-screen flex flex-col transition-[margin-left] duration-300 ease-in-out relative"
         style={{ marginLeft: !isMobile && isOpen ? 208 : 0 }}
       >
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
 
-        <div className="flex-1 p-2.5 overflow-y-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
+        <div className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
           <Outlet />
           <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Integrated Systems™</div>
         </div>

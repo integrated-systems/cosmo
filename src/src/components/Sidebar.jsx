@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU_SECTIONS.map((section) => (
           <div key={section.title}>
-            <div className="text-[13px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-bold uppercase leading-[1.2]">
+            <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-semibold uppercase leading-[1.2]">
               {section.title}
             </div>
             {section.items.map((item) => (
@@ -125,9 +125,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
               </svg>
             </button>
           </div>
-          <div className="text-[11px] text-slate-600 dark:text-mutedtext leading-[1.2]">
+          <div className="text-[11px] text-slate-600 dark:text-mutedtext leading-[1.2] space-y-[3px]">
             {SIDEBAR_STATS.map((s) => (
-              <div key={s.label} className="flex justify-between">
+              <div key={s.label} className="flex justify-between py-[1px]">
                 <span>{s.label}</span>
                 {s.value != null && <span>{s.value}</span>}
               </div>
