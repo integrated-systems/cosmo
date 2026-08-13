@@ -2,7 +2,7 @@ import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import HoaSwitcher, { EXAMPLE_HOAS } from './HoaSwitcher';
 
-const navItemBase = 'px-4 py-1.5 text-[13px] cursor-pointer flex items-center justify-between no-underline transition-colors';
+const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
 const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menuactive border-r-[3px] border-blue-600 dark:border-blue-500';
 
@@ -65,7 +65,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU_SECTIONS.map((section) => (
           <div key={section.title}>
-            <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-bold uppercase mt-1.5 first:mt-0">
+            <div className="text-[13px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-bold uppercase leading-[1.2]">
               {section.title}
             </div>
             {section.items.map((item) => (
@@ -125,7 +125,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
               </svg>
             </button>
           </div>
-          <div className="text-[11px] text-slate-600 dark:text-mutedtext leading-[1.5]">
+          <div className="text-[11px] text-slate-600 dark:text-mutedtext leading-[1.2]">
             {SIDEBAR_STATS.map((s) => (
               <div key={s.label} className="flex justify-between">
                 <span>{s.label}</span>
