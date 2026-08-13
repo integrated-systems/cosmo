@@ -5,6 +5,12 @@
 // хийнэ — одоогоор бүгд PageInProgress ашиглана (Dashboard/Owners(өмнөх
 // "Сууц өмчлөгчдийн холбоо" хууль ёсны нэр томьёотой нийцүүлж Owners гэж
 // нэрлэсэн) л бүрэн бүтээгдсэн).
+//
+// 2026-08-13 хэрэглэгчийн заавраар: "ТЕХНИКИЙН УДИРДЛАГА" бүлэг бүрэн
+// устгагдав. nfcgate/nfcent/lift(Хаалт/Чип/Лифт удирдлага)-ыг БҮРТГЭЛ
+// рүү шилжүүлж, үлдсэн 8 модуль(Хяналтын камер/Дохиоллын удирдлага/
+// Гэрэлтүүлэг/Ус шавхах-шахах насос/Агааржуулалт/Нөөцийн генератор/
+// AirCond)-ийг түүнд харгалзах бүлгийн нэрийн хамт бүрэн устгав.
 export const MENU_SECTIONS = [
   {
     title: 'ҮНДСЭН',
@@ -14,7 +20,7 @@ export const MENU_SECTIONS = [
       { key: 'payments', label: 'Төлбөр төлөлт', path: '/payments' },
       { key: 'anndunn', label: 'Зарлал, мэдэгдэл', path: '/anndunn' },
       { key: 'cccenter', label: 'CC center', path: '/cccenter' },
-      { key: 'concierge', label: 'Консьерж үйлчилгээ', path: '/concierge' },
+      { key: 'concierge', label: 'Консьерж', path: '/concierge' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
       { key: 'vat', label: 'ИБаримт', path: '/vat' },
     ],
@@ -28,23 +34,9 @@ export const MENU_SECTIONS = [
       { key: 'property', label: 'Тоот, зогсоол, агуулах', path: '/property' },
       { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
       { key: 'dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
-    ],
-  },
-  {
-    title: 'ТЕХНИКИЙН УДИРДЛАГА',
-    groupKey: 'hoatechnician',
-    items: [
       { key: 'nfcgate', label: 'Хаалт удирдлага', path: '/nfcgate' },
       { key: 'nfcent', label: 'Чип удирдлага', path: '/nfcent' },
       { key: 'lift', label: 'Лифт удирдлага', path: '/lift' },
-      { key: 'secam', label: 'Хяналтын камер', path: '/secam' },
-      { key: 'alarmsys', label: 'Дохиоллын удирдлага', path: '/alarmsys' },
-      { key: 'lighting', label: 'Гэрэлтүүлэг', path: '/lighting' },
-      { key: 'pumpdrainage', label: 'Ус шавхах насос', path: '/pumpdrainage' },
-      { key: 'pumpbooster', label: 'Ус шахах насос', path: '/pumpbooster' },
-      { key: 'ventilation', label: 'Агааржуулалт', path: '/ventilation' },
-      { key: 'backupgen', label: 'Нөөцийн генератор', path: '/backupgen' },
-      { key: 'aircond', label: 'AirCond', path: '/aircond' },
     ],
   },
   {

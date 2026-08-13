@@ -23,7 +23,7 @@ export default function HoaSwitcher({ isSuperSysAdmin, value, onChange }) {
   if (!isSuperSysAdmin) return null;
 
   return (
-    <div className="px-3 pt-[22px] pb-1">
+    <div className="px-3 pt-[23px] pb-1">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
