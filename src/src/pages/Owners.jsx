@@ -183,11 +183,13 @@ export default function Owners() {
         open={!!selected}
         onClose={() => setSelected(null)}
         title={selected ? `${selected.firstname} ${selected.lastname}` : ''}
+        size="md"
         footer={
           <>
             <button className="ds-btn-secondary">CC center</button>
             <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
-            <button className="ds-btn-secondary">Мэдээлэл</button>
+            <button className="ds-btn-secondary">ИБаримт</button>
+            <button className="ds-btn-secondary">Мэдэгдэл</button>
             <button className="ds-btn-secondary" onClick={() => { setEditing(selected); setSelected(null); }}>Засах</button>
             <button className="ds-btn-secondary" onClick={() => setSelected(null)}>Хаах</button>
           </>

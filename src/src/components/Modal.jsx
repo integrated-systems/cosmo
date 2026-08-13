@@ -6,7 +6,7 @@
 export default function Modal({ open, onClose, title, children, footer, size = 'sm' }) {
   if (!open) return null;
 
-  const widthClass = size === 'lg' ? 'w-[660px]' : 'w-[420px]';
+  const widthClass = size === 'lg' ? 'w-[660px]' : size === 'md' ? 'w-[560px]' : 'w-[420px]';
 
   return (
     <div
