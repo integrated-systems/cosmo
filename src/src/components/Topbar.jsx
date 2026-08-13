@@ -5,7 +5,10 @@ const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...S
 
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();
-  const current = ALL_ITEMS.find((i) => i.path === location.pathname);
+  // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж
+  // match хийнэ.
+  const pathAfterHoa = '/' + location.pathname.replace(/^\/[^/]+/, '');
+  const current = ALL_ITEMS.find((i) => i.path === pathAfterHoa);
   const title = current?.label || 'Хянах самбар';
 
   return (

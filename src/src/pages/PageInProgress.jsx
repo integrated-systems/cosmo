@@ -7,11 +7,12 @@ const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...S
 // хараахан хуудас нь бүтээгдээгүй бүх линкэнд ижил анхдагч дэлгэц.
 export default function PageInProgress() {
   const location = useLocation();
-  const current = ALL_ITEMS.find((i) => i.path === location.pathname);
+  const pathAfterHoa = '/' + location.pathname.replace(/^\/[^/]+/, '');
+  const current = ALL_ITEMS.find((i) => i.path === pathAfterHoa);
   const title = current?.label || 'Энэ хуудас';
 
   return (
-    <div className="bg-white dark:bg-[#070d1d] border border-slate-200 dark:border-[#1a2642] rounded-lg p-6 text-center text-slate-500 dark:text-[#8a99ad]">
+    <div className="bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol rounded-lg p-6 text-center text-slate-500 dark:text-mutedtext">
       "{title}" хуудасны мэдээлэл бэлтгэгдэж байна.
     </div>
   );

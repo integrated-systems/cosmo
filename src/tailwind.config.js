@@ -26,14 +26,20 @@ export default {
         customIndigo: '#0a428f',
         customBlack: '#1c1e1f',
         customSkyBlue: '#cbeeff',
+        // LoginPage-ийн input дэвсгэр (эх suh.html login overlay кодоос,
+        // sidebg/appbg-ээс θθр тусдаа сγγдэр) — 2026-08-13 аудитаар
+        // hardcode hex олдож, tokens болгов.
+        inputbg: '#162032',
       },
       fontFamily: {
         // эх login хуудасны font-family
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
-      borderRadius: {
-        DEFAULT: '8px',
-      },
+      // 2026-08-13 засав: `borderRadius.DEFAULT` override-ыг устгав — энэ нь
+      // Tailwind-ийн ЖИНХЭНЭ `rounded`(4px)/`rounded-lg`(8px) ялгааг
+      // "нэгтгэж" байсан алдаа байсан. Одоо: жижиг идэвхтэй элемент
+      // (товч/dropdown/input) → `rounded` (4px, bordercol, 1px), карт/модаль
+      // → `rounded-lg` (8px) — Tailwind-ийн анхдагч масштаб л хангалттай.
       borderWidth: {
         DEFAULT: '1px',
       },

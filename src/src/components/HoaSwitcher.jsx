@@ -23,7 +23,7 @@ export default function HoaSwitcher({ isSuperSysAdmin, value, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-bordercol
+        className="w-full bg-slate-50 dark:bg-appbg border border-slate-200 dark:border-bordercol
           text-slate-900 dark:text-white text-xs rounded px-2.5 py-1.5 outline-none focus:border-blue-500"
       >
         {EXAMPLE_HOAS.map((h) => (

@@ -23,17 +23,17 @@ body {
    ============================================================ */
 @layer components {
   .ds-card {
-    @apply bg-white dark:bg-[#070d1d] border border-slate-200 dark:border-[#1a2642] rounded-lg;
+    @apply bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol rounded-lg;
   }
   .ds-toolbar {
     @apply ds-card flex flex-wrap items-center justify-between gap-2 p-3 shrink-0;
   }
   .ds-select, .ds-input {
-    @apply bg-slate-50 dark:bg-[#0b132b] border border-slate-200 dark:border-[#1a2642]
+    @apply bg-slate-50 dark:bg-appbg border border-slate-200 dark:border-bordercol
       text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 outline-none focus:border-blue-500;
   }
   .ds-btn-secondary {
-    @apply bg-slate-200 dark:bg-[#1a2642] hover:bg-slate-300 dark:hover:bg-[#24345c]
+    @apply bg-slate-200 dark:bg-bordercol hover:bg-slate-300 dark:hover:bg-[#24345c]
       text-slate-900 dark:text-white text-xs px-3 py-1.5 rounded transition-colors;
   }
   .ds-btn-primary {
@@ -43,11 +43,11 @@ body {
     @apply ds-card p-3 flex flex-col flex-1 min-h-0;
   }
   .ds-table {
-    @apply w-full text-left text-xs text-slate-500 dark:text-[#8a99ad] border-collapse;
+    @apply w-full text-left text-xs text-slate-500 dark:text-mutedtext border-collapse;
   }
   .ds-table thead {
-    @apply sticky top-0 bg-white dark:bg-[#070d1d] z-10 text-[#5c6c84] uppercase text-[10px]
-      border-b border-slate-200 dark:border-[#1a2642];
+    @apply sticky top-0 bg-white dark:bg-sidebg z-10 text-darktext uppercase text-[10px]
+      border-b border-slate-200 dark:border-bordercol;
   }
   .ds-table th {
     @apply py-2.5 px-3;
@@ -59,7 +59,34 @@ body {
     @apply hover:bg-slate-100 dark:hover:bg-menuhover transition-colors;
   }
   .ds-table-summary {
-    @apply flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-[#1a2642]
-      text-[11px] text-slate-500 dark:text-[#8a99ad] shrink-0;
+    @apply flex items-center justify-between pt-3 mt-2 border-t border-slate-200 dark:border-bordercol
+      text-[11px] text-slate-500 dark:text-mutedtext shrink-0;
+  }
+
+  /* Төлөлт баганын сарын индикатор (эх suh.html-ийн .mbadge, admin-react-ээс
+     нэгдсэн 20×20px/radius 4px тодорхойлолт). "үлдэгдэлгүй/paid" ногоон БИШ
+     ЦЭНХЭР өнгөтэй байх ёстой (2026-08-13 тодорхой заавар: ногоон улаантай
+     хэзээ ч зөв хоршдоггүй). */
+  .ds-month-badge {
+    @apply w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold shrink-0 border;
+  }
+  .ds-month-badge.paid {
+    @apply bg-blue-500/[0.18] text-customBlue border-blue-500/30;
+  }
+  .ds-month-badge.unpaid {
+    @apply bg-red-500/[0.15] text-customRed border-red-500/25;
+  }
+  .ds-month-badge.future {
+    @apply bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/15;
+  }
+
+  /* Мөрийн үйлдлийн icon товч (edit/delete) — эх suh.html-ийн SVG icon
+     (13×13, pencil/trash) ашиглана, emoji/text symbol БИШ. */
+  .ds-icon-btn {
+    @apply p-1 inline-flex items-center justify-center text-slate-400 dark:text-mutedtext
+      hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer bg-transparent border-none;
+  }
+  .ds-icon-btn.danger:hover {
+    @apply text-customRed dark:text-customRed;
   }
 }

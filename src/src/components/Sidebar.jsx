@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import HoaSwitcher, { EXAMPLE_HOAS } from './HoaSwitcher';
 
@@ -10,7 +9,19 @@ const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menua
 export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = true }) {
   // TODO: isSuperSysAdmin-ийг бодит auth/role-оос авах (одоогоор жинхэнэ
   // эрхийн систем холбогдоогүй тул анхдагчаар true — UI урсгал шалгах зорилготой).
-  const [selectedHoa, setSelectedHoa] = useState(EXAMPLE_HOAS[0].id);
+  const { hoaId = EXAMPLE_HOAS[0].id } = useParams();
+  const navigate = useNavigate();
+
+  // HoaSwitcher-ээс шинэ СөХ сонгоход, одоогийн хуудасны нэрийг хадгалж,
+  // зөвхөн URL-ийн :hoaId хэсгийг сольж navigate хийнэ (2026-08-13
+  // архитектурын аудитаар "selectedHoa зөвхөн Sidebar state-д хоригдсон"
+  // гэдгийг олж, URL-based tenant context загварт шилжүүлсэн шийдэл).
+  function handleHoaChange(newHoaId) {
+    const currentPath = window.location.hash.replace(/^#/, '') || '/dashboard';
+    const rest = currentPath.replace(/^\/[^/]+/, '') || '/dashboard';
+    navigate(`/${newHoaId}${rest}`);
+  }
+
   return (
     <aside
       className={`w-[208px] h-screen bg-slate-50 dark:bg-sidebg border-r border-slate-200 dark:border-bordercol
@@ -46,10 +57,11 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
       </div>
 
       {/* SUPERSYSADMIN-д зөвхөн харагдах СөХ context switcher — "ҮНДСЭН"
-          бүлгийн эхэнд, менюгээс тусад нь. */}
-      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} />
+          бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
+          өөрчилдөг тул refresh/share-д тэсвэртэй. */}
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} />
 
-      {/* Меню хэсэг */}
+      {/* Меню хэсэг — бүх линк одоогийн :hoaId-г тээж явна */}
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU_SECTIONS.map((section) => (
           <div key={section.title}>
@@ -59,7 +71,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
             {section.items.map((item) => (
               <NavLink
                 key={item.key}
-                to={item.path}
+                to={`/${hoaId}${item.path}`}
                 className={({ isActive }) => `${navItemBase} ${isActive ? navItemActive : navItemInactive}`}
               >
                 <span>{item.label}</span>
@@ -73,20 +85,20 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
           </div>
         ))}
         {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь.
-            Дэд SaaS удирдлагын цэс (Billing г.м) зөвхөн HoaSwitcher-ээс
-            СөХ сонгосон үед л харагдана — эдгээр нь тухайн сонгосон
-            СөХ-той холбоотой үйлдэл тул. */}
+            Дэд SaaS удирдлагын цэс (Billing г.м) HoaSwitcher-ээс сонгосон
+            :hoaId-той холбогдож харагдана — тухайн сонгосон СөХ-той
+            холбоотой үйлдэл тул. */}
         <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-bordercol">
           <NavLink
-            to={SUPERSYSADMIN.path}
+            to={`/${hoaId}${SUPERSYSADMIN.path}`}
             className={({ isActive }) => `${navItemBase} font-bold ${isActive ? navItemActive : navItemInactive}`}
           >
             <span>{SUPERSYSADMIN.label}</span>
           </NavLink>
-          {isSuperSysAdmin && selectedHoa && SUPERSYSADMIN_TENANT_ITEMS.map((item) => (
+          {isSuperSysAdmin && SUPERSYSADMIN_TENANT_ITEMS.map((item) => (
             <NavLink
               key={item.key}
-              to={item.path}
+              to={`/${hoaId}${item.path}`}
               className={({ isActive }) => `${navItemBase} pl-7 ${isActive ? navItemActive : navItemInactive}`}
             >
               <span>{item.label}</span>
@@ -100,7 +112,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
         <div className="bg-white dark:bg-appbg border border-slate-200 dark:border-bordercol rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-[12px] font-semibold leading-[1.2] text-slate-900 dark:text-white">SuperAdmin</div>
+              <div className="text-[12px] font-semibold leading-[1.2] text-slate-900 dark:text-white">SUPERSYSADMIN</div>
               <div className="text-[10px] text-slate-500 dark:text-mutedtext mt-[1px] leading-[1.2]">Админ</div>
             </div>
             <button

@@ -46,7 +46,7 @@ export default function LoginPage({ onLogin }) {
             <input
               id="login-email" name="email" type="email" placeholder="email@example.com"
               autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#162032] border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
+              className="w-full px-3.5 py-2.5 bg-inputbg border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
             />
           </div>
 
@@ -58,7 +58,7 @@ export default function LoginPage({ onLogin }) {
               <input
                 id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
                 autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 pr-10 bg-[#162032] border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
+                className="w-full px-3.5 py-2.5 pr-10 bg-inputbg border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
               />
               <button
                 type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}

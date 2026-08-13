@@ -1,3 +1,5 @@
+import { formatDate } from '../lib/format';
+
 // ⚠️ АУДИТААР ОЛДСОН, УСТГАСАН ЗҮЙЛ: эх projectcosmo.html-д
 // generateStaticOwnersRows() гэсэн функц байсан бөгөөд индексээс (i)
 // хамаарсан modulo арифметикаар 60 "жинхэнэ мэт" мөр үүсгэдэг байв
@@ -40,14 +42,7 @@ function MonthBadges({ paidMonths }) {
       {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
         const isPaid = paidMonths.includes(m);
         return (
-          <span
-            key={m}
-            className={`w-4 h-4 text-[9px] flex items-center justify-center rounded ${
-              isPaid
-                ? 'bg-slate-200 dark:bg-[#1a2642] text-slate-700 dark:text-white'
-                : 'bg-customRed text-white font-bold'
-            }`}
-          >
+          <span key={m} className={`ds-month-badge ${isPaid ? 'paid' : 'unpaid'}`}>
             {m}
           </span>
         );
@@ -73,7 +68,7 @@ export default function Residents() {
           </select>
           <div className="relative min-w-[200px]">
             <input type="text" placeholder="Хайх..." className="ds-input w-full pl-8" />
-            <svg className="w-4 h-4 text-slate-400 dark:text-[#8a99ad] absolute left-2.5 top-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-slate-400 dark:text-mutedtext absolute left-2.5 top-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -110,11 +105,11 @@ export default function Residents() {
                 <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-[#1a2642]/50">
+            <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full inline-block ${r.hasBalance ? 'bg-customRed' : 'bg-customGreen'}`} />
+                    <span className={`w-2 h-2 rounded-full inline-block ${r.hasBalance ? 'bg-customRed' : 'bg-customBlue'}`} />
                     {r.building}
                   </td>
                   <td className="py-2.5 px-3">{r.apt}</td>
@@ -123,7 +118,7 @@ export default function Residents() {
                   <td className="py-2.5 px-3">{r.lastname}</td>
                   <td className="py-2.5 px-3">9{r.phone}</td>
                   <td className="py-2.5 px-3">{r.email}</td>
-                  <td className="py-2.5 px-3">{r.ownDate}</td>
+                  <td className="py-2.5 px-3">{formatDate(r.ownDate)}</td>
                   <td className="py-2.5 px-3">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
                       r.status === 'Өмчлөгч'
@@ -140,8 +135,21 @@ export default function Residents() {
                   <td className="py-2.5 px-3">{r.storage}</td>
                   <td className="py-2.5 px-3">{r.vehicle}</td>
                   <td className="py-2.5 px-3"><MonthBadges paidMonths={r.paidMonths} /></td>
-                  <td className="py-2.5 px-3 text-right">
-                    <button className="text-slate-400 hover:text-slate-900 dark:hover:text-white">✎</button>
+                  <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                    <button className="ds-icon-btn" title="Засах">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                    <button className="ds-icon-btn danger" title="Устгах">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               ))}
