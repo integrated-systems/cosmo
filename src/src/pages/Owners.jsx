@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { formatDate } from '../lib/format';
+import Modal from '../components/Modal';
+import EditOwnerModal from '../components/EditOwnerModal';
 
 // ⚠️ АУДИТААР ОЛДСОН, УСТГАСАН ЗҮЙЛ: эх projectcosmo.html-д
 // generateStaticOwnersRows() гэсэн функц байсан бөгөөд индексээс (i)
@@ -53,6 +56,9 @@ function MonthBadges({ paidMonths }) {
 
 export default function Owners() {
   const rows = EXAMPLE_OWNERS;
+  const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
+  const [adding, setAdding] = useState(false);
   const withBalance = rows.filter((r) => r.hasBalance).length;
 
   return (
@@ -76,7 +82,7 @@ export default function Owners() {
         <div className="flex items-center gap-2">
           <button className="ds-btn-secondary">Хэвлэх</button>
           <button className="ds-btn-secondary">Экспортлох</button>
-          <button className="ds-btn-primary">+ Сууц өмчлөгч нэмэх</button>
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Сууц өмчлөгч нэмэх</button>
         </div>
       </div>
 
@@ -86,6 +92,7 @@ export default function Owners() {
           <table className="ds-table">
             <thead>
               <tr>
+                <th className="py-2.5 px-3 w-[44px]">#</th>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
                 <th className="py-2.5 px-3 w-[80px]">ТАЛБАЙ</th>
@@ -106,8 +113,11 @@ export default function Owners() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-              {rows.map((r) => (
-                <tr key={r.id}>
+              {rows.map((r, idx) => (
+                <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
+                  <td className="py-2.5 px-3">
+                    <span className="w-6 h-6 rounded-full bg-bordercol text-mutedtext text-[11px] font-semibold flex items-center justify-center">{idx + 1}</span>
+                  </td>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium flex items-center gap-1.5">
                     <span className={`w-2 h-2 rounded-full inline-block ${r.hasBalance ? 'bg-customRed' : 'bg-customBlue'}`} />
                     {r.building}
@@ -135,8 +145,8 @@ export default function Owners() {
                   <td className="py-2.5 px-3">{r.storage}</td>
                   <td className="py-2.5 px-3">{r.vehicle}</td>
                   <td className="py-2.5 px-3"><MonthBadges paidMonths={r.paidMonths} /></td>
-                  <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    <button className="ds-icon-btn" title="Засах">
+                  <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 1 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -160,11 +170,44 @@ export default function Owners() {
         <div className="ds-table-summary">
           <div>Нийт: {rows.length} өмчлөгч</div>
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customGreen inline-block" /> Төлбөрийн үлдэгдэлгүй: {rows.length - withBalance}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customBlue inline-block" /> Төлбөрийн үлдэгдэлгүй: {rows.length - withBalance}</span>
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customRed inline-block" /> Төлбөрийн үлдэгдэлтэй: {withBalance}</span>
           </div>
         </div>
       </div>
+
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.firstname} ${selected.lastname}` : ''}>
+        {selected && (
+          <div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Байр / Тоот</span><span className="ds-detail-value">{selected.building} / {selected.apt}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{selected.sqm} м²</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Төлөв</span><span className="ds-detail-value">{selected.status}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Утас</span><span className="ds-detail-value">{selected.phone}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Имэйл</span><span className="ds-detail-value">{selected.email}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Өмчлөх огноо</span><span className="ds-detail-value">{formatDate(selected.ownDate)}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Ам бүл</span><span className="ds-detail-value">{selected.people}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">0-6 / 6-18 нас</span><span className="ds-detail-value">{selected.child1} / {selected.child2}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{selected.parking}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{selected.storage}</span></div>
+            <div className="ds-detail-row"><span className="ds-detail-label">Машин</span><span className="ds-detail-value">{selected.vehicle}</span></div>
+          </div>
+        )}
+      </Modal>
+
+      <EditOwnerModal
+        key={editing?.id}
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        owner={editing}
+        onSave={() => setEditing(null)}
+      />
+
+      <EditOwnerModal
+        open={adding}
+        onClose={() => setAdding(false)}
+        owner={null}
+        onSave={() => setAdding(false)}
+      />
     </>
   );
 }
