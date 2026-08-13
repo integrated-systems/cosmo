@@ -93,12 +93,12 @@ body {
   /* Модал доторх мэдээллийн мөр (label+value) — 2026-08-13, цаашид
      үүсэх бүх модальд дахин ашиглана. */
   .ds-detail-row {
-    @apply flex items-center justify-between py-2 border-b border-bordercol last:border-b-0;
+    @apply flex items-center justify-between py-2 border-b border-slate-200 dark:border-bordercol last:border-b-0;
   }
   .ds-detail-label {
-    @apply text-[11px] text-mutedtext uppercase tracking-[0.4px];
+    @apply text-[11px] text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px];
   }
   .ds-detail-value {
-    @apply text-[13px] text-white font-medium text-right;
+    @apply text-[13px] text-slate-900 dark:text-white font-medium text-right;
   }
 }

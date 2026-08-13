@@ -11,7 +11,7 @@ const BUILDING_OPTIONS = [101, 102, 103, 109];
 
 function SectionTitle({ icon, children }) {
   return (
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-mutedtext uppercase tracking-[0.4px] mb-3 mt-5 first:mt-0">
+    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px] mb-3 mt-5 first:mt-0">
       {icon}
       {children}
     </div>
@@ -33,7 +33,7 @@ function SimpleListField({ label, items, onChange, placeholder }) {
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[11px] text-mutedtext uppercase tracking-[0.4px]">{label}</label>
+        <label className="text-[11px] text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px]">{label}</label>
         <button type="button" onClick={add} className="text-[11px] text-blue-500 hover:text-blue-400">+ Нэмэх</button>
       </div>
       {items.map((val, i) => (
@@ -60,7 +60,7 @@ function SpotListField({ label, checked, onToggle, items, onChange, addLabel }) 
   }
   return (
     <div className="mb-4">
-      <label className="flex items-center gap-2 text-[12px] font-medium text-white cursor-pointer mb-2">
+      <label className="flex items-center gap-2 text-[12px] font-medium text-slate-900 dark:text-white cursor-pointer mb-2">
         <input type="checkbox" checked={checked} onChange={(e) => onToggle(e.target.checked)} className="w-3.5 h-3.5 accent-blue-600" />
         {label}
       </label>
@@ -97,7 +97,7 @@ function VehicleListField({ checked, onToggle, items, onChange }) {
   }
   return (
     <div className="mb-4">
-      <label className="flex items-center gap-2 text-[12px] font-medium text-white cursor-pointer mb-2">
+      <label className="flex items-center gap-2 text-[12px] font-medium text-slate-900 dark:text-white cursor-pointer mb-2">
         <input type="checkbox" checked={checked} onChange={(e) => onToggle(e.target.checked)} className="w-3.5 h-3.5 accent-blue-600" />
         Автомашин
       </label>
@@ -169,19 +169,19 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       <SectionTitle icon={HomeIcon}>Тоотын мэдээлэл</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Байр дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байр дугаар</label>
           <select className="ds-select w-full" value={form.buildingNo} onChange={(e) => set('buildingNo', e.target.value)}>
             {BUILDING_OPTIONS.map((b) => <option key={b} value={b}>{b}-р байр</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Давхар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Давхар</label>
           <select className="ds-select w-full" value={form.floor} onChange={(e) => set('floor', e.target.value)}>
             {Array.from({ length: 9 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Хаалга дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хаалга дугаар</label>
           <select className="ds-select w-full" value={form.doorNo} onChange={(e) => set('doorNo', e.target.value)}>
             {Array.from({ length: 8 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
@@ -191,26 +191,26 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       <SectionTitle icon={UserIcon}>Сууц өмчлөгчийн мэдээлэл</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Нэр</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нэр</label>
           <input className="ds-input w-full" value={form.firstname} onChange={(e) => set('firstname', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Овог</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Овог</label>
           <input className="ds-input w-full" value={form.lastname} onChange={(e) => set('lastname', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Регистрийн дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Регистрийн дугаар</label>
           <input className="ds-input w-full" value={form.regno} onChange={(e) => set('regno', e.target.value)} />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">өмчилсөн огноо</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">өмчилсөн огноо</label>
           <input type="date" className="ds-input w-full" value={form.ownDate} onChange={(e) => set('ownDate', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">өмчийн Улсын бүртгэлийн дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">өмчийн Улсын бүртгэлийн дугаар</label>
           <div className="flex gap-2">
             <input className="ds-input w-14 text-center" value={form.cadastralPrefix} onChange={(e) => set('cadastralPrefix', e.target.value)} />
             <input className="ds-input flex-1" placeholder="000000000000" value={form.cadastralNo} onChange={(e) => set('cadastralNo', e.target.value)} />
@@ -223,15 +223,15 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Ам бүл</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ам бүл</label>
           <input type="number" className="ds-input w-full" value={form.people} onChange={(e) => set('people', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">0-6 насны хүүхэд</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">0-6 насны хүүхэд</label>
           <input type="number" className="ds-input w-full" value={form.child1} onChange={(e) => set('child1', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">6-18 насны хүүхэд</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">6-18 насны хүүхэд</label>
           <input type="number" className="ds-input w-full" value={form.child2} onChange={(e) => set('child2', e.target.value)} />
         </div>
       </div>

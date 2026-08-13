@@ -92,7 +92,7 @@ export default function Owners() {
           <table className="ds-table">
             <thead>
               <tr>
-                <th className="py-2.5 px-3 w-[44px]">#</th>
+                <th className="py-2.5 px-3 w-[56px]">#</th>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
                 <th className="py-2.5 px-3 w-[80px]">ТАЛБАЙ</th>
@@ -116,10 +116,9 @@ export default function Owners() {
               {rows.map((r, idx) => (
                 <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
                   <td className="py-2.5 px-3">
-                    <span className="w-6 h-6 rounded-full bg-bordercol text-mutedtext text-[11px] font-semibold flex items-center justify-center">{idx + 1}</span>
+                    <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-bordercol text-slate-600 dark:text-mutedtext text-[11px] font-semibold flex items-center justify-center">{idx + 1}</span>
                   </td>
-                  <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full inline-block ${r.hasBalance ? 'bg-customRed' : 'bg-customBlue'}`} />
+                  <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">
                     {r.building}
                   </td>
                   <td className="py-2.5 px-3">{r.apt}</td>

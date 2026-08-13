@@ -14,11 +14,11 @@ export default function Modal({ open, onClose, title, children, footer, size = '
       onClick={onClose}
     >
       <div
-        className={`${widthClass} max-h-[85vh] overflow-y-auto rounded-lg bg-sidebg border border-bordercol p-6`}
+        className={`${widthClass} max-h-[85vh] overflow-y-auto rounded-lg bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol p-6`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[15px] font-semibold text-white">{title}</h3>
+          <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white">{title}</h3>
           <button
             onClick={onClose}
             className="ds-icon-btn"
@@ -31,9 +31,9 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           </button>
         </div>
 
-        <div className="text-[13px] text-mutedtext">{children}</div>
+        <div className="text-[13px] text-slate-600 dark:text-mutedtext">{children}</div>
 
-        {footer && <div className="flex items-center justify-end gap-2 mt-5 pt-4 border-t border-bordercol">{footer}</div>}
+        {footer && <div className="flex items-center justify-end gap-2 mt-5 pt-4 border-t border-slate-200 dark:border-bordercol">{footer}</div>}
       </div>
     </div>
   );
