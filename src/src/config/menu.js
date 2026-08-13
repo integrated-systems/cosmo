@@ -3,99 +3,100 @@
 // (эхнээсээ хэрэглэгчийн сонгосон нэршил, дараа өөрчлөгдвөл зөвхөн энд
 // нэг л газар засна). Хуудсын дизайныг хэрэглэгч өөрөө маргаашаас эхлэн
 // хийнэ — одоогоор бүгд PageInProgress ашиглана (Dashboard/Owners(өмнөх
-// Residents) л бүрэн бүтээгдсэн).
+// "Сууц өмчлөгчдийн холбоо" хууль ёсны нэр томьёотой нийцүүлж Owners гэж
+// нэрлэсэн) л бүрэн бүтээгдсэн).
 export const MENU_SECTIONS = [
   {
     title: 'ҮНДСЭН',
     items: [
-      { key: 'Dashboard', label: 'Хянах самбар', path: '/dashboard' },
-      { key: 'News', label: 'Мэдээ, мэдээлэл', path: '/news' },
-      { key: 'Payments', label: 'Төлбөр төлөлт', path: '/payments' },
+      { key: 'dashboard', label: 'Хянах самбар', path: '/dashboard' },
+      { key: 'news', label: 'Мэдээ, мэдээлэл', path: '/news' },
+      { key: 'payments', label: 'Төлбөр төлөлт', path: '/payments' },
       { key: 'anndunn', label: 'Зарлал, мэдэгдэл', path: '/anndunn' },
-      { key: 'CCcenter', label: 'CC center', path: '/cccenter' },
+      { key: 'cccenter', label: 'CC center', path: '/cccenter' },
       { key: 'concierge', label: 'Консьерж үйлчилгээ', path: '/concierge' },
-      { key: 'Emails', label: 'Имэйл', path: '/emails' },
-      { key: 'VAT', label: 'ИБаримт', path: '/vat' },
+      { key: 'emails', label: 'Имэйл', path: '/emails' },
+      { key: 'vat', label: 'ИБаримт', path: '/vat' },
     ],
   },
   {
     title: 'БҮРТГЭЛ',
-    groupKey: 'HOAREGISTRIES',
+    groupKey: 'hoaregistries',
     items: [
-      { key: 'Owners', label: 'Сууц өмчлөгч бүртгэл', path: '/owners' },
-      { key: 'Clientele', label: 'Аж ахуйн нэгж бүртгэл', path: '/clientele' },
-      { key: 'Property', label: 'Тоот, зогсоол, агуулах', path: '/property' },
-      { key: 'Parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
-      { key: 'Dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
+      { key: 'owners', label: 'Сууц өмчлөгч бүртгэл', path: '/owners' },
+      { key: 'clientele', label: 'Аж ахуйн нэгж бүртгэл', path: '/clientele' },
+      { key: 'property', label: 'Тоот, зогсоол, агуулах', path: '/property' },
+      { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
+      { key: 'dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
     ],
   },
   {
     title: 'ТЕХНИКИЙН УДИРДЛАГА',
-    groupKey: 'HOATECHNICIAN',
+    groupKey: 'hoatechnician',
     items: [
-      { key: 'NFCGate', label: 'Хаалт удирдлага', path: '/nfcgate' },
-      { key: 'NFCEnt', label: 'Чип удирдлага', path: '/nfcent' },
-      { key: 'Lift', label: 'Лифт удирдлага', path: '/lift' },
-      { key: 'SeCam', label: 'Хяналтын камер', path: '/secam' },
-      { key: 'AlarmSys', label: 'Дохиоллын удирдлага', path: '/alarmsys' },
-      { key: 'Lighting', label: 'Гэрэлтүүлэг', path: '/lighting' },
-      { key: 'PumpDrainage', label: 'Ус шавхах насос', path: '/pumpdrainage' },
-      { key: 'PumpBooster', label: 'Ус шахах насос', path: '/pumpbooster' },
-      { key: 'Ventilation', label: 'Агааржуулалт', path: '/ventilation' },
-      { key: 'BackupGen', label: 'Нөөцийн генератор', path: '/backupgen' },
-      { key: 'AirCond', label: 'AirCond', path: '/aircond' },
+      { key: 'nfcgate', label: 'Хаалт удирдлага', path: '/nfcgate' },
+      { key: 'nfcent', label: 'Чип удирдлага', path: '/nfcent' },
+      { key: 'lift', label: 'Лифт удирдлага', path: '/lift' },
+      { key: 'secam', label: 'Хяналтын камер', path: '/secam' },
+      { key: 'alarmsys', label: 'Дохиоллын удирдлага', path: '/alarmsys' },
+      { key: 'lighting', label: 'Гэрэлтүүлэг', path: '/lighting' },
+      { key: 'pumpdrainage', label: 'Ус шавхах насос', path: '/pumpdrainage' },
+      { key: 'pumpbooster', label: 'Ус шахах насос', path: '/pumpbooster' },
+      { key: 'ventilation', label: 'Агааржуулалт', path: '/ventilation' },
+      { key: 'backupgen', label: 'Нөөцийн генератор', path: '/backupgen' },
+      { key: 'aircond', label: 'AirCond', path: '/aircond' },
     ],
   },
   {
     title: 'ДОТООД ҮЙЛ АЖИЛЛАГАА',
-    groupKey: 'HOAMANAGER',
+    groupKey: 'hoamanager',
     items: [
-      { key: 'HRM', label: 'Хүний нөөцийн удирдлага', path: '/hrm' },
-      { key: 'T&A', label: 'Цаг бүртгэл', path: '/ta' },
-      { key: 'Repairs', label: 'Засвар үйлчилгээ', path: '/repairs' },
-      { key: 'Maintenances', label: 'Тохижилт үйлчилгээ', path: '/maintenances' },
-      { key: 'Sanitations', label: 'Цэвэрлэгээ үйлчилгээ', path: '/sanitations' },
-      { key: 'Performance', label: 'Гүйцэтгэл', path: '/performance' },
-      { key: 'Providers', label: 'Харилцагчийн бүртгэл', path: '/providers' },
+      { key: 'hrm', label: 'Хүний нөөцийн удирдлага', path: '/hrm' },
+      { key: 't&a', label: 'Цаг бүртгэл', path: '/ta' },
+      { key: 'repairs', label: 'Засвар үйлчилгээ', path: '/repairs' },
+      { key: 'maintenances', label: 'Тохижилт үйлчилгээ', path: '/maintenances' },
+      { key: 'sanitations', label: 'Цэвэрлэгээ үйлчилгээ', path: '/sanitations' },
+      { key: 'performance', label: 'Гүйцэтгэл', path: '/performance' },
+      { key: 'providers', label: 'Харилцагчийн бүртгэл', path: '/providers' },
     ],
   },
   {
     title: 'САНХҮҮ',
-    groupKey: 'HOATREASURER',
+    groupKey: 'hoatreasurer',
     items: [
-      { key: 'Accounting', label: 'Нягтлан бодох бүртгэл', path: '/accounting' },
-      { key: 'RepFintax', label: 'Санхүү, татварын тайлан', path: '/repfintax' },
-      { key: 'RepInner', label: 'Дотоод тайлан', path: '/repinner' },
-      { key: 'PayrollAcc', label: 'Цалин бодолт', path: '/payrollacc' },
-      { key: 'Invoice', label: 'Нэхэмжлэх', path: '/invoice' },
-      { key: 'Transactions', label: 'Харилцахын гүйлгээ', path: '/transactions' },
+      { key: 'accounting', label: 'Нягтлан бодох бүртгэл', path: '/accounting' },
+      { key: 'repfintax', label: 'Санхүү, татварын тайлан', path: '/repfintax' },
+      { key: 'repinner', label: 'Дотоод тайлан', path: '/repinner' },
+      { key: 'payrollacc', label: 'Цалин бодолт', path: '/payrollacc' },
+      { key: 'invoice', label: 'Нэхэмжлэх', path: '/invoice' },
+      { key: 'transactions', label: 'Харилцахын гүйлгээ', path: '/transactions' },
     ],
   },
   {
     title: 'УДИРДАХ ЗөВЛөЛ ПОРТАЛ',
-    groupKey: 'HOABOARD',
+    groupKey: 'hoaboard',
     items: [
-      { key: 'FixedAssets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
-      { key: 'Voting', label: 'Сонгууль, санал асуулга', path: '/voting' },
-      { key: 'Planing', label: 'Төлөвлөгөө', path: '/planing' },
-      { key: 'RepBoard', label: 'Тайлан', path: '/repboard' },
+      { key: 'fixedassets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
+      { key: 'voting', label: 'Сонгууль, санал асуулга', path: '/voting' },
+      { key: 'planing', label: 'Төлөвлөгөө', path: '/planing' },
+      { key: 'repboard', label: 'Тайлан', path: '/repboard' },
     ],
   },
   {
     title: 'СИСАДМИН',
-    groupKey: 'SYSADMIN',
+    groupKey: 'sysadmin',
     items: [
-      { key: 'RolesRules', label: 'Хандах эрхийн тохиргоо', path: '/rolesrules' },
-      { key: 'Accounts', label: 'Хэрэглэгчийн удирдлага', path: '/accounts' },
-      { key: 'UAppConfig', label: 'UserApp тохиргоо', path: '/uappconfig' },
-      { key: 'CosmoRules', label: 'Cosmo rules', path: '/cosmorules' },
-      { key: 'HoaConfig', label: 'СөХ тохиргоо', path: '/hoaconfig' },
-      { key: 'Addressing', label: 'Хаягжилт тохиргоо', path: '/addressing' },
-      { key: 'AccConfig', label: 'НББ тохиргоо', path: '/accconfig' },
-      { key: 'PaymentConfig', label: 'Тариф тохиргоо', path: '/paymentconfig' },
-      { key: 'FixedAssConfig', label: 'Үндсэн хөрөнгө тохиргоо', path: '/fixedassconfig' },
-      { key: 'REstMarket', label: 'Real Estate market', path: '/restmarket' },
-      { key: 'Logs', label: 'Logs', path: '/logs' },
+      { key: 'rolesrules', label: 'Хандах эрхийн тохиргоо', path: '/rolesrules' },
+      { key: 'accounts', label: 'Хэрэглэгчийн удирдлага', path: '/accounts' },
+      { key: 'uappconfig', label: 'UserApp тохиргоо', path: '/uappconfig' },
+      { key: 'cosmorules', label: 'Cosmo rules', path: '/cosmorules' },
+      { key: 'hoaconfig', label: 'СөХ тохиргоо', path: '/hoaconfig' },
+      { key: 'addressing', label: 'Хаягжилт тохиргоо', path: '/addressing' },
+      { key: 'accconfig', label: 'НББ тохиргоо', path: '/accconfig' },
+      { key: 'paymentconfig', label: 'Тариф тохиргоо', path: '/paymentconfig' },
+      { key: 'fixedassconfig', label: 'Үндсэн хөрөнгө тохиргоо', path: '/fixedassconfig' },
+      { key: 'restmarket', label: 'Real Estate market', path: '/restmarket' },
+      { key: 'logs', label: 'Logs', path: '/logs' },
     ],
   },
 ];
@@ -103,7 +104,7 @@ export const MENU_SECTIONS = [
 // SUPERSYSADMIN (INTEGRATED SYSTEMS) — платформын дээд түвшний админ,
 // tenant-level СИСАДМИН-аас тусад нь, sidebar-ийн доод хэсэгт тусдаа
 // харагдана (7 бүлгийн жагсаалтад БИШ).
-export const SUPERSYSADMIN = { key: 'SuperSysAdmin', label: 'SUPERSYSADMIN', path: '/supersysadmin' };
+export const SUPERSYSADMIN = { key: 'supersysadmin', label: 'SUPERSYSADMIN', path: '/supersysadmin' };
 
 // SUPERSYSADMIN-ийн СөХ-специфик SaaS удирдлагын дэд цэс — HoaSwitcher-ээс
 // тодорхой СөХ сонгосон үед л харагдана (2026-08-13 хэрэглэгчтэй хийсэн
@@ -111,13 +112,13 @@ export const SUPERSYSADMIN = { key: 'SuperSysAdmin', label: 'SUPERSYSADMIN', pat
 // өөрийн оршин суугчид руу чиглэсэн PaymentConfig-тай АНДУУРАХГҮЙ).
 // Нэрс зориудаар англиар — Монгол орчуулгаар ойлголтын зөрүү гарахгүйн тулд.
 export const SUPERSYSADMIN_TENANT_ITEMS = [
-  { key: 'Billing', label: 'Billing', path: '/billing' },
-  { key: 'Renewal', label: 'Renewal', path: '/renewal' },
-  { key: 'Plan', label: 'Plan', path: '/plan' },
-  { key: 'Usage', label: 'Usage', path: '/usage' },
-  { key: 'TenantStatus', label: 'Tenant Status', path: '/tenant-status' },
-  { key: 'Contract', label: 'Contract', path: '/contract' },
-  { key: 'Support', label: 'Support', path: '/support' },
+  { key: 'billing', label: 'Billing', path: '/billing' },
+  { key: 'renewal', label: 'Renewal', path: '/renewal' },
+  { key: 'plan', label: 'Plan', path: '/plan' },
+  { key: 'usage', label: 'Usage', path: '/usage' },
+  { key: 'tenantstatus', label: 'Tenant Status', path: '/tenant-status' },
+  { key: 'contract', label: 'Contract', path: '/contract' },
+  { key: 'support', label: 'Support', path: '/support' },
 ];
 
 export const SIDEBAR_STATS = [

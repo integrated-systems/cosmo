@@ -8,8 +8,8 @@ import { formatDate } from '../lib/format';
 // бүрэн арилгаж, оронд нь ЦЭВЭР ГАРААР бичсэн 4 жишээ мөр тавив.
 //
 // TODO: Backend (Supabase/API) холбогдоход энэ массивыг useEffect+fetch
-// логикоор сольж, жинхэнэ residents датаг татна.
-const EXAMPLE_RESIDENTS = [
+// логикоор сольж, жинхэнэ owners датаг татна.
+const EXAMPLE_OWNERS = [
   {
     id: 1, building: 101, apt: 1010505, sqm: 55.04, firstname: 'Дэлгэр', lastname: 'Мөнх',
     phone: '87889901', email: 'delger@gmail.com', ownDate: '2026/07/01', status: 'Өмчлөгч',
@@ -51,8 +51,8 @@ function MonthBadges({ paidMonths }) {
   );
 }
 
-export default function Residents() {
-  const rows = EXAMPLE_RESIDENTS;
+export default function Owners() {
+  const rows = EXAMPLE_OWNERS;
   const withBalance = rows.filter((r) => r.hasBalance).length;
 
   return (

@@ -7,7 +7,7 @@ const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...S
 // хараахан хуудас нь бүтээгдээгүй бүх линкэнд ижил анхдагч дэлгэц.
 export default function PageInProgress() {
   const location = useLocation();
-  const pathAfterHoa = '/' + location.pathname.replace(/^\/[^/]+/, '');
+  const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
   const current = ALL_ITEMS.find((i) => i.path === pathAfterHoa);
   const title = current?.label || 'Энэ хуудас';
 

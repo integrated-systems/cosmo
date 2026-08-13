@@ -5,7 +5,7 @@ import Topbar from './components/Topbar';
 import LoginPage from './pages/LoginPage';
 import PageInProgress from './pages/PageInProgress';
 import Dashboard from './pages/Dashboard';
-import Residents from './pages/Residents';
+import Owners from './pages/Owners';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
@@ -54,7 +54,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/hoa1/dashboard" replace />} />
       <Route path="/:hoaId" element={<Layout theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="owners" element={<Residents />} />
+        <Route path="owners" element={<Owners />} />
         {/* Цэсний бусад бүх линк (49 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
         {ALL_ITEMS.filter((i) => !['/dashboard', '/owners'].includes(i.path)).map((item) => {
           const isTenantSaasItem = TENANT_ITEM_PATHS.includes(item.path) || item.path === SUPERSYSADMIN.path;
