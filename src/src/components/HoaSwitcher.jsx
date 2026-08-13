@@ -12,20 +12,24 @@ export const EXAMPLE_HOAS = Array.from({ length: 10 }, (_, i) => ({ id: `hoa${i 
 // Controlled component — сонгосон СөХ-ийн state Sidebar-т байрлана, учир нь
 // сонголтоос хамааран SUPERSYSADMIN-ийн SaaS удирдлагын дэд цэс (Billing
 // г.м) харагдах эсэхийг Sidebar тодорхойлно.
+//
+// 2026-08-13 хэрэглэгчийн тодорхой заавар: Sidebar-аас ГАРГАХГҮЙ, харин
+// (1) дээд "СөХ СОНГОХ" гарчиг label арилгав (dropdown өөрөө л энэ
+// текстийг харуулна), (2) toolbar-ийн "Бүх байр"/"Бүх орц" dropdow-той
+// босоо тэнхлэгийн дагуу яг нэг шугаманд байрлуулав (padding-top 22px =
+// Topbar 50px-ийн ард content-wrap-ийн p-2.5(10px)+.ds-toolbar-ийн
+// p-3(12px) = toolbar доторх select-ийн яг тэр өндөртэй тааруулсан).
 export default function HoaSwitcher({ isSuperSysAdmin, value, onChange }) {
   if (!isSuperSysAdmin) return null;
 
   return (
-    <div className="px-3 pt-2 pb-1">
-      <label className="block text-[9px] font-semibold text-mutedtext mb-1 uppercase tracking-[.06em]">
-        СөХ сонгох
-      </label>
+    <div className="px-3 pt-[22px] pb-1">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-50 dark:bg-appbg border border-slate-200 dark:border-bordercol
-          text-slate-900 dark:text-white text-xs rounded px-2.5 py-1.5 outline-none focus:border-blue-500"
+        className="ds-select w-full"
       >
+        <option value="" disabled>СөХ сонгох</option>
         {EXAMPLE_HOAS.map((h) => (
           <option key={h.id} value={h.id}>{h.label}</option>
         ))}

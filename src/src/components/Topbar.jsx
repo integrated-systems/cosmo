@@ -1,10 +1,12 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { hoaId } = useParams();
   // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж
   // match хийнэ.
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
@@ -15,6 +17,19 @@ export default function Topbar({ theme, onToggleTheme }) {
     <header className="h-[50px] bg-white dark:bg-appbg border-b border-slate-200 dark:border-bordercol
       flex items-center px-5 sticky top-0 z-[900] justify-between">
       <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{title}</span>
+
+      <div className="flex items-center gap-2">
+      <button
+        onClick={() => navigate(`/${hoaId}/emails`)}
+        title="Имэйл"
+        className="w-8 h-8 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
+          flex items-center justify-center text-slate-600 dark:text-mutedtext hover:text-slate-900
+          dark:hover:text-white transition-colors cursor-pointer"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path fillRule="evenodd" clipRule="evenodd" d="M3.75 5.25L3 6V18L3.75 18.75H20.25L21 18V6L20.25 5.25H3.75ZM4.5 7.6955V17.25H19.5V7.69525L11.9999 14.5136L4.5 7.6955ZM18.3099 6.75H5.68986L11.9999 12.4864L18.3099 6.75Z" />
+        </svg>
+      </button>
 
       <button
         onClick={onToggleTheme}
@@ -33,6 +48,7 @@ export default function Topbar({ theme, onToggleTheme }) {
           </svg>
         )}
       </button>
+      </div>
     </header>
   );
 }

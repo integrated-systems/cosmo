@@ -33,7 +33,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
 
         <div className="text-[13px] text-slate-600 dark:text-mutedtext">{children}</div>
 
-        {footer && <div className="flex items-center justify-end gap-2 mt-5 pt-4 border-t border-slate-200 dark:border-bordercol">{footer}</div>}
+        {footer && <div className="flex items-center flex-wrap justify-end gap-2 mt-5 pt-4 border-t border-slate-200 dark:border-bordercol">{footer}</div>}
       </div>
     </div>
   );

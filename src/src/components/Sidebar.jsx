@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
             <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-semibold uppercase leading-[1.2]">
               {section.title}
             </div>
-            {section.items.map((item) => (
+            {section.items.filter((item) => item.key !== 'emails').map((item) => (
               <NavLink
                 key={item.key}
                 to={`/${hoaId}${item.path}`}

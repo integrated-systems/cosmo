@@ -100,7 +100,7 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[100px]">ОВОГ</th>
                 <th className="py-2.5 px-3 w-[100px]">УТАС</th>
                 <th className="py-2.5 px-3 w-[140px]">ИМЭЙЛ</th>
-                <th className="py-2.5 px-3 w-[100px]">өМЧЛөХ ОГНОО</th>
+                <th className="py-2.5 px-3 w-[100px]">өМЧИЛСөН</th>
                 <th className="py-2.5 px-3 w-[90px]">ТөЛөВ</th>
                 <th className="py-2.5 px-3 w-[70px]">АМ БүЛ</th>
                 <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
@@ -116,7 +116,11 @@ export default function Owners() {
               {rows.map((r, idx) => (
                 <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
                   <td className="py-2.5 px-3">
-                    <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-bordercol text-slate-600 dark:text-mutedtext text-[11px] font-semibold flex items-center justify-center">{idx + 1}</span>
+                    <span className={`w-6 h-6 rounded-full text-[11px] font-semibold flex items-center justify-center border ${
+                      r.hasBalance
+                        ? 'bg-red-500/[0.18] text-customRed border-red-500/30'
+                        : 'bg-blue-500/[0.18] text-customBlue border-blue-500/30'
+                    }`}>{idx + 1}</span>
                   </td>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">
                     {r.building}
@@ -167,15 +171,28 @@ export default function Owners() {
         </div>
 
         <div className="ds-table-summary">
-          <div>Нийт: {rows.length} өмчлөгч</div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customBlue inline-block" /> Төлбөрийн үлдэгдэлгүй: {rows.length - withBalance}</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-customRed inline-block" /> Төлбөрийн үлдэгдэлтэй: {withBalance}</span>
+          <div>
+            Нийт: <span className="text-slate-900 dark:text-white font-medium">{rows.length}</span>,{' '}
+            Үлдэгдэлгүй: <span className="text-customBlue font-medium">{rows.length - withBalance}</span>,{' '}
+            Үлдэгдэлтэй: <span className="text-customRed font-medium">{withBalance}</span>
           </div>
         </div>
       </div>
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected ? `${selected.firstname} ${selected.lastname}` : ''}>
+      <Modal
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? `${selected.firstname} ${selected.lastname}` : ''}
+        footer={
+          <>
+            <button className="ds-btn-secondary">CC center</button>
+            <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
+            <button className="ds-btn-secondary">Мэдээлэл</button>
+            <button className="ds-btn-secondary" onClick={() => { setEditing(selected); setSelected(null); }}>Засах</button>
+            <button className="ds-btn-secondary" onClick={() => setSelected(null)}>Хаах</button>
+          </>
+        }
+      >
         {selected && (
           <div>
             <div className="ds-detail-row"><span className="ds-detail-label">Байр / Тоот</span><span className="ds-detail-value">{selected.building} / {selected.apt}</span></div>
