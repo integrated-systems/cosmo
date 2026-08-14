@@ -16,7 +16,7 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setError('');
     if (!email || !password) {
-      setError('И-мэйл болон нууц үгээ бөглөнө γγ');
+      setError('Имэйл болон нууц үгээ бөглөнө γγ');
       return;
     }
     setLoading(true);
@@ -41,7 +41,7 @@ export default function LoginPage({ onLogin }) {
         <form onSubmit={handleSubmit} autoComplete="on">
           <div className="mb-4">
             <label htmlFor="login-email" className="block text-[10px] font-semibold text-mutedtext mb-1.5 uppercase tracking-[.06em]">
-              И-мэйл
+              Имэйл
             </label>
             <input
               id="login-email" name="email" type="email" placeholder="email@example.com"

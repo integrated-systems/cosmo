@@ -219,7 +219,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       </div>
 
       <SimpleListField label="Утасны дугаар" items={form.phones} onChange={(v) => set('phones', v)} placeholder="99001122" />
-      <SimpleListField label="И-мэйл" items={form.emails} onChange={(v) => set('emails', v)} placeholder="email@example.com" />
+      <SimpleListField label="Имэйл" items={form.emails} onChange={(v) => set('emails', v)} placeholder="email@example.com" />
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
