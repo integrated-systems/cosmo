@@ -4,32 +4,38 @@ import { formatMoney } from '../lib/format';
 
 // Хотхоны зах зээлийн бодит үнэлгээний картуудад ашиглагдах "зөөлөн"
 // (Catmull-Rom → cubic Bezier) SVG муруй чарт. Responsive: ResizeObserver-
-// ээр эцэг container-ийн өргөнийг дагана (admin-react-той адил хандлага).
+// ээр эцэг container-ийн ӨРГӨН БОЛОН ӨНДРИЙГ хоёуланг нь дагана (admin-react
+// дээрх шиг муруй босоо тэнхлэгийн бүтэн зайг ашиглаж "намхан хавчгар" биш
+// харагдахын тулд өндрийг ч тогтмол биш, container-т тааруулж хэмждэг
+// болгов — 2026-08-15 хэрэглэгчийн заасан засвар).
 // props.series: [{ label, color, data: number[] }]
-export default function MarketValuationChart({ series, height = 96 }) {
+export default function MarketValuationChart({ series }) {
   const wrapRef = useRef(null);
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) setWidth(entry.contentRect.width);
+      for (const entry of entries) {
+        setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const paths = width > 0
+  const { width, height } = size;
+  const paths = width > 0 && height > 0
     ? series.map((s) => ({
         ...s,
-        d: smoothPathFromCoords(computeCoords(s.data, width, height, 4, 6, 6)),
+        d: smoothPathFromCoords(computeCoords(s.data, width, height, 4, 8, 8)),
       }))
     : [];
 
   return (
     <div ref={wrapRef} className="w-full h-full">
-      {width > 0 && (
+      {width > 0 && height > 0 && (
         <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="overflow-visible">
           {paths.map((p) => (
             <path
@@ -37,7 +43,7 @@ export default function MarketValuationChart({ series, height = 96 }) {
               d={p.d}
               fill="none"
               stroke={p.color}
-              strokeWidth="1.75"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />

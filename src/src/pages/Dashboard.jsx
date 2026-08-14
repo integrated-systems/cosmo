@@ -1,11 +1,6 @@
 import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
-import {
-  RESIDENTIAL_SALE_PRICE,
-  RESIDENTIAL_RENTAL_PRICE,
-  STORAGE_PARKING_SALE_PRICE,
-  STORAGE_PARKING_RENTAL_PRICE,
-} from '../data/realEstateMarket';
+import { MARKET_ROWS, deriveMarketSeries } from '../data/realEstateMarket';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
 // хувийн өөрчлөлт тооцно — Dashboard-ийн дээд утга/сумны индикатор энэ
@@ -16,6 +11,8 @@ function computeChangePct(data) {
   if (!prev) return 0;
   return ((last - prev) / prev) * 100;
 }
+
+const marketSeries = deriveMarketSeries(MARKET_ROWS);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -163,18 +160,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 5. Доод талын том график картууд */}
+      {/* 5. Доод талын том график картууд — картын урт/өргөний харьцаа
+          ТОГТМОЛ 16:9 (aspect-[16/9]), өмнөх фиксэд h-72 биш, эс тэгвэл
+          өргөн дэлгэц дээр карт хэт намхан харагдана */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-        <div className="ds-card p-4 flex flex-col justify-between h-72">
-          <div className="flex flex-col">
+        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+          <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Хотхоны зах зээлийн бодит үнэлгээ (Сүүлийн 12 сар)</div>
             <div className="text-xs text-slate-500 dark:text-mutedtext mt-1">Орон сууцны борлуулалтын үнэ (₮/м²)</div>
             {(() => {
-              const pct = computeChangePct(RESIDENTIAL_SALE_PRICE.data);
+              const data = marketSeries.residentialSalePrice.data;
+              const pct = computeChangePct(data);
               const up = pct >= 0;
               return (
                 <div className="text-xl font-bold text-customBlue mt-1">
-                  {formatMoney(RESIDENTIAL_SALE_PRICE.data[RESIDENTIAL_SALE_PRICE.data.length - 1])}₮{' '}
+                  {formatMoney(data[data.length - 1])}₮{' '}
                   <span className={`text-xs font-normal ${up ? 'text-customGreen' : 'text-customRed'}`}>
                     {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
                   </span>
@@ -182,38 +182,38 @@ export default function Dashboard() {
               );
             })()}
           </div>
-          <div className="flex-1 pt-4">
-            <MarketValuationChart series={[RESIDENTIAL_SALE_PRICE]} />
+          <div className="flex-1 pt-4 min-h-0">
+            <MarketValuationChart series={[marketSeries.residentialSalePrice]} />
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col justify-between h-72">
-          <div className="flex flex-col gap-1">
+        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+          <div className="flex flex-col gap-1 shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө, ₮/сар)</div>
-            <MarketValuationLegend series={RESIDENTIAL_RENTAL_PRICE.series} />
+            <MarketValuationLegend series={marketSeries.residentialRentalPrice.series} />
           </div>
-          <div className="flex-1 pt-4">
-            <MarketValuationChart series={RESIDENTIAL_RENTAL_PRICE.series} />
-          </div>
-        </div>
-
-        <div className="ds-card p-4 flex flex-col justify-between h-72">
-          <div className="flex flex-col">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮/сар)</div>
-            <MarketValuationLegend series={STORAGE_PARKING_SALE_PRICE.series} />
-          </div>
-          <div className="flex-1 pt-4">
-            <MarketValuationChart series={STORAGE_PARKING_SALE_PRICE.series} />
+          <div className="flex-1 pt-4 min-h-0">
+            <MarketValuationChart series={marketSeries.residentialRentalPrice.series} />
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col justify-between h-72">
-          <div className="flex flex-col">
+        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+          <div className="flex flex-col shrink-0">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮)</div>
+            <MarketValuationLegend series={marketSeries.storageParkingSalePrice.series} />
+          </div>
+          <div className="flex-1 pt-4 min-h-0">
+            <MarketValuationChart series={marketSeries.storageParkingSalePrice.series} />
+          </div>
+        </div>
+
+        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+          <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын түрээслэх үнэ (₮/сар)</div>
-            <MarketValuationLegend series={STORAGE_PARKING_RENTAL_PRICE.series} />
+            <MarketValuationLegend series={marketSeries.storageParkingRentalPrice.series} />
           </div>
-          <div className="flex-1 pt-4">
-            <MarketValuationChart series={STORAGE_PARKING_RENTAL_PRICE.series} />
+          <div className="flex-1 pt-4 min-h-0">
+            <MarketValuationChart series={marketSeries.storageParkingRentalPrice.series} />
           </div>
         </div>
       </div>
