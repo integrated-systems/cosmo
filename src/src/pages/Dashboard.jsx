@@ -165,8 +165,8 @@ export default function Dashboard() {
       </div>
 
       {/* 5. Доод талын том график картууд — картын урт/өргөний харьцаа
-          ТОГТМОЛ 3.5:1 (aspect-[3.5/1]). Агуулах/Зогсоолын 2 чартад
-          хэвтээ тэнхлэг(сүүлийн 12 сар)+дугуй маркер+hover попап нэмсэн */}
+          ТОГТМОЛ 3.5:1 (aspect-[3.5/1]). 4 чарт БҮГД хэвтээ тэнхлэг
+          (сүүлийн 12 сар)+дугуй маркер+hover попап-той */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
           <div className="flex flex-col shrink-0">
@@ -187,7 +187,7 @@ export default function Dashboard() {
             })()}
           </div>
           <div className="flex-1 pt-4 min-h-0">
-            <MarketValuationChart series={[marketSeries.residentialSalePrice]} />
+            <MarketValuationChart series={[marketSeries12.residentialSalePrice]} months={months12} showAxis />
           </div>
         </div>
 
@@ -197,7 +197,7 @@ export default function Dashboard() {
             <MarketValuationLegend series={marketSeries.residentialRentalPrice.series} />
           </div>
           <div className="flex-1 pt-4 min-h-0">
-            <MarketValuationChart series={marketSeries.residentialRentalPrice.series} />
+            <MarketValuationChart series={marketSeries12.residentialRentalPrice.series} months={months12} showAxis />
           </div>
         </div>
 
