@@ -135,6 +135,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
     hasStorage: false, storages: [],
     hasParking: false, parkings: [],
     hasVehicle: false, vehicles: [],
+    note: owner?.note || '',
   }));
 
   function set(field, val) {
@@ -239,6 +240,15 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
         onToggle={(v) => setForm((f) => ({ ...f, hasVehicle: v, vehicles: v && f.vehicles.length === 0 ? [{ digits: '', letters: '' }] : f.vehicles }))}
         items={form.vehicles} onChange={(v) => set('vehicles', v)}
       />
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
+        <textarea
+          className="ds-input w-full resize-none"
+          style={{ height: '52px' }}
+          value={form.note}
+          onChange={(e) => set('note', e.target.value)}
+        />
+      </div>
     </Modal>
   );
 }

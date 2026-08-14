@@ -18,24 +18,28 @@ const EXAMPLE_OWNERS = [
     phone: '87889901', email: 'delger@gmail.com', ownDate: '2026/07/01', status: 'Өмчлөгч',
     people: 6, child1: 1, child2: 2, parking: 'B1-015', storage: '—', vehicle: '—',
     paidMonths: [1, 2, 3, 4, 5, 6, 7, 8], hasBalance: false,
+    note: 'Хаалганы код мартагдсан тухай гомдол гаргасан, шинэ карт олгов.',
   },
   {
     id: 2, building: 101, apt: 1010703, sqm: 49.95, firstname: 'Балдорж', lastname: 'Түмэн',
     phone: '87880077', email: 'bal@gmail.com', ownDate: '2026/07/01', status: 'Өмчлөгч',
     people: 4, child1: 1, child2: 1, parking: 'B1-008', storage: '—', vehicle: '—',
     paidMonths: [1, 2, 3, 4, 5, 6], hasBalance: true,
+    note: 'Төлбөрийн хойшлуулга хүссэн, дараа сард 2 сарын хураамж төлнө гэж амласан.',
   },
   {
     id: 3, building: 102, apt: 1020703, sqm: 49.95, firstname: 'Мөнхөө', lastname: 'Ганбаатар',
     phone: '92719583', email: 'munhuu@mail.mn', ownDate: '2026/07/01', status: 'Түрээслэгч',
     people: 5, child1: 1, child2: 2, parking: 'B1-015', storage: 'B1-005', vehicle: '—',
     paidMonths: [1, 2, 3, 4, 5, 6, 7], hasBalance: false,
+    note: '',
   },
   {
     id: 4, building: 103, apt: 1030804, sqm: 49.95, firstname: 'Сарангэрэл', lastname: 'Отгонбаяр',
     phone: '98187926', email: 'saraa@mail.mn', ownDate: '2026/07/01', status: 'Өмчлөгч',
     people: 5, child1: 2, child2: 0, parking: '—', storage: '—', vehicle: '43021 УХО',
     paidMonths: [1, 2], hasBalance: true,
+    note: 'Машины зогсоолын маргаантай, хөршүүлээс гомдол ирсэн.',
   },
 ];
 
@@ -101,14 +105,13 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[100px]">УТАС</th>
                 <th className="py-2.5 px-3 w-[140px]">ИМЭЙЛ</th>
                 <th className="py-2.5 px-3 w-[100px]">өМЧИЛСөН</th>
-                <th className="py-2.5 px-3 w-[90px]">ТөЛөВ</th>
-                <th className="py-2.5 px-3 w-[70px]">АМ БүЛ</th>
                 <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
                 <th className="py-2.5 px-3 w-[70px]">6-18 НАС</th>
                 <th className="py-2.5 px-3 w-[80px]">ЗОГСООЛ</th>
                 <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
                 <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
                 <th className="py-2.5 px-3 w-[180px]">ТөЛөЛТ (САРААР)</th>
+                <th className="py-2.5 px-3 w-[180px]">Тайлбар</th>
                 <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
               </tr>
             </thead>
@@ -129,18 +132,9 @@ export default function Owners() {
                   <td className="py-2.5 px-3">{r.sqm} м²</td>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white">{r.firstname}</td>
                   <td className="py-2.5 px-3">{r.lastname}</td>
-                  <td className="py-2.5 px-3">9{r.phone}</td>
+                  <td className="py-2.5 px-3">{r.phone}</td>
                   <td className="py-2.5 px-3">{r.email}</td>
                   <td className="py-2.5 px-3">{formatDate(r.ownDate)}</td>
-                  <td className="py-2.5 px-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                      r.status === 'Өмчлөгч'
-                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                        : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                    }`}>
-                      {r.status}
-                    </span>
-                  </td>
                   <td className="py-2.5 px-3">{r.people}</td>
                   <td className="py-2.5 px-3">{r.child1}</td>
                   <td className="py-2.5 px-3">{r.child2}</td>
@@ -148,6 +142,7 @@ export default function Owners() {
                   <td className="py-2.5 px-3">{r.storage}</td>
                   <td className="py-2.5 px-3">{r.vehicle}</td>
                   <td className="py-2.5 px-3"><MonthBadges paidMonths={r.paidMonths} /></td>
+                  <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -208,6 +203,10 @@ export default function Owners() {
             <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{selected.parking}</span></div>
             <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{selected.storage}</span></div>
             <div className="ds-detail-row"><span className="ds-detail-label">Машин</span><span className="ds-detail-value">{selected.vehicle}</span></div>
+            <div className="pt-2 pb-1">
+              <div className="ds-detail-label mb-1">Тайлбар</div>
+              <div className="ds-detail-value text-left font-normal whitespace-pre-wrap">{selected.note || '—'}</div>
+            </div>
           </div>
         )}
       </Modal>
