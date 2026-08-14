@@ -1,4 +1,21 @@
 import { formatMoney } from '../lib/format';
+import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
+import {
+  RESIDENTIAL_SALE_PRICE,
+  RESIDENTIAL_RENTAL_PRICE,
+  STORAGE_PARKING_SALE_PRICE,
+  STORAGE_PARKING_RENTAL_PRICE,
+} from '../data/realEstateMarket';
+
+// "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
+// хувийн өөрчлөлт тооцно — Dashboard-ийн дээд утга/сумны индикатор энэ
+// НЭГ эх сурвалжаас уншина, тусад нь дахин бичихгүй.
+function computeChangePct(data) {
+  const last = data[data.length - 1];
+  const prev = data[data.length - 2];
+  if (!prev) return 0;
+  return ((last - prev) / prev) * 100;
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -152,53 +169,51 @@ export default function Dashboard() {
           <div className="flex flex-col">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Хотхоны зах зээлийн бодит үнэлгээ (Сүүлийн 12 сар)</div>
             <div className="text-xs text-slate-500 dark:text-mutedtext mt-1">Орон сууцны борлуулалтын үнэ (₮/м²)</div>
-            <div className="text-xl font-bold text-customBlue mt-1">{formatMoney(7250000)}₮ <span className="text-xs text-customGreen font-normal">▲ 0.7%</span></div>
+            {(() => {
+              const pct = computeChangePct(RESIDENTIAL_SALE_PRICE.data);
+              const up = pct >= 0;
+              return (
+                <div className="text-xl font-bold text-customBlue mt-1">
+                  {formatMoney(RESIDENTIAL_SALE_PRICE.data[RESIDENTIAL_SALE_PRICE.data.length - 1])}₮{' '}
+                  <span className={`text-xs font-normal ${up ? 'text-customGreen' : 'text-customRed'}`}>
+                    {up ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
+                  </span>
+                </div>
+              );
+            })()}
           </div>
-          <div className="flex-1 flex items-end pt-4">
-            <div className="w-full h-24 border-b border-l border-slate-200 dark:border-bordercol relative flex items-end">
-              <div className="absolute inset-0 flex items-center justify-center text-darktext text-xs">График зураглал</div>
-            </div>
+          <div className="flex-1 pt-4">
+            <MarketValuationChart series={[RESIDENTIAL_SALE_PRICE]} />
           </div>
         </div>
 
         <div className="ds-card p-4 flex flex-col justify-between h-72">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө, ₮/сар)</div>
+            <MarketValuationLegend series={RESIDENTIAL_RENTAL_PRICE.series} />
           </div>
-          <div className="flex-1 flex items-end pt-4">
-            <div className="w-full h-24 border-b border-l border-slate-200 dark:border-bordercol relative flex items-end">
-              <div className="absolute inset-0 flex items-center justify-center text-darktext text-xs">График зураглал</div>
-            </div>
+          <div className="flex-1 pt-4">
+            <MarketValuationChart series={RESIDENTIAL_RENTAL_PRICE.series} />
           </div>
         </div>
 
         <div className="ds-card p-4 flex flex-col justify-between h-72">
           <div className="flex flex-col">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮/сар)</div>
-            <div className="flex gap-4 text-[11px] text-slate-500 dark:text-mutedtext mt-1">
-              <span><span className="text-customBlue font-bold">■</span> Агуулах</span>
-              <span><span className="text-customGreen font-bold">■</span> Зогсоол</span>
-            </div>
+            <MarketValuationLegend series={STORAGE_PARKING_SALE_PRICE.series} />
           </div>
-          <div className="flex-1 flex items-end pt-4">
-            <div className="w-full h-24 border-b border-l border-slate-200 dark:border-bordercol relative flex items-end">
-              <div className="absolute inset-0 flex items-center justify-center text-darktext text-xs">График зураглал</div>
-            </div>
+          <div className="flex-1 pt-4">
+            <MarketValuationChart series={STORAGE_PARKING_SALE_PRICE.series} />
           </div>
         </div>
 
         <div className="ds-card p-4 flex flex-col justify-between h-72">
           <div className="flex flex-col">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын түрээслэх үнэ (₮/сар)</div>
-            <div className="flex gap-4 text-[11px] text-slate-500 dark:text-mutedtext mt-1">
-              <span><span className="text-customBlue font-bold">■</span> Агуулах</span>
-              <span><span className="text-customGreen font-bold">■</span> Зогсоол</span>
-            </div>
+            <MarketValuationLegend series={STORAGE_PARKING_RENTAL_PRICE.series} />
           </div>
-          <div className="flex-1 flex items-end pt-4">
-            <div className="w-full h-24 border-b border-l border-slate-200 dark:border-bordercol relative flex items-end">
-              <div className="absolute inset-0 flex items-center justify-center text-darktext text-xs">График зураглал</div>
-            </div>
+          <div className="flex-1 pt-4">
+            <MarketValuationChart series={STORAGE_PARKING_RENTAL_PRICE.series} />
           </div>
         </div>
       </div>
