@@ -27,6 +27,11 @@ export default function RealEstateMarket() {
   const salePct = computeChangePct(marketSeries.residentialSalePrice.data);
   const saleUp = salePct >= 0;
 
+  // Агуулах/Зогсоолын 2 чартад сүүлийн 12 сарыг л хэвтээ тэнхлэгтэй харуулна
+  const last12Rows = rows.slice(-12);
+  const marketSeries12 = deriveMarketSeries(last12Rows);
+  const months12 = last12Rows.map((r) => r.month);
+
   // Хүснэгэлийн мөрүүдийг сарын дарааллаар СҮҮЛИЙНХ ЭХЭНД (шинээс хуучин
   // руу) харуулна — screenshot-ийн эх дизайнтай адил.
   const tableRows = [...rows].reverse();
@@ -46,9 +51,9 @@ export default function RealEstateMarket() {
       {/* 4 мини-чарт карт — Dashboard-ийн "Хотхоны зах зээлийн бодит үнэлгээ"
           чартуудтай ЯГ АДИЛ компонент+дата ашигладаг тул хоёр хуудас
           хооронд харагдац зөрөх эрсдэлгүй. Картын урт/өргөний харьцаа
-          ТОГТМОЛ 16:9 (aspect-[16/9]) */}
+          ТОГТМОЛ 3.5:1 (aspect-[3.5/1]) */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны борлуулалтын үнэ (₮/м²)</div>
             <div className="text-xl font-bold text-customBlue mt-1">
@@ -63,7 +68,7 @@ export default function RealEstateMarket() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
           <div className="flex flex-col gap-1 shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө, ₮/сар)</div>
             <MarketValuationLegend series={marketSeries.residentialRentalPrice.series} />
@@ -73,33 +78,33 @@ export default function RealEstateMarket() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮)</div>
-            <MarketValuationLegend series={marketSeries.storageParkingSalePrice.series} />
+            <MarketValuationLegend series={marketSeries12.storageParkingSalePrice.series} />
           </div>
           <div className="flex-1 pt-4 min-h-0">
-            <MarketValuationChart series={marketSeries.storageParkingSalePrice.series} />
+            <MarketValuationChart series={marketSeries12.storageParkingSalePrice.series} months={months12} showAxis />
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[16/9]">
+        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын түрээслэх үнэ (₮/сар)</div>
-            <MarketValuationLegend series={marketSeries.storageParkingRentalPrice.series} />
+            <MarketValuationLegend series={marketSeries12.storageParkingRentalPrice.series} />
           </div>
           <div className="flex-1 pt-4 min-h-0">
-            <MarketValuationChart series={marketSeries.storageParkingRentalPrice.series} />
+            <MarketValuationChart series={marketSeries12.storageParkingRentalPrice.series} months={months12} showAxis />
           </div>
         </div>
       </div>
 
-      {/* Орон сууцны түрээсийн үнэ (1-6 өрөө) — сар бүрийн бодит үнийн
-          хүснэгэл, Owners.jsx-ийн хүснэгэлийн дизайныг дахин ашигласан.
-          Дээр нь "Сар нэмэх" товчтой түүлбэр */}
+      {/* Сар бүрийн зах зээлийн үнэ — бүх (Орон сууц/Зогсоол/Агуулах)
+          үнийг НЭГ хүснэгэлд харуулна, Owners.jsx-ийн хүснэгэлийн
+          дизайныг дахин ашигласан. Дээр нь "Сар нэмэх" товчтой түүлбэр */}
       <div className="ds-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө)</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">Сар бүрийн зах зээлийн үнэ</div>
           <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Сар нэмэх</button>
         </div>
         <div className="ds-table-wrap">
@@ -108,9 +113,14 @@ export default function RealEstateMarket() {
               <thead>
                 <tr>
                   <th className="py-2.5 px-3 w-[100px]">САР</th>
+                  <th className="py-2.5 px-3">ОРОН СУУЦ БОРЛУУЛАЛТ</th>
                   {RENTAL_LABELS.map((label) => (
-                    <th key={label} className="py-2.5 px-3">{label.toUpperCase()}</th>
+                    <th key={label} className="py-2.5 px-3">{label.toUpperCase()} ТҮРЭЭС</th>
                   ))}
+                  <th className="py-2.5 px-3">ЗОГСООЛ БОРЛУУЛАЛТ</th>
+                  <th className="py-2.5 px-3">ЗОГСООЛ ТҮРЭЭС</th>
+                  <th className="py-2.5 px-3">АГУУЛАХ БОРЛУУЛАЛТ</th>
+                  <th className="py-2.5 px-3">АГУУЛАХ ТҮРЭЭС</th>
                   <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
                 </tr>
               </thead>
@@ -118,9 +128,14 @@ export default function RealEstateMarket() {
                 {tableRows.map((row) => (
                   <tr key={row.month}>
                     <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{row.month}</td>
+                    <td className="py-2.5 px-3">{formatMoney(row.residentialSale)}₮</td>
                     {row.rental.map((v, i) => (
                       <td key={RENTAL_LABELS[i]} className="py-2.5 px-3">{formatMoney(v)}₮</td>
                     ))}
+                    <td className="py-2.5 px-3">{formatMoney(row.parkingSale)}₮</td>
+                    <td className="py-2.5 px-3">{formatMoney(row.parkingRental)}₮</td>
+                    <td className="py-2.5 px-3">{formatMoney(row.storageSale)}₮</td>
+                    <td className="py-2.5 px-3">{formatMoney(row.storageRental)}₮</td>
                     <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(row)}>
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -2,16 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 import { computeCoords, smoothPathFromCoords } from '../lib/chartMath';
 import { formatMoney } from '../lib/format';
 
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function monthAbbr(monthStr) {
+  const mm = parseInt(monthStr.split('/')[1], 10);
+  return MONTH_ABBR[mm - 1] || '';
+}
+
+const STROKE_WIDTH = 2;
+const MARKER_RADIUS = (STROKE_WIDTH * 3) / 2; // диаметр = зузаан(өргөн)-аас 3 дахин их, 1:1 харьцаатай тойрог
+const AXIS_HEIGHT = 16;
+
 // Хотхоны зах зээлийн бодит үнэлгээний картуудад ашиглагдах "зөөлөн"
-// (Catmull-Rom → cubic Bezier) SVG муруй чарт. Responsive: ResizeObserver-
-// ээр эцэг container-ийн ӨРГӨН БОЛОН ӨНДРИЙГ хоёуланг нь дагана (admin-react
-// дээрх шиг муруй босоо тэнхлэгийн бүтэн зайг ашиглаж "намхан хавчгар" биш
-// харагдахын тулд өндрийг ч тогтмол биш, container-т тааруулж хэмждэг
-// болгов — 2026-08-15 хэрэглэгчийн заасан засвар).
+// (Catmull-Rom → cubic Bezier) SVG муруй чарт. ResizeObserver-ээр эцэг
+// container-ийн ӨРГӨН БОЛОН ӨНДРИЙГ хоёуланг нь дагана.
+//
 // props.series: [{ label, color, data: number[] }]
-export default function MarketValuationChart({ series }) {
+// props.months: series[i].data-той АДИЛ УРТТАЙ 'YYYY/MM' мөрийн массив —
+//   зөвхөн showAxis=true үед шаардлагатай (2026-08-15 хэрэглэгчийн заасан
+//   Агуулах/Зогсоол чартын хэвтээ тэнхлэг+дугуй маркер+hover попап засвар)
+export default function MarketValuationChart({ series, months, showAxis = false }) {
   const wrapRef = useRef(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [hover, setHover] = useState(null);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -26,29 +38,65 @@ export default function MarketValuationChart({ series }) {
   }, []);
 
   const { width, height } = size;
-  const paths = width > 0 && height > 0
-    ? series.map((s) => ({
-        ...s,
-        d: smoothPathFromCoords(computeCoords(s.data, width, height, 4, 8, 8)),
-      }))
+  const axisHeight = showAxis ? AXIS_HEIGHT : 0;
+  const chartHeight = Math.max(height - axisHeight, 0);
+
+  const seriesCoords = width > 0 && chartHeight > 0
+    ? series.map((s) => ({ ...s, coords: computeCoords(s.data, width, chartHeight, 4, 8, 8) }))
     : [];
 
   return (
-    <div ref={wrapRef} className="w-full h-full">
-      {width > 0 && height > 0 && (
+    <div ref={wrapRef} className="w-full h-full relative">
+      {width > 0 && chartHeight > 0 && (
         <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} className="overflow-visible">
-          {paths.map((p) => (
+          {seriesCoords.map((s) => (
             <path
-              key={p.label}
-              d={p.d}
+              key={s.label}
+              d={smoothPathFromCoords(s.coords)}
               fill="none"
-              stroke={p.color}
-              strokeWidth="2"
+              stroke={s.color}
+              strokeWidth={STROKE_WIDTH}
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           ))}
+
+          {showAxis && seriesCoords.map((s) => s.coords.map((c) => (
+            <g key={`${s.label}-${c.i}`}>
+              {/* Hover-д барихад амархан том, харагдахгүй hit-area + жинхэнэ 1:1 тойрог маркер */}
+              <circle
+                cx={c.x} cy={c.y} r={MARKER_RADIUS + 5}
+                fill="transparent"
+                onMouseEnter={() => setHover({ x: c.x, y: c.y, label: s.label, value: c.v, month: months?.[c.i] })}
+                onMouseLeave={() => setHover(null)}
+                style={{ cursor: 'pointer' }}
+              />
+              <circle cx={c.x} cy={c.y} r={MARKER_RADIUS} fill={s.color} pointerEvents="none" />
+            </g>
+          )))}
+
+          {showAxis && months && seriesCoords[0]?.coords.map((c) => (
+            <text
+              key={`axis-${c.i}`}
+              x={c.x} y={chartHeight + 12}
+              textAnchor="middle"
+              className="fill-slate-400 dark:fill-darktext"
+              style={{ fontSize: '9px' }}
+            >
+              {monthAbbr(months[c.i])}
+            </text>
+          ))}
         </svg>
+      )}
+
+      {hover && (
+        <div
+          className="absolute z-10 pointer-events-none rounded-md bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol px-2 py-1 text-[11px] whitespace-nowrap shadow-lg"
+          style={{ left: hover.x, top: hover.y, transform: 'translate(-50%, -130%)' }}
+        >
+          <div className="font-medium text-slate-900 dark:text-white">{hover.label}</div>
+          <div className="text-slate-500 dark:text-mutedtext">{formatMoney(hover.value)}₮{hover.month ? ` · ${hover.month}` : ''}</div>
+        </div>
       )}
     </div>
   );

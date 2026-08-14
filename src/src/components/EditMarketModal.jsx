@@ -103,16 +103,16 @@ export default function EditMarketModal({ open, onClose, row, onSave }) {
         ))}
       </div>
 
-      <SectionTitle>Агуулах</SectionTitle>
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <Field label="Борлуулалтын үнэ (₮)" value={form.storageSale} onChange={(v) => set('storageSale', v)} />
-        <Field label="Түрээслэх үнэ (₮/сар)" value={form.storageRental} onChange={(v) => set('storageRental', v)} />
-      </div>
-
       <SectionTitle>Зогсоол</SectionTitle>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <Field label="Борлуулалтын үнэ (₮)" value={form.parkingSale} onChange={(v) => set('parkingSale', v)} />
         <Field label="Түрээслэх үнэ (₮/сар)" value={form.parkingRental} onChange={(v) => set('parkingRental', v)} />
+      </div>
+
+      <SectionTitle>Агуулах</SectionTitle>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Борлуулалтын үнэ (₮)" value={form.storageSale} onChange={(v) => set('storageSale', v)} />
+        <Field label="Түрээслэх үнэ (₮/сар)" value={form.storageRental} onChange={(v) => set('storageRental', v)} />
       </div>
     </Modal>
   );
