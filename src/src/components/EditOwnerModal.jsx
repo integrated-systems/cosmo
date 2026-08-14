@@ -206,11 +206,11 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
 
       <div className="grid grid-cols-2 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">өмчилсөн огноо</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчилсөн огноо</label>
           <input type="date" className="ds-input w-full" value={form.ownDate} onChange={(e) => set('ownDate', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">өмчийн Улсын бүртгэлийн дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
           <div className="flex gap-2">
             <input className="ds-input w-14 text-center" value={form.cadastralPrefix} onChange={(e) => set('cadastralPrefix', e.target.value)} />
             <input className="ds-input flex-1" placeholder="000000000000" value={form.cadastralNo} onChange={(e) => set('cadastralNo', e.target.value)} />
