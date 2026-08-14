@@ -105,6 +105,7 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[100px]">УТАС</th>
                 <th className="py-2.5 px-3 w-[140px]">ИМЭЙЛ</th>
                 <th className="py-2.5 px-3 w-[100px]">өМЧИЛСөН</th>
+                <th className="py-2.5 px-3 w-[70px]">АМ БүЛ</th>
                 <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
                 <th className="py-2.5 px-3 w-[70px]">6-18 НАС</th>
                 <th className="py-2.5 px-3 w-[80px]">ЗОГСООЛ</th>
