@@ -96,7 +96,7 @@ export default function Owners() {
           <table className="ds-table">
             <thead>
               <tr>
-                <th className="py-2.5 px-3 w-[56px]">#</th>
+                <th className="py-2.5 px-3 w-[56px] text-center">#</th>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
                 <th className="py-2.5 px-3 w-[80px]">м²</th>
@@ -119,7 +119,7 @@ export default function Owners() {
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
               {rows.map((r, idx) => (
                 <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
-                  <td className="py-2.5 px-3">
+                  <td className="py-2.5 px-3 text-center">
                     <span className={`w-6 h-6 rounded-full text-[11px] font-semibold flex items-center justify-center border ${
                       r.hasBalance
                         ? 'bg-red-500/[0.18] text-customRed border-red-500/30'
