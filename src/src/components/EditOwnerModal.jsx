@@ -147,7 +147,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       open={open}
       onClose={onClose}
       title={owner ? 'Сууц өмчлөгч засах' : 'Сууц өмчлөгч нэмэх'}
-      size="lg"
+      size="md"
       footer={
         <>
           <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
@@ -193,12 +193,12 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex-1 min-w-[180px]">
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчилсөн огноо</label>
           <input type="date" className="ds-input w-full" value={form.ownDate} onChange={(e) => set('ownDate', e.target.value)} />
         </div>
-        <div>
+        <div className="flex-1 min-w-[220px]">
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
           <div className="flex gap-2">
             <input className="ds-input w-14 text-center" value={form.cadastralPrefix} onChange={(e) => set('cadastralPrefix', e.target.value)} />

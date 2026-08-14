@@ -99,7 +99,7 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[56px]">#</th>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
-                <th className="py-2.5 px-3 w-[80px]">ТАЛБАЙ</th>
+                <th className="py-2.5 px-3 w-[80px]">м²</th>
                 <th className="py-2.5 px-3 w-[100px]">НЭР</th>
                 <th className="py-2.5 px-3 w-[100px]">ОВОГ</th>
                 <th className="py-2.5 px-3 w-[100px]">УТАС</th>
@@ -130,8 +130,8 @@ export default function Owners() {
                     {r.building}
                   </td>
                   <td className="py-2.5 px-3">{r.apt}</td>
-                  <td className="py-2.5 px-3">{r.sqm} м²</td>
-                  <td className="py-2.5 px-3 text-slate-900 dark:text-white">{r.firstname}</td>
+                  <td className="py-2.5 px-3">{r.sqm}</td>
+                  <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>
                   <td className="py-2.5 px-3">{r.lastname}</td>
                   <td className="py-2.5 px-3">{r.phone}</td>
                   <td className="py-2.5 px-3">{r.email}</td>
