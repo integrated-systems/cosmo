@@ -9,10 +9,9 @@ import Modal from './Modal';
 
 const BUILDING_OPTIONS = [101, 102, 103, 109];
 
-function SectionTitle({ icon, children }) {
+function SectionTitle({ children }) {
   return (
-    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px] mb-3 mt-5 first:mt-0">
-      {icon}
+    <div className="text-[11px] font-semibold text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px] mb-3 mt-5 first:mt-0">
       {children}
     </div>
   );
@@ -33,7 +32,7 @@ function SimpleListField({ label, items, onChange, placeholder }) {
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[11px] text-slate-500 dark:text-mutedtext uppercase tracking-[0.4px]">{label}</label>
+        <label className="text-[11px] text-slate-500 dark:text-mutedtext tracking-[0.4px]">{label}</label>
         <button type="button" onClick={add} className="text-[11px] text-blue-500 hover:text-blue-400">+ Нэмэх</button>
       </div>
       {items.map((val, i) => (
@@ -117,17 +116,6 @@ function VehicleListField({ checked, onToggle, items, onChange }) {
   );
 }
 
-const HomeIcon = (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
-);
-const UserIcon = (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
 export default function EditOwnerModal({ open, onClose, owner, onSave }) {
   const [form, setForm] = useState(() => ({
     buildingNo: owner?.building || BUILDING_OPTIONS[0],
@@ -166,10 +154,10 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
         </>
       }
     >
-      <SectionTitle icon={HomeIcon}>Тоотын мэдээлэл</SectionTitle>
+      <SectionTitle>Тоотын мэдээлэл</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байр дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байр</label>
           <select className="ds-select w-full" value={form.buildingNo} onChange={(e) => set('buildingNo', e.target.value)}>
             {BUILDING_OPTIONS.map((b) => <option key={b} value={b}>{b}-р байр</option>)}
           </select>
@@ -181,14 +169,14 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хаалга дугаар</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоот</label>
           <select className="ds-select w-full" value={form.doorNo} onChange={(e) => set('doorNo', e.target.value)}>
             {Array.from({ length: 8 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
       </div>
 
-      <SectionTitle icon={UserIcon}>Сууц өмчлөгчийн мэдээлэл</SectionTitle>
+      <SectionTitle>Сууц өмчлөгчийн мэдээлэл</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нэр</label>
