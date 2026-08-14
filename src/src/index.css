@@ -32,6 +32,18 @@ body {
     @apply bg-slate-50 dark:bg-appbg border border-slate-200 dark:border-bordercol
       text-slate-900 dark:text-white text-xs rounded px-3 py-1.5 outline-none focus:border-blue-500;
   }
+
+  /* iOS Safari-ийн native <input type="date"> хөндлөнгүй өндөр рүүгээ томроод
+     өргэждэг өвөрмөц зан авирыг (desktop дээр үзэгддэггүй) шийдэх — Safari
+     өөрийн built-in form-control хэлбэржилтийг ашигладаг тул зөвхөн
+     padding/line-height дээр түшигдсэн хэмжээг үл хүндэтгэдэг. `-webkit-
+     appearance: none`-ээр Safari-ийн native chrome-ыг унтрааж, тодорхой
+     өндөр тогтооно. */
+  input[type="date"].ds-input {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 32px;
+  }
   .ds-btn-secondary {
     @apply bg-slate-200 dark:bg-bordercol hover:bg-slate-300 dark:hover:bg-[#24345c]
       text-slate-900 dark:text-white text-xs px-3 py-1.5 rounded transition-colors;
