@@ -120,7 +120,7 @@ export default function Owners() {
               {rows.map((r, idx) => (
                 <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
                   <td className="py-2.5 px-3 text-center">
-                    <span className={`min-w-6 h-6 px-1 rounded-full text-[11px] font-semibold flex items-center justify-center border ${
+                    <span className={`inline-flex min-w-6 h-6 px-1 rounded-full text-[11px] font-semibold items-center justify-center border ${
                       r.hasBalance
                         ? 'bg-red-500/[0.18] text-customRed border-red-500/30'
                         : 'bg-blue-500/[0.18] text-customBlue border-blue-500/30'

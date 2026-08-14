@@ -98,7 +98,7 @@ function VehicleListField({ checked, onToggle, items, onChange }) {
     <div className="mb-4">
       <label className="flex items-center gap-2 text-[12px] font-medium text-slate-900 dark:text-white cursor-pointer mb-2">
         <input type="checkbox" checked={checked} onChange={(e) => onToggle(e.target.checked)} className="w-3.5 h-3.5 accent-blue-600" />
-        Автомашин
+        Машин
       </label>
       {checked && (
         <>
@@ -193,17 +193,15 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="flex-1 min-w-[180px]">
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчилсөн огноо</label>
-          <input type="date" className="ds-input w-full" value={form.ownDate} onChange={(e) => set('ownDate', e.target.value)} />
-        </div>
-        <div className="flex-1 min-w-[220px]">
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
-          <div className="flex gap-2">
-            <input className="ds-input w-14 text-center" value={form.cadastralPrefix} onChange={(e) => set('cadastralPrefix', e.target.value)} />
-            <input className="ds-input flex-1" placeholder="000000000000" value={form.cadastralNo} onChange={(e) => set('cadastralNo', e.target.value)} />
-          </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчилсөн огноо</label>
+        <input type="date" className="ds-input w-full" value={form.ownDate} onChange={(e) => set('ownDate', e.target.value)} />
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
+        <div className="flex gap-2">
+          <input className="ds-input w-14 text-center" value={form.cadastralPrefix} onChange={(e) => set('cadastralPrefix', e.target.value)} />
+          <input className="ds-input flex-1" placeholder="000000000000" value={form.cadastralNo} onChange={(e) => set('cadastralNo', e.target.value)} />
         </div>
       </div>
 
@@ -226,14 +224,14 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       </div>
 
       <SpotListField
-        label="Агуулах" checked={form.hasStorage}
-        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ floor: '', no: '' }] : f.storages }))}
-        items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
-      />
-      <SpotListField
         label="Зогсоол" checked={form.hasParking}
         onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ floor: '', no: '' }] : f.parkings }))}
         items={form.parkings} onChange={(v) => set('parkings', v)} addLabel="+ Зогсоол нэмэх"
+      />
+      <SpotListField
+        label="Агуулах" checked={form.hasStorage}
+        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ floor: '', no: '' }] : f.storages }))}
+        items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
       />
       <VehicleListField
         checked={form.hasVehicle}
