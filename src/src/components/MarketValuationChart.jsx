@@ -8,8 +8,8 @@ function monthAbbr(monthStr) {
   return MONTH_ABBR[mm - 1] || '';
 }
 
-const STROKE_WIDTH = 2;
-const MARKER_RADIUS = (STROKE_WIDTH * 3) / 2; // диаметр = зузаан(өргөн)-аас 3 дахин их, 1:1 харьцаатай тойрог
+const STROKE_WIDTH = 1;
+const MARKER_RADIUS = (STROKE_WIDTH * 3) / 2; // диаметр = зузаан(өргөн)-аас 3 дахин их, 1:1 харьцаатай тойрог — STROKE_WIDTH-аас уялдуулан тооцдог тул зузаан багасахад маркер ч автоматаар багасна
 const AXIS_HEIGHT = 16;
 
 // Хотхоны зах зээлийн бодит үнэлгээний картуудад ашиглагдах "зөөлөн"
