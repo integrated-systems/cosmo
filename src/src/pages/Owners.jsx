@@ -37,7 +37,9 @@ function formatDoorNo(n) {
 }
 
 // Сар бүрийн төлбөрийн дугаартай badge мөр (12 сар) — зураг загвар:
-// дугуй цэг БИШ, тоо бүхий дөрвөлжин (rounded-md), төлсөн сарууд
+// дугуй цэг БИШ, тоо бүхий дөрвөлжин (rounded — 4px, 2026-08-15 хэрэглэгчийн
+// заасны дагуу rounded-md 6px-ээс багассан, сондгой 3px биш тэгш тоо
+// сонгосон нь badge-ийн тэгш хэмийг гажуулахгүй), төлсөн сарууд
 // customBlue, төлөгдөөгүй сарууд customRed өнгөтэй.
 // TODO: бодит payments хүснэгэлээс тухайн өмчлөгчийн "хэдэн сар хүртэл
 // төлбөрөө барагдуулсан"-ыг унших ёстой. Одоохондоо backend байхгүй тул
@@ -53,7 +55,7 @@ function PaymentBadges({ paidThroughMonth }) {
         return (
           <span
             key={m}
-            className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-semibold border ${
+            className={`inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-semibold border ${
               paid
                 ? 'bg-blue-500/[0.18] text-customBlue border-blue-500/30'
                 : 'bg-red-500/[0.18] text-customRed border-red-500/30'

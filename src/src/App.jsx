@@ -9,6 +9,7 @@ import PageInProgress from './pages/PageInProgress';
 import Dashboard from './pages/Dashboard';
 import Owners from './pages/Owners';
 import RealEstateMarket from './pages/RealEstateMarket';
+import TenantStatus from './pages/TenantStatus';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
@@ -84,8 +85,12 @@ function AppRoutes() {
             модуль шиг RequireRole-гүй — зөвхөн SUPERSYSADMIN_TENANT_ITEMS +
             SUPERSYSADMIN.path л supersysadmin эрх шаарддаг */}
         <Route path="restmarket" element={<RealEstateMarket />} />
-        {/* Цэсний бусад бүх линк (48 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
-        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket'].includes(i.path)).map((item) => {
+        {/* Tenant Status — SUPERSYSADMIN-ийн Төлбөрийн 3-р алхам (гараар
+            invoice горим). SUPERSYSADMIN_TENANT_ITEMS-д багтдаг тул
+            RequireRole ХЭРЭГТЭЙ. */}
+        <Route path="tenant-status" element={<RequireRole roles={['supersysadmin']}><TenantStatus /></RequireRole>} />
+        {/* Цэсний бусад бүх линк (47 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
+        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status'].includes(i.path)).map((item) => {
           const isTenantSaasItem = TENANT_ITEM_PATHS.includes(item.path) || item.path === SUPERSYSADMIN.path;
           const element = isTenantSaasItem
             ? <RequireRole roles={['supersysadmin']}><PageInProgress /></RequireRole>
