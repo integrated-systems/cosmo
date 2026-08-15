@@ -49,7 +49,7 @@ const MONTHS_SHORT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const EXAMPLE_PAID_THROUGH = [8, 6, 7, 3];
 function PaymentBadges({ paidThroughMonth }) {
   return (
-    <div className="flex gap-[3px]">
+    <div className="flex gap-[2px]">
       {MONTHS_SHORT.map((m) => {
         const paid = m <= paidThroughMonth;
         return (
