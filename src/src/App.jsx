@@ -39,7 +39,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
 
         <div className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
           <Outlet />
-          <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Integrated Systems™</div>
+          <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Cosmo Integrated Systems</div>
         </div>
       </div>
     </div>

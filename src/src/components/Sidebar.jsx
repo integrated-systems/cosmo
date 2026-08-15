@@ -59,8 +59,8 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       <div className="h-[50px] px-3 flex items-center gap-2 border-b border-slate-200 dark:border-bordercol">
         <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="" className="w-7 h-7 shrink-0 rounded-md" />
         <div className="min-w-0 leading-[1.2]">
-          <div className="font-semibold text-slate-900 dark:text-white text-[13px] truncate">COSMO™</div>
-          <div className="text-slate-500 dark:text-mutedtext text-[11px] truncate">Integrated Systems®</div>
+          <div className="font-semibold text-slate-900 dark:text-white text-[13px] truncate">COSMO</div>
+          <div className="text-slate-500 dark:text-mutedtext text-[11px] truncate">Integrated Systems</div>
         </div>
       </div>
 

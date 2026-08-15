@@ -41,8 +41,8 @@ export default function SignUpPage({ onBackToLogin }) {
         {/* Лого */}
         <div className="text-center mb-8">
           <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="COSMO" className="w-[70px] h-[70px] mx-auto mb-2.5 rounded-xl" />
-          <div className="text-[16px] font-normal text-text tracking-[.02em]">COSMO™</div>
-          <div className="text-[14px] text-darktext mt-1">Integrated Systems®</div>
+          <div className="text-[16px] font-normal text-text tracking-[.02em]">COSMO</div>
+          <div className="text-[14px] text-darktext mt-1">Integrated Systems</div>
         </div>
 
         {success ? (
