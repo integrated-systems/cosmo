@@ -109,7 +109,7 @@ alter table owners enable row level security;
 alter table real_estate_market_prices enable row level security;
 alter table user_roles enable row level security;
 
-create policy "supersysadmin бүгдийг харна, СӨХ-ийн гишүүн өөрийн tenant-аа харна"
+create policy "supersysadmin бүгдийг харна, СӨХ-ны гишүүн өөрийн tenant-аа харна"
   on tenants for select
   using (is_supersysadmin() or id in (select my_tenant_ids()));
 

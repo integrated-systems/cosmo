@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       </button>
 
       {/* Толгой хэсэг — олон СӨХ (multi-tenant) архитектур: дээд мөр
-          Integrated Systems брэнд (тогтмол), доод мөр тухайн СӨХ-ийн нэр
+          Integrated Systems брэнд (тогтмол), доод мөр тухайн СӨХ-ны нэр
           (backend-ээс dynamic ирнэ, одоогоор жишээ утга). */}
       <div className="h-[50px] px-3 flex items-center gap-2 border-b border-slate-200 dark:border-bordercol">
         <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="" className="w-7 h-7 shrink-0 rounded-md" />

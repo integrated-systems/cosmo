@@ -36,17 +36,32 @@ function formatDoorNo(n) {
   return String(n).padStart(3, '0');
 }
 
-// Сар бүрийн төлбөрийн жижиг badge мөр (12 сар). `status` array (сар бүрд
-// 'paid'|'overdue'|'future'|undefined) — одоогоор бодит дата байхгүй тул
-// бүх дуудлагад undefined дамжина (mutedtext анхдагч өнгө).
-const MONTHS_SHORT = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-function PaymentBadges({ status }) {
+// Сар бүрийн төлбөрийн дугаартай badge мөр (12 сар) — зураг загвар:
+// дугуй цэг БИШ, тоо бүхий дөрвөлжин (rounded-md), төлсөн сарууд
+// customBlue, төлөгдөөгүй сарууд customRed өнгөтэй.
+// TODO: бодит payments хүснэгэлээс тухайн өмчлөгчийн "хэдэн сар хүртэл
+// төлбөрөө барагдуулсан"-ыг унших ёстой. Одоохондоо backend байхгүй тул
+// screenshot-той тохирсон ЖИШЭЭ утгуудаар (цэвэр гараар бичсэн,
+// algorithmic биш) мөр бүрт эргэлдүүлж харуулна.
+const MONTHS_SHORT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const EXAMPLE_PAID_THROUGH = [8, 6, 7, 3];
+function PaymentBadges({ paidThroughMonth }) {
   return (
     <div className="flex gap-[3px]">
-      {MONTHS_SHORT.map((m, i) => {
-        const s = status?.[i];
-        const color = s === 'paid' ? 'bg-customBlue' : s === 'overdue' ? 'bg-customRed' : 'bg-slate-300 dark:bg-mutedtext/50';
-        return <span key={m} className={`w-1.5 h-1.5 rounded-full ${color}`} title={`${m}-р сар`} />;
+      {MONTHS_SHORT.map((m) => {
+        const paid = m <= paidThroughMonth;
+        return (
+          <span
+            key={m}
+            className={`inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-semibold border ${
+              paid
+                ? 'bg-blue-500/[0.18] text-customBlue border-blue-500/30'
+                : 'bg-red-500/[0.18] text-customRed border-red-500/30'
+            }`}
+          >
+            {m}
+          </span>
+        );
       })}
     </div>
   );
@@ -178,7 +193,7 @@ export default function Owners() {
           <table className="ds-table">
             <thead>
               <tr>
-                <th className="py-2.5 px-3 w-[56px] text-center"></th>
+                <th className="py-2.5 px-3 w-10 text-center"></th>
                 <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
                 <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
                 <th className="py-2.5 px-3 w-[80px]">м²</th>
@@ -193,7 +208,7 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[80px]">ЗОГСООЛ</th>
                 <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
                 <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
-                <th className="py-2.5 px-3 w-[100px]">ТӨЛӨЛТ (САРААР)</th>
+                <th className="py-2.5 px-3 w-[280px]">ТӨЛӨЛТ (САРААР)</th>
                 <th className="py-2.5 px-3 w-[180px]">Тайлбар</th>
                 <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
               </tr>
@@ -227,7 +242,7 @@ export default function Owners() {
                   <td className="py-2.5 px-3">{summarizeSpots(r.parkings)}</td>
                   <td className="py-2.5 px-3">{summarizeSpots(r.storages)}</td>
                   <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                  <td className="py-2.5 px-3"><PaymentBadges status={r.paymentStatus} /></td>
+                  <td className="py-2.5 px-3"><PaymentBadges paidThroughMonth={EXAMPLE_PAID_THROUGH[idx % EXAMPLE_PAID_THROUGH.length]} /></td>
                   <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}>

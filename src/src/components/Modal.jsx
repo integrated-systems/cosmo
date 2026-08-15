@@ -3,18 +3,22 @@
 // 8px (карт/модалийн стандарт), доторх товчнууд 4px (.ds-btn-* классууд
 // аль хэдийн зөв тохируулагдсан). "Rule of two": цаашид өгөгдөх модалиудад
 // энэ л компонентыг дахин ашиглана, шинээр overlay бүтэц бүү давт.
+// 2026-08-15: "xl" хэмжээ нэмэв (max 900×1200px, гэрээ/урт текст харуулах
+// картад зориулсан, жижиг дэлгэцэд уян хатан жижгэрдэг).
 export default function Modal({ open, onClose, title, children, footer, size = 'sm' }) {
   if (!open) return null;
 
-  const widthClass = size === 'lg' ? 'w-[660px]' : size === 'md' ? 'w-[560px]' : 'w-[420px]';
+  const widthClass = size === 'xl' ? 'w-full max-w-[900px]' : size === 'lg' ? 'w-[660px]' : size === 'md' ? 'w-[560px]' : 'w-[420px]';
+  const maxHeightStyle = size === 'xl' ? { maxHeight: 'min(85vh, 1200px)' } : undefined;
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
         className={`${widthClass} max-h-[85vh] overflow-y-auto rounded-lg bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol p-6`}
+        style={maxHeightStyle}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">

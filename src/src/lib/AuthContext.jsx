@@ -1,9 +1,7 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 
-// Аpp-ийн бүх хэсэгт auth session+role мэдээллийг дамжуулах Context.
-// TODO: Supabase холбогдоход App.jsx-ийн local isLoggedIn state-ийг эндээс
-// ирэх session-ээр сольсон (2026-08-15).
+// App-ийн бүх хэсэгт auth session+role мэдээллийг дамжуулах Context.
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -20,17 +18,20 @@ export function AuthProvider({ children }) {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (!session?.user) {
+  // 2026-08-15: onboarding (шинэ tenant үүсгэсний дараа) session солигдохгүй
+  // ч role-ыг шинэчлэх шаардлагатай тул fetch-ийг тусад нь функц болгож,
+  // `refreshRoles()`-оор гадна дуудагддаг болгов.
+  const fetchRoles = useCallback((userId) => {
+    if (!userId) {
       setRoles([]);
       setTenantIds([]);
       return;
     }
     setRolesLoading(true);
-    supabase
+    return supabase
       .from('user_roles')
       .select('role, tenant_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .then(({ data, error }) => {
         if (error) {
           console.error('user_roles татахад алдаа гарлаа:', error.message);
@@ -42,7 +43,11 @@ export function AuthProvider({ children }) {
         }
         setRolesLoading(false);
       });
-  }, [session?.user?.id]);
+  }, []);
+
+  useEffect(() => {
+    fetchRoles(session?.user?.id);
+  }, [session?.user?.id, fetchRoles]);
 
   const value = {
     session,
@@ -52,6 +57,7 @@ export function AuthProvider({ children }) {
     tenantIds,
     isSuperSysAdmin: roles.includes('supersysadmin'),
     signOut: () => supabase.auth.signOut(),
+    refreshRoles: () => fetchRoles(session?.user?.id),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

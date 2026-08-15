@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+import OnboardingPage from './pages/OnboardingPage';
 import PageInProgress from './pages/PageInProgress';
 import Dashboard from './pages/Dashboard';
 import Owners from './pages/Owners';
@@ -45,7 +48,11 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
 function AppRoutes() {
   const { theme, toggleTheme } = useTheme();
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
-  const { session, loading } = useAuth();
+  const { session, loading, roles } = useAuth();
+  // Login/Sign-Up хоёрын хооронд сэлгэх — session алга үед ЭДГЭЭР 2
+  // хуудас <Routes>-ийн бүрэн гадна, энгийн local state-ээр сэлгэгддэг
+  // (auth хийгдээгүй үед бүтэн route бүтэц шаардлагагүй).
+  const [authView, setAuthView] = useState('login');
 
   if (loading) {
     return (
@@ -56,7 +63,15 @@ function AppRoutes() {
   }
 
   if (!session) {
-    return <LoginPage />;
+    return authView === 'signup'
+      ? <SignUpPage onBackToLogin={() => setAuthView('login')} />
+      : <LoginPage onSignUpClick={() => setAuthView('signup')} />;
+  }
+
+  // Session бий боловч user_roles-д ямар ч мөр байхгүй (жиш нь шинэ
+  // Sign-Up хийсэн, tenant үүсгээгүй хэрэглэгч) — Onboarding харуулна.
+  if (roles.length === 0) {
+    return <OnboardingPage />;
   }
 
   return (

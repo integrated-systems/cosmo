@@ -1,6 +1,6 @@
 // SUPERSYSADMIN-ийн "СӨХ context switch" — impersonation биш (2026-08-13
 // хэрэглэгчтэй хийсэн ярианаас: SuperSysAdmin өөрийн session-оороо л
-// өөр СӨХ-ийн өгөгдлийг харна, тухайн СӨХ-ийн admin-ийн session-ыг
+// өөр СӨХ-ны өгөгдлийг харна, тухайн СӨХ-ны admin-ийн session-ыг
 // авдаггүй). Бодит impersonation (admin-ийн session шууд авах) хэрэгтэй
 // болбол ЭНЭ dropdown-оос тусад нь, илүү хатуу баталгаажуулалттай
 // (шалтгаан бичих г.м) тусгай үйлдэл болгоно.
@@ -8,7 +8,7 @@
 // 2026-08-15: жагсаалт одоо Sidebar.jsx-ээс `useTenants()`-ээр (бодит
 // "tenants" хүснэгэл) дамждаг — EXAMPLE_HOAS хуурамч жагсаалт устгав.
 
-// Controlled component — сонгосон СӨХ-ийн state Sidebar-т байрлана, учир нь
+// Controlled component — сонгосон СӨХ-ны state Sidebar-т байрлана, учир нь
 // сонголтоос хамааран SUPERSYSADMIN-ийн SaaS удирдлагын дэд цэс (Billing
 // г.м) харагдах эсэхийг Sidebar тодорхойлно.
 //

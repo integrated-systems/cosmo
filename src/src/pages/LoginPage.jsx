@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient';
 // гараар засварласан дизайн) React/Tailwind компонент болгож хөрвүүлсэн.
 // 2026-08-15: handleSubmit одоо бодит supabase.auth.signInWithPassword
 // дуудлага хийдэг болов (өмнө зөвхөн UI+setTimeout байсан).
-export default function LoginPage() {
+export default function LoginPage({ onSignUpClick }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -84,12 +84,20 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="mb-5 flex items-center gap-2">
-            <input
-              id="login-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
-              className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
-            />
-            <label htmlFor="login-remember" className="text-xs text-mutedtext cursor-pointer select-none">Намайг сана</label>
+          <div className="mb-5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="login-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
+                className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
+              />
+              <label htmlFor="login-remember" className="text-xs text-mutedtext cursor-pointer select-none">Намайг сана</label>
+            </div>
+            <button
+              type="button" onClick={onSignUpClick}
+              className="bg-transparent border-none p-0 text-xs text-blue-500 hover:text-blue-400 cursor-pointer underline"
+            >
+              SIGN-UP
+            </button>
           </div>
 
           {error && (
