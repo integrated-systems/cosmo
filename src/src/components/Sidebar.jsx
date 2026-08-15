@@ -19,7 +19,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const navigate = useNavigate();
   const [hasUserPicked, setHasUserPicked] = useState(false);
 
-  // HoaSwitcher-ээс шинэ СөХ сонгоход, одоогийн хуудасны нэрийг хадгалж,
+  // HoaSwitcher-ээс шинэ СӨХ сонгоход, одоогийн хуудасны нэрийг хадгалж,
   // зөвхөн URL-ийн :hoaId хэсгийг сольж navigate хийнэ (2026-08-13
   // архитектурын аудитаар "selectedHoa зөвхөн Sidebar state-д хоригдсон"
   // гэдгийг олж, URL-based tenant context загварт шилжүүлсэн шийдэл).
@@ -53,8 +53,8 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
         </svg>
       </button>
 
-      {/* Толгой хэсэг — олон СөХ (multi-tenant) архитектур: дээд мөр
-          Integrated Systems брэнд (тогтмол), доод мөр тухайн СөХ-ийн нэр
+      {/* Толгой хэсэг — олон СӨХ (multi-tenant) архитектур: дээд мөр
+          Integrated Systems брэнд (тогтмол), доод мөр тухайн СӨХ-ийн нэр
           (backend-ээс dynamic ирнэ, одоогоор жишээ утга). */}
       <div className="h-[50px] px-3 flex items-center gap-2 border-b border-slate-200 dark:border-bordercol">
         <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="" className="w-7 h-7 shrink-0 rounded-md" />
@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
         </div>
       </div>
 
-      {/* SUPERSYSADMIN-д зөвхөн харагдах СөХ context switcher — "ҮНДСЭН"
+      {/* SUPERSYSADMIN-д зөвхөн харагдах СӨХ context switcher — "ҮНДСЭН"
           бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
       <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasUserPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
@@ -94,7 +94,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
         ))}
         {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь.
             Дэд SaaS удирдлагын цэс (Billing г.м) HoaSwitcher-ээс сонгосон
-            :hoaId-той холбогдож харагдана — тухайн сонгосон СөХ-той
+            :hoaId-той холбогдож харагдана — тухайн сонгосон СӨХ-той
             холбоотой үйлдэл тул. */}
         <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-bordercol">
           <NavLink

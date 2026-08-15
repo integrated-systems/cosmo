@@ -51,10 +51,10 @@ export default function RealEstateMarket() {
       {/* 4 мини-чарт карт — Dashboard-ийн "Хотхоны зах зээлийн бодит үнэлгээ"
           чартуудтай ЯГ АДИЛ компонент+дата ашигладаг тул хоёр хуудас
           хооронд харагдац зөрөх эрсдэлгүй. Картын урт/өргөний харьцаа
-          ТОГТМОЛ 3.5:1 (aspect-[3.5/1]). 4 чарт БҮГД хэвтээ тэнхлэг
+          ТОГТМОЛ 3:1 (aspect-[3/1]). 4 чарт БҮГД хэвтээ тэнхлэг
           (сүүлийн 12 сар)+дугуй маркер+hover попап-той */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны борлуулалтын үнэ (₮/м²)</div>
             <div className="text-xl font-bold text-customBlue mt-1">
@@ -69,7 +69,7 @@ export default function RealEstateMarket() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col gap-1 shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө, ₮/сар)</div>
             <MarketValuationLegend series={marketSeries.residentialRentalPrice.series} />
@@ -79,7 +79,7 @@ export default function RealEstateMarket() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮)</div>
             <MarketValuationLegend series={marketSeries12.storageParkingSalePrice.series} />
@@ -89,7 +89,7 @@ export default function RealEstateMarket() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын түрээслэх үнэ (₮/сар)</div>
             <MarketValuationLegend series={marketSeries12.storageParkingRentalPrice.series} />

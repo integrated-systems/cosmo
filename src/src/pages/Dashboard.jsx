@@ -114,8 +114,8 @@ export default function Dashboard() {
             <table className="w-full text-left text-xs text-slate-500 dark:text-mutedtext">
               <thead className="border-b border-slate-200 dark:border-bordercol text-darktext uppercase text-[10px]">
                 <tr>
-                  <th className="pb-2">ТООТ/НЭР</th><th className="pb-2">ДүН</th>
-                  <th className="pb-2">ТөЛБөРИЙН ХЭЛБЭР</th><th className="pb-2 text-right">ОГНОО</th>
+                  <th className="pb-2">ТООТ/НЭР</th><th className="pb-2">ДҮН</th>
+                  <th className="pb-2">ТӨЛБӨРИЙН ХЭЛБЭР</th><th className="pb-2 text-right">ОГНОО</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,8 +136,8 @@ export default function Dashboard() {
             <table className="w-full text-left text-xs text-slate-500 dark:text-mutedtext">
               <thead className="border-b border-slate-200 dark:border-bordercol text-darktext uppercase text-[10px]">
                 <tr>
-                  <th className="pb-2">ТООТ/НЭР</th><th className="pb-2">ТөРөЛ</th>
-                  <th className="pb-2">ХУГАЦАА</th><th className="pb-2 text-right">ДүН</th>
+                  <th className="pb-2">ТООТ/НЭР</th><th className="pb-2">ТӨРӨЛ</th>
+                  <th className="pb-2">ХУГАЦАА</th><th className="pb-2 text-right">ДҮН</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -165,10 +165,10 @@ export default function Dashboard() {
       </div>
 
       {/* 5. Доод талын том график картууд — картын урт/өргөний харьцаа
-          ТОГТМОЛ 3.5:1 (aspect-[3.5/1]). 4 чарт БҮГД хэвтээ тэнхлэг
+          ТОГТМОЛ 3:1 (aspect-[3/1]). 4 чарт БҮГД хэвтээ тэнхлэг
           (сүүлийн 12 сар)+дугуй маркер+hover попап-той */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Хотхоны зах зээлийн бодит үнэлгээ (Сүүлийн 12 сар)</div>
             <div className="text-xs text-slate-500 dark:text-mutedtext mt-1">Орон сууцны борлуулалтын үнэ (₮/м²)</div>
@@ -191,7 +191,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col gap-1 shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Орон сууцны түрээсийн үнэ (1-6 өрөө, ₮/сар)</div>
             <MarketValuationLegend series={marketSeries.residentialRentalPrice.series} />
@@ -201,7 +201,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын борлуулалтын үнэ (₮)</div>
             <MarketValuationLegend series={marketSeries12.storageParkingSalePrice.series} />
@@ -211,7 +211,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="ds-card p-4 flex flex-col aspect-[3.5/1]">
+        <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулах, Зогсоолын түрээслэх үнэ (₮/сар)</div>
             <MarketValuationLegend series={marketSeries12.storageParkingRentalPrice.series} />

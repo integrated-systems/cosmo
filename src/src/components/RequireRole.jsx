@@ -6,7 +6,7 @@ import { useRole } from '../hooks/useRole';
 // логик бичихийн оронд, `<RequireRole roles={['supersysadmin']}>`-оор
 // л бүх route/хэсгийг хамгаална.
 // 2026-08-15: нэг хэрэглэгч хэд хэдэн role-той байж болох тул (жиш:
-// СөХ-ийн энгийн гишүүн + supersysadmin) массив дундаас шалгадаг болгов.
+// СӨХ-ийн энгийн гишүүн + supersysadmin) массив дундаас шалгадаг болгов.
 export default function RequireRole({ roles: allowedRoles, children }) {
   const { roles: userRoles } = useRole();
 

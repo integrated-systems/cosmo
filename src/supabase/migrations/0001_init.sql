@@ -5,7 +5,7 @@
 -- бүхэлд нь paste хийгээд Run дар.
 
 -- ===================================================================
--- 1. tenants — СөХ бүр 1 мөр
+-- 1. tenants — СӨХ бүр 1 мөр
 -- ===================================================================
 create table if not exists tenants (
   id uuid primary key default gen_random_uuid(),
@@ -109,7 +109,7 @@ alter table owners enable row level security;
 alter table real_estate_market_prices enable row level security;
 alter table user_roles enable row level security;
 
-create policy "supersysadmin бүгдийг харна, СөХ-ийн гишүүн өөрийн tenant-аа харна"
+create policy "supersysadmin бүгдийг харна, СӨХ-ийн гишүүн өөрийн tenant-аа харна"
   on tenants for select
   using (is_supersysadmin() or id in (select my_tenant_ids()));
 

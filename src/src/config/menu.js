@@ -64,7 +64,7 @@ export const MENU_SECTIONS = [
     ],
   },
   {
-    title: 'УДИРДАХ ЗөВЛөЛ ПОРТАЛ',
+    title: 'УДИРДАХ ЗӨВЛӨЛ ПОРТАЛ',
     groupKey: 'hoaboard',
     items: [
       { key: 'fixedassets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
@@ -97,8 +97,8 @@ export const MENU_SECTIONS = [
 // харагдана (7 бүлгийн жагсаалтад БИШ).
 export const SUPERSYSADMIN = { key: 'supersysadmin', label: 'SUPERSYSADMIN', path: '/supersysadmin' };
 
-// SUPERSYSADMIN-ийн СөХ-специфик SaaS удирдлагын дэд цэс — HoaSwitcher-ээс
-// тодорхой СөХ сонгосон үед л харагдана (2026-08-13 хэрэглэгчтэй хийсэн
+// SUPERSYSADMIN-ийн СӨХ-специфик SaaS удирдлагын дэд цэс — HoaSwitcher-ээс
+// тодорхой СӨХ сонгосон үед л харагдана (2026-08-13 хэрэглэгчтэй хийсэн
 // ярианаас: Integrated Systems→hoa1 чиглэлийн төлбөр/эрх/багц, hoa1-ийн
 // өөрийн оршин суугчид руу чиглэсэн PaymentConfig-тай АНДУУРАХГҮЙ).
 // Нэрс зориудаар англиар — Монгол орчуулгаар ойлголтын зөрүү гарахгүйн тулд.

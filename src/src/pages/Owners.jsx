@@ -10,12 +10,18 @@ import EditOwnerModal from '../components/EditOwnerModal';
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
 // (өмчлөгч/түрээслэгч) талбарыг хэрэглэгчийн тодорхой заасны дагуу
 // БҮРЭН устгасан — Сууц өмчлөгч бүртгэлд түрээслэгчийн статус байх
-// учиргүй, түрээслэгчийн тухай мэдээллийг СөХ Тайлбар талбарт гараар
+// учиргүй, түрээслэгчийн тухай мэдээллийг СӨХ Тайлбар талбарт гараар
 // тэмдэглэнэ. Оронд нь өмчийн Улсын бүртгэлийн дугаарыг Инфо модальд
 // харуулдаг болгов.
 //
-// TODO: "ТөЛөЛТ (САРААР)" багана нь тусдаа payments/invoices хүснэгэл
-// шаарддаг тул одоохондоо "—" placeholder-тэй.
+// TODO: "ТӨЛӨЛТ (САРААР)" баганын сар бүрийн төлбөрийн бодит статус
+// (төлсөн/төлөгдөөгүй/ирээдүй) тусдаа payments/invoices хүснэгэл
+// шаарддаг тул одоохондоо бүх мөрд "мэдээлэлгүй" (mutedtext) badge
+// харуулна — өнгөний дүрэм (paid=customBlue, overdue=customRed,
+// future=mutedtext) бэлэн, бодит дата ирэхэд шууд ажиллана.
+// TODO: мөрний дугаар (index) — төлбөрийн үлдэгдэлгүй/үлдэгдэлтэй
+// (customBlue/customRed) өнгөт дүрэм бэлэн, бодит "hasBalance" дата
+// байхгүй тул одоохондоо анхдагч (neutral) өнгөтэй.
 
 function summarizeSpots(items) {
   if (!items || items.length === 0) return '—';
@@ -25,13 +31,34 @@ function summarizeVehicles(items) {
   if (!items || items.length === 0) return '—';
   return items.map((it) => `${it.digits} ${it.letters}`).join(', ');
 }
+function formatDoorNo(n) {
+  if (n == null) return '—';
+  return String(n).padStart(3, '0');
+}
+
+// Сар бүрийн төлбөрийн жижиг badge мөр (12 сар). `status` array (сар бүрд
+// 'paid'|'overdue'|'future'|undefined) — одоогоор бодит дата байхгүй тул
+// бүх дуудлагад undefined дамжина (mutedtext анхдагч өнгө).
+const MONTHS_SHORT = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+function PaymentBadges({ status }) {
+  return (
+    <div className="flex gap-[3px]">
+      {MONTHS_SHORT.map((m, i) => {
+        const s = status?.[i];
+        const color = s === 'paid' ? 'bg-customBlue' : s === 'overdue' ? 'bg-customRed' : 'bg-slate-300 dark:bg-mutedtext/50';
+        return <span key={m} className={`w-1.5 h-1.5 rounded-full ${color}`} title={`${m}-р сар`} />;
+      })}
+    </div>
+  );
+}
 
 export default function Owners() {
-  // Sidebar-ийн HoaSwitcher-ээр сонгосон СөХ (:hoaId) — Dashboard/бусад
+  // Sidebar-ийн HoaSwitcher-ээр сонгосон СӨХ (:hoaId) — Dashboard/бусад
   // хуудастай ижил урсгал. DEFAULT_TENANT_ID нь зөвхөн :hoaId алга байх
   // (боломжгүй ч гэсэн) нөхцөлд зориулсан нөөц утга.
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [rows, setRows] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selected, setSelected] = useState(null);
@@ -57,6 +84,16 @@ export default function Owners() {
   useEffect(() => {
     loadOwners();
   }, [hoaId]);
+
+  // Хайлтын талбар: тоот, нэр (нэр+овог), утас, имэйл-ээр НЭГЭН ЗЭРЭГ хайна
+  const q = search.trim().toLowerCase();
+  const filteredRows = !q ? rows : rows.filter((r) => {
+    const doorNo = formatDoorNo(r.door_no).toLowerCase();
+    const fullname = `${r.firstname || ''} ${r.lastname || ''}`.toLowerCase();
+    const phones = (r.phones || []).join(' ').toLowerCase();
+    const emails = (r.emails || []).join(' ').toLowerCase();
+    return doorNo.includes(q) || fullname.includes(q) || phones.includes(q) || emails.includes(q);
+  });
 
   async function handleSave(form) {
     const payload = {
@@ -116,7 +153,13 @@ export default function Owners() {
             <option>Бүх орц</option>
           </select>
           <div className="relative min-w-[200px]">
-            <input type="text" placeholder="Хайх..." className="ds-input w-full pl-8" />
+            <input
+              type="text"
+              placeholder="Хайх (тоот, нэр, утас, имэйл)..."
+              className="ds-input w-full pl-8"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             <svg className="w-4 h-4 text-slate-400 dark:text-mutedtext absolute left-2.5 top-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -143,16 +186,16 @@ export default function Owners() {
                 <th className="py-2.5 px-3 w-[100px]">ОВОГ</th>
                 <th className="py-2.5 px-3 w-[100px]">УТАС</th>
                 <th className="py-2.5 px-3 w-[140px]">ИМЭЙЛ</th>
-                <th className="py-2.5 px-3 w-[100px]">өМЧИЛСөН</th>
+                <th className="py-2.5 px-3 w-[100px]">ӨМЧИЛСӨН</th>
                 <th className="py-2.5 px-3 w-[70px]">АМ БҮЛ</th>
                 <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
                 <th className="py-2.5 px-3 w-[70px]">6-18 НАС</th>
                 <th className="py-2.5 px-3 w-[80px]">ЗОГСООЛ</th>
                 <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
                 <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
-                <th className="py-2.5 px-3 w-[100px]">ТөЛөЛТ (САРААР)</th>
+                <th className="py-2.5 px-3 w-[100px]">ТӨЛӨЛТ (САРААР)</th>
                 <th className="py-2.5 px-3 w-[180px]">Тайлбар</th>
-                <th className="py-2.5 px-3 w-[80px] text-right">ГйЛДЭЛ</th>
+                <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -162,18 +205,16 @@ export default function Owners() {
               {!loading && loadError && (
                 <tr><td colSpan={18} className="py-8 text-center text-customRed">{loadError}</td></tr>
               )}
-              {!loading && !loadError && rows.length === 0 && (
+              {!loading && !loadError && filteredRows.length === 0 && (
                 <tr><td colSpan={18} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
               )}
-              {!loading && !loadError && rows.map((r, idx) => (
+              {!loading && !loadError && filteredRows.map((r, idx) => (
                 <tr key={r.id} onClick={() => setSelected(r)} className="cursor-pointer">
-                  <td className="py-2.5 px-3 text-center">
-                    <span className="inline-flex min-w-6 h-6 px-1 rounded-full text-[11px] font-semibold items-center justify-center border bg-blue-500/[0.18] text-customBlue border-blue-500/30">
-                      {idx + 1}
-                    </span>
+                  <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">
+                    {idx + 1}
                   </td>
                   <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{r.building_no ?? '—'}</td>
-                  <td className="py-2.5 px-3">{r.door_no ?? '—'}</td>
+                  <td className="py-2.5 px-3">{formatDoorNo(r.door_no)}</td>
                   <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>
                   <td className="py-2.5 px-3">{r.lastname}</td>
@@ -186,7 +227,7 @@ export default function Owners() {
                   <td className="py-2.5 px-3">{summarizeSpots(r.parkings)}</td>
                   <td className="py-2.5 px-3">{summarizeSpots(r.storages)}</td>
                   <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                  <td className="py-2.5 px-3 text-darktext">—</td>
+                  <td className="py-2.5 px-3"><PaymentBadges status={r.paymentStatus} /></td>
                   <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}>
