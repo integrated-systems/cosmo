@@ -1,6 +1,8 @@
-// TODO: Supabase auth+JWT custom claims холбогдоход, session-оос бодит
-// role (uz/hz/gz/nb/mn/ot/supersysadmin) уншина. Одоогоор UI урсгал
-// шалгах зорилготой, hardcode анхдагч утга.
+import { useAuth } from '../lib/AuthContext';
+
+// 2026-08-15: Supabase auth холбогдсоны дараа AuthContext-ээс бодит
+// role-г уншдаг боллоо (өмнө hardcode 'supersysadmin' байсан).
 export function useRole() {
-  return { role: 'supersysadmin' };
+  const { roles, isSuperSysAdmin } = useAuth();
+  return { role: isSuperSysAdmin ? 'supersysadmin' : roles[0], roles };
 }

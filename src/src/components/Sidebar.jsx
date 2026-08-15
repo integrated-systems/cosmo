@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { NavLink, useParams, useNavigate } from 'react-router-dom';
 import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
-import HoaSwitcher, { EXAMPLE_HOAS } from './HoaSwitcher';
+import HoaSwitcher from './HoaSwitcher';
+import { useAuth } from '../lib/AuthContext';
+import { useTenants } from '../hooks/useTenants';
+import { DEFAULT_TENANT_ID } from '../config/tenant';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
 const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menuactive border-r-[3px] border-blue-600 dark:border-blue-500';
 
-export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = true }) {
-  // TODO: isSuperSysAdmin-ийг бодит auth/role-оос авах (одоогоор жинхэнэ
-  // эрхийн систем холбогдоогүй тул анхдагчаар true — UI урсгал шалгах зорилготой).
-  const { hoaId = EXAMPLE_HOAS[0].id } = useParams();
+// 2026-08-15: isSuperSysAdmin одоо App.jsx-аас (AuthContext-ийн бодит role)
+// дамждаг тул TODO-той анхдагч утга (=true) хасагдав.
+export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin }) {
+  const { signOut } = useAuth();
+  const { tenants } = useTenants();
+  const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const navigate = useNavigate();
   const [hasUserPicked, setHasUserPicked] = useState(false);
 
@@ -62,7 +67,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
       {/* SUPERSYSADMIN-д зөвхөн харагдах СөХ context switcher — "ҮНДСЭН"
           бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
-      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasUserPicked ? hoaId : ''} onChange={handleHoaChange} />
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasUserPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Меню хэсэг — бүх линк одоогийн :hoaId-г тээж явна */}
       <nav className="flex-1 overflow-y-auto py-2">
@@ -120,6 +125,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin = 
             </div>
             <button
               title="Гарах"
+              onClick={signOut}
               className="bg-transparent border-none cursor-pointer text-slate-500 dark:text-mutedtext flex items-center
                 justify-center p-0.5 transition-colors hover:text-slate-900 dark:hover:text-white"
             >

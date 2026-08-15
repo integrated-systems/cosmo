@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -10,7 +9,9 @@ import RealEstateMarket from './pages/RealEstateMarket';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
+import { AuthProvider, useAuth } from './lib/AuthContext';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from './config/menu';
+import { DEFAULT_TENANT_ID } from './config/tenant';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
@@ -21,9 +22,10 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 // Sidebar нь <Routes>-ийн гадна (sibling) байрлаж, useParams() үргэлж
 // хоосон буцааж байсан алдааг олж, nested-route+<Outlet/> загварт шилжүүлсэн.
 function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
+  const { isSuperSysAdmin } = useAuth();
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
-      <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} />
+      <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} isSuperSysAdmin={isSuperSysAdmin} />
 
       <div
         className="flex-1 min-w-0 h-screen flex flex-col transition-[margin-left] duration-300 ease-in-out relative"
@@ -40,19 +42,26 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   );
 }
 
-export default function App() {
+function AppRoutes() {
   const { theme, toggleTheme } = useTheme();
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
-  // TODO: Supabase auth session-оор солих — одоогоор зөвхөн UI урсгал шалгах local state
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { session, loading } = useAuth();
 
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-sidebg text-mutedtext text-sm">
+        Ачаалж байна...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginPage />;
   }
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/hoa1/dashboard" replace />} />
+      <Route path="/" element={<Navigate to={`/${DEFAULT_TENANT_ID}/dashboard`} replace />} />
       <Route path="/:hoaId" element={<Layout theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="owners" element={<Owners />} />
@@ -70,5 +79,13 @@ export default function App() {
         })}
       </Route>
     </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }

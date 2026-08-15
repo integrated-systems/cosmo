@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 // suh.html-ийн login overlay-г (хэрэглэгчийн 2026-08-12 өгсөн 1loginpage.txt,
 // гараар засварласан дизайн) React/Tailwind компонент болгож хөрвүүлсэн.
-// TODO: Supabase auth холбогдоход handleSubmit-ийг бодит sb.auth.signInWithPassword
-// дуудлагаар сольно — одоогоор зөвхөн UI+local state л.
-export default function LoginPage({ onLogin }) {
+// 2026-08-15: handleSubmit одоо бодит supabase.auth.signInWithPassword
+// дуудлага хийдэг болов (өмнө зөвхөн UI+setTimeout байсан).
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,15 +17,19 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setError('');
     if (!email || !password) {
-      setError('Имэйл болон нууц үгээ бөглөнө γγ');
+      setError('Имэйл болон нууц үгээ бөглөнө үү');
       return;
     }
     setLoading(true);
-    // TODO: бодит auth дуудлага
-    setTimeout(() => {
-      setLoading(false);
-      onLogin?.({ email, remember });
-    }, 600);
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (authError) {
+      setError(authError.message === 'Invalid login credentials'
+        ? 'Имэйл эсвэл нууц үг буруу байна'
+        : authError.message);
+    }
+    // Амжилттай бол AuthContext-ийн onAuthStateChange автоматаар session-ыг
+    // шинэчилж App.jsx рүү дамжина — тусад нь onLogin callback хэрэггүй.
   }
 
   return (

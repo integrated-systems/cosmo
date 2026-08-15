@@ -5,9 +5,8 @@
 // болбол ЭНЭ dropdown-оос тусад нь, илүү хатуу баталгаажуулалттай
 // (шалтгаан бичих г.м) тусгай үйлдэл болгоно.
 //
-// TODO: backend холбогдоход энэ жагсаалтыг SUPERSYSADMIN-ийн эрхтэй
-// хэрэглэгчид л ирэх бодит СөХ-үүдийн listing API-аар сольно.
-export const EXAMPLE_HOAS = Array.from({ length: 10 }, (_, i) => ({ id: `hoa${i + 1}`, label: `HOA${i + 1}` }));
+// 2026-08-15: жагсаалт одоо Sidebar.jsx-ээс `useTenants()`-ээр (бодит
+// "tenants" хүснэгэл) дамждаг — EXAMPLE_HOAS хуурамч жагсаалт устгав.
 
 // Controlled component — сонгосон СөХ-ийн state Sidebar-т байрлана, учир нь
 // сонголтоос хамааран SUPERSYSADMIN-ийн SaaS удирдлагын дэд цэс (Billing
@@ -19,7 +18,7 @@ export const EXAMPLE_HOAS = Array.from({ length: 10 }, (_, i) => ({ id: `hoa${i 
 // босоо тэнхлэгийн дагуу яг нэг шугаманд байрлуулав (padding-top 22px =
 // Topbar 50px-ийн ард content-wrap-ийн p-2.5(10px)+.ds-toolbar-ийн
 // p-3(12px) = toolbar доторх select-ийн яг тэр өндөртэй тааруулсан).
-export default function HoaSwitcher({ isSuperSysAdmin, value, onChange }) {
+export default function HoaSwitcher({ isSuperSysAdmin, value, onChange, tenants = [] }) {
   if (!isSuperSysAdmin) return null;
 
   return (
@@ -29,9 +28,9 @@ export default function HoaSwitcher({ isSuperSysAdmin, value, onChange }) {
         onChange={(e) => onChange(e.target.value)}
         className="ds-select w-full"
       >
-        <option value="" disabled>СӨХ сонгох</option>
-        {EXAMPLE_HOAS.map((h) => (
-          <option key={h.id} value={h.id}>{h.label}</option>
+        <option value="" disabled>СөХ сонгох</option>
+        {tenants.map((t) => (
+          <option key={t.id} value={t.id}>{t.name}</option>
         ))}
       </select>
     </div>

@@ -5,10 +5,12 @@ import { useRole } from '../hooks/useRole';
 // олж, үүнийг тодорхой шийдсэн загвар. Хуудас бүрт тусад нь эрхийн
 // логик бичихийн оронд, `<RequireRole roles={['supersysadmin']}>`-оор
 // л бүх route/хэсгийг хамгаална.
-export default function RequireRole({ roles, children }) {
-  const { role } = useRole();
+// 2026-08-15: нэг хэрэглэгч хэд хэдэн role-той байж болох тул (жиш:
+// СөХ-ийн энгийн гишүүн + supersysadmin) массив дундаас шалгадаг болгов.
+export default function RequireRole({ roles: allowedRoles, children }) {
+  const { roles: userRoles } = useRole();
 
-  if (!roles.includes(role)) {
+  if (!userRoles.some((r) => allowedRoles.includes(r))) {
     return (
       <div className="ds-card p-6 text-center text-slate-500 dark:text-mutedtext">
         Энэ хэсэгт хандах эрхгүй байна.

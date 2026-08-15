@@ -117,26 +117,34 @@ function VehicleListField({ checked, onToggle, items, onChange }) {
 }
 
 export default function EditOwnerModal({ open, onClose, owner, onSave }) {
-  const [form, setForm] = useState(() => ({
-    buildingNo: owner?.building || BUILDING_OPTIONS[0],
-    floor: '',
-    doorNo: '',
-    firstname: owner?.firstname || '',
-    lastname: owner?.lastname || '',
-    regno: '',
-    ownDate: owner?.ownDate || '',
-    cadastralPrefix: 'A',
-    cadastralNo: '',
-    phones: owner?.phone ? [owner.phone] : [''],
-    emails: owner?.email ? [owner.email] : [''],
-    people: owner?.people || '',
-    child1: owner?.child1 || '',
-    child2: owner?.child2 || '',
-    hasStorage: false, storages: [],
-    hasParking: false, parkings: [],
-    hasVehicle: false, vehicles: [],
-    note: owner?.note || '',
-  }));
+  // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
+  // — өмнө mock EXAMPLE_OWNERS-ийн бүтэц (building/phone/email г.м)
+  // ашигладаг байсныг бодит DB талбарын нэртэй уялдуулав.
+  const [form, setForm] = useState(() => {
+    const cadastralPrefix = owner?.cadastral_no ? owner.cadastral_no.slice(0, 1) : 'A';
+    const cadastralNo = owner?.cadastral_no ? owner.cadastral_no.slice(1) : '';
+    return {
+      buildingNo: owner?.building_no || BUILDING_OPTIONS[0],
+      floor: owner?.floor ?? '',
+      doorNo: owner?.door_no ?? '',
+      sqm: owner?.sqm ?? '',
+      firstname: owner?.firstname || '',
+      lastname: owner?.lastname || '',
+      regno: owner?.regno || '',
+      ownDate: owner?.own_date || '',
+      cadastralPrefix,
+      cadastralNo,
+      phones: owner?.phones?.length ? owner.phones : [''],
+      emails: owner?.emails?.length ? owner.emails : [''],
+      people: owner?.people_count ?? '',
+      child1: owner?.child_0_5 ?? '',
+      child2: owner?.child_6_18 ?? '',
+      hasStorage: owner?.has_storage || false, storages: owner?.storages || [],
+      hasParking: owner?.has_parking || false, parkings: owner?.parkings || [],
+      hasVehicle: owner?.has_vehicle || false, vehicles: owner?.vehicles || [],
+      note: owner?.note || '',
+    };
+  });
 
   function set(field, val) {
     setForm((f) => ({ ...f, [field]: val }));
@@ -175,6 +183,10 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
             {Array.from({ length: 8 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </div>
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²)</label>
+        <input type="number" step="0.01" className="ds-input w-full" value={form.sqm} onChange={(e) => set('sqm', e.target.value)} />
       </div>
 
       <SectionTitle>Сууц өмчлөгчийн мэдээлэл</SectionTitle>
