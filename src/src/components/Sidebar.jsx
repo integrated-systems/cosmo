@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { NavLink, useParams, useNavigate } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import HoaSwitcher from './HoaSwitcher';
 import { useAuth } from '../lib/AuthContext';
@@ -16,18 +15,19 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { signOut } = useAuth();
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
-  const navigate = useNavigate();
-  const [hasUserPicked, setHasUserPicked] = useState(false);
 
-  // HoaSwitcher-ээс шинэ СӨХ сонгоход, одоогийн хуудасны нэрийг хадгалж,
-  // зөвхөн URL-ийн :hoaId хэсгийг сольж navigate хийнэ (2026-08-13
-  // архитектурын аудитаар "selectedHoa зөвхөн Sidebar state-д хоригдсон"
-  // гэдгийг олж, URL-based tenant context загварт шилжүүлсэн шийдэл).
+  // 2026-08-15 хэрэглэгчийн тодорхой заасны дагуу: HoaSwitcher-ээс шинэ
+  // СӨХ сонгоход SPA soft-navigate (react-router) БИШ, **бүтэн хуудсыг
+  // рефреш** (window.location.reload()) хийж тэр даруй шинэ СӨХ-ийн
+  // хуудсыг цэвэрхэн ачаална — component state/дата хоорондоо холилдохоос
+  // бүрэн сэргийлнэ. Бүтэн reload хийдэг болсноор hoaId үргэлж URL-ээс
+  // (бүрэн найдвартай) уншигдах тул "hasUserPicked" завсрын state
+  // ХЭРЭГГҮЙ болов — dropdown үргэлж бодит сонгогдсон СӨХ-г харуулна.
   function handleHoaChange(newHoaId) {
-    setHasUserPicked(true);
     const currentPath = window.location.hash.replace(/^#/, '') || '/dashboard';
     const rest = currentPath.replace(/^\/[^/]+/, '') || '/dashboard';
-    navigate(`/${newHoaId}${rest}`);
+    window.location.hash = `/${newHoaId}${rest}`;
+    window.location.reload();
   }
 
   return (
@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       {/* SUPERSYSADMIN-д зөвхөн харагдах СӨХ context switcher — "ҮНДСЭН"
           бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
-      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasUserPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Меню хэсэг — бүх линк одоогийн :hoaId-г тээж явна */}
       <nav className="flex-1 overflow-y-auto py-2">
