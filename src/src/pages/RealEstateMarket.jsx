@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
 import EditMarketModal from '../components/EditMarketModal';
-import { EditIcon } from '../components/icons/Icons';
+import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import { RENTAL_LABELS, deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
 
@@ -21,7 +21,7 @@ function computeChangePct(data) {
 
 export default function RealEstateMarket() {
   const { hoaId } = useParams();
-  const { rows, loading, error, saveRow } = useMarketRows(hoaId);
+  const { rows, loading, error, saveRow, deleteRow } = useMarketRows(hoaId);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
 
@@ -43,6 +43,15 @@ export default function RealEstateMarket() {
       await saveRow(rowData);
       setEditing(null);
       setAdding(false);
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
+  async function handleDelete(row) {
+    if (!window.confirm(`${row.month} сарын үнийг устгах уу?`)) return;
+    try {
+      await deleteRow(row.month);
     } catch (err) {
       window.alert(err.message);
     }
@@ -158,6 +167,9 @@ export default function RealEstateMarket() {
                     <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(row)}>
                         <EditIcon />
+                      </button>
+                      <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(row)}>
+                        <DeleteIcon />
                       </button>
                     </td>
                   </tr>

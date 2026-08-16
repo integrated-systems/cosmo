@@ -60,5 +60,15 @@ export function useMarketRows(tenantId) {
     await load();
   }
 
-  return { rows, loading, error, saveRow };
+  async function deleteRow(month) {
+    const { error: err } = await supabase
+      .from('restmarket')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('month', month);
+    if (err) throw err;
+    await load();
+  }
+
+  return { rows, loading, error, saveRow, deleteRow };
 }
