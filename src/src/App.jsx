@@ -49,7 +49,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
 function AppRoutes() {
   const { theme, toggleTheme } = useTheme();
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
-  const { session, loading, roles } = useAuth();
+  const { session, loading, roles, tenantIds } = useAuth();
   // Login/Sign-Up хоёрын хооронд сэлгэх — session алга үед ЭДГЭЭР 2
   // хуудас <Routes>-ийн бүрэн гадна, энгийн local state-ээр сэлгэгддэг
   // (auth хийгдээгүй үед бүтэн route бүтэц шаардлагагүй).
@@ -63,6 +63,7 @@ function AppRoutes() {
     );
   }
 
+
   if (!session) {
     return authView === 'signup'
       ? <SignUpPage onBackToLogin={() => setAuthView('login')} />
@@ -75,9 +76,19 @@ function AppRoutes() {
     return <OnboardingPage />;
   }
 
+  // 2026-08-15 олдож засагдсан ЧУХАЛ алдаа: өмнө "/" root redirect
+  // ГҮЙЦЭТ hardcode DEFAULT_TENANT_ID (bootstrap tenant)-руу л заадаг
+  // байсан тул шинэ tenant үүсгэсэн ХЭН ч өөрийн бус (эхний bootstrap)
+  // tenant-ийн dashboard-т чиглэгдэж, RLS-ээр дата хоосон харагдаж
+  // "эвдэрсэн" мэт санагддаг байв. Одоо нэвтэрсэн хэрэглэгчийн өөрийн
+  // tenantIds[0]-г эхэнд нь ашиглана, зөвхөн tenant-гүй (жиш нь
+  // supersysadmin, tenant_id=null role) үед л DEFAULT_TENANT_ID-руу
+  // (аюулгүй нөөц) буцна.
+  const rootTenantId = tenantIds[0] || DEFAULT_TENANT_ID;
+
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={`/${DEFAULT_TENANT_ID}/dashboard`} replace />} />
+      <Route path="/" element={<Navigate to={`/${rootTenantId}/dashboard`} replace />} />
       <Route path="/:hoaId" element={<Layout theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="owners" element={<Owners />} />

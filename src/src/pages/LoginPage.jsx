@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { setRememberMe } from '../lib/authStorage';
+import AuthLogo from '../components/AuthLogo';
+import PasswordInput from '../components/PasswordInput';
 
-// suh.html-ийн login overlay-г (хэрэглэгчийн 2026-08-12 өгсөн 1loginpage.txt,
-// гараар засварласан дизайн) React/Tailwind компонент болгож хөрвүүлсэн.
-// 2026-08-15: handleSubmit одоо бодит supabase.auth.signInWithPassword
-// дуудлага хийдэг болов (өмнө зөвхөн UI+setTimeout байсан).
+// suh.html-ийн login overlay-г React/Tailwind компонент болгож
+// хөрвүүлсэн. 2026-08-15: handleSubmit бодит supabase.auth.signInWithPassword
+// дуудлага хийдэг, "Намайг сана" чекбокс жинхэнэ storage-солих логиктой
+// боллоо (authStorage.js). Лого+нууц үг талбарыг дахин ашиглагдах
+// компонент (AuthLogo/PasswordInput) болгож задлав.
 export default function LoginPage({ onSignUpClick }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,10 +20,14 @@ export default function LoginPage({ onSignUpClick }) {
     e.preventDefault();
     setError('');
     if (!email || !password) {
-      setError('Имэйл болон нууц үгээ бөглөнө үү');
+      setError('Имэйл болон нууц үгээ бөглөнө γγ');
       return;
     }
     setLoading(true);
+    // "Намайг сана" чекбоксын жинхэнэ логик — session хаана хадгалагдахыг
+    // (localStorage=үргэлж/sessionStorage=tab хаатал) signInWithPassword
+    // дуудахын өмнө шийднэ.
+    setRememberMe(remember);
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (authError) {
@@ -35,14 +42,8 @@ export default function LoginPage({ onSignUpClick }) {
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-sidebg">
       <div className="w-[360px] rounded bg-appbg border border-bordercol px-7 py-10">
-        {/* Лого */}
-        <div className="text-center mb-8">
-          <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="COSMO" className="w-[70px] h-[70px] mx-auto mb-2.5 rounded-xl" />
-          <div className="text-[16px] font-normal text-text tracking-[.02em]">COSMO</div>
-          <div className="text-[14px] text-darktext mt-1">Integrated Systems</div>
-        </div>
+        <AuthLogo />
 
-        {/* Форм */}
         <form onSubmit={handleSubmit} autoComplete="on">
           <div className="mb-4">
             <label htmlFor="login-email" className="block text-[10px] font-semibold text-mutedtext mb-1.5 uppercase tracking-[.06em]">
@@ -59,29 +60,7 @@ export default function LoginPage({ onSignUpClick }) {
             <label htmlFor="login-password" className="block text-[10px] font-semibold text-mutedtext mb-1.5 uppercase tracking-[.06em]">
               Нууц үг
             </label>
-            <div className="relative">
-              <input
-                id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 pr-10 bg-inputbg border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
-              />
-              <button
-                type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-mutedtext p-1 flex items-center"
-              >
-                {showPassword ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a19.6 19.6 0 015.06-6.06M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a19.5 19.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
-              </button>
-            </div>
+            <PasswordInput id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           </div>
 
           <div className="mb-5 flex items-center justify-between gap-2">

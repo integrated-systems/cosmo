@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { authStorage } from './authStorage';
 
 // Supabase холболт — URL/key .env-ээс уншина, хэзээ ч код дотор hardcode
 // хийхгүй. .env файл .gitignore-т орсон тул GitHub рүү push хийгдэхгүй.
@@ -9,4 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase тохиргоо дутуу байна: .env файлд VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY-г шалгана уу.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// 2026-08-15: "Намайг сана" стандарт логикийг зөв ажиллуулахын тулд
+// custom auth.storage (authStorage.js) өгв — localStorage/sessionStorage
+// хооронд чекбоксын төлөвөөр сэлгэнэ.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { storage: authStorage },
+});

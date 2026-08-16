@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { PLANS } from '../data/plans';
+import AuthLogo from '../components/AuthLogo';
 
 // 2026-08-15: Sign-Up-ийн 2-р алхам — session бий боловч user_roles-д
 // ямар ч мөр байхгүй (шинэ хэрэглэгч, tenant үүсгээгүй) үед App.jsx
@@ -46,11 +47,7 @@ export default function OnboardingPage() {
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-sidebg overflow-y-auto py-10">
       <div className="w-full max-w-[560px] rounded bg-appbg border border-bordercol px-7 py-10 mx-4">
-        <div className="text-center mb-8">
-          <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="COSMO" className="w-[70px] h-[70px] mx-auto mb-2.5 rounded-xl" />
-          <div className="text-[16px] font-normal text-text tracking-[.02em]">COSMO</div>
-          <div className="text-[14px] text-darktext mt-1">Integrated Systems</div>
-        </div>
+        <AuthLogo />
 
         <div className="mb-6">
           <label htmlFor="onboarding-tenant" className="block text-[10px] font-semibold text-mutedtext mb-1.5 uppercase tracking-[.06em]">

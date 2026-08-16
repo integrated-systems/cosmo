@@ -1,16 +1,23 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import Modal from '../components/Modal';
+import AuthLogo from '../components/AuthLogo';
+import PasswordInput from '../components/PasswordInput';
 
 // LoginPage.jsx-ийн дизайныг хуулбарлаж бүтээсэн Sign-Up хуудас (2026-08-15
 // хэрэглэгчийн заасан screenshot загварын дагуу). "Гэрээний нөхцөлтэй
-// танилцах" линк дарахад Modal.jsx-ийн шинэ "xl" хэмжээгээр (max
-// 900×1200px, жижиг дэлгэцэд уян хатан) гэрээний текст скроллдог картаар
-// харагдана. Чекбокс тэмдэглэгдээгүй бол "Бүртгүүлэх" товч идэвхгүй.
+// танилцах" линк дарахад Modal.jsx-ийн "xl" хэмжээгээр (max 900×1200px,
+// жижиг дэлгэцэд уян хатан) гэрээний текст скроллдог картаар харагдана.
+// Чекбокс тэмдэглэгдээгүй бол "Бүртгүүлэх" товч идэвхгүй. Лого+нууц үг
+// талбарыг дахин ашиглагдах компонент болгож задлав.
+//
+// 2026-08-15: Имэйл баталгаажуулалт АСААХЫГ хэрэглэгч тодорхой хүссэн
+// (хуурамч имэйлээр бүртгүүлэхээс сэргийлэх) — эндээс signUp()-т
+// emailRedirectTo зааж өгөв, Supabase Dashboard-ийн тохиргоог доор
+// зааварчилна.
 export default function SignUpPage({ onBackToLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [showContract, setShowContract] = useState(false);
   const [error, setError] = useState('');
@@ -21,12 +28,16 @@ export default function SignUpPage({ onBackToLogin }) {
     e.preventDefault();
     setError('');
     if (!email || !password) {
-      setError('Имэйл болон нууц үгээ бөглөнө үү');
+      setError('Имэйл болон нууц үгээ бөглөнө γγ');
       return;
     }
     if (!agreed) return;
     setLoading(true);
-    const { error: authError } = await supabase.auth.signUp({ email, password });
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
+    });
     setLoading(false);
     if (authError) {
       setError(authError.message);
@@ -38,12 +49,7 @@ export default function SignUpPage({ onBackToLogin }) {
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-sidebg">
       <div className="w-[360px] rounded bg-appbg border border-bordercol px-7 py-10">
-        {/* Лого */}
-        <div className="text-center mb-8">
-          <img src={`${import.meta.env.BASE_URL}logicon.png`} alt="COSMO" className="w-[70px] h-[70px] mx-auto mb-2.5 rounded-xl" />
-          <div className="text-[16px] font-normal text-text tracking-[.02em]">COSMO</div>
-          <div className="text-[14px] text-darktext mt-1">Integrated Systems</div>
-        </div>
+        <AuthLogo />
 
         {success ? (
           <div className="text-center">
@@ -73,29 +79,7 @@ export default function SignUpPage({ onBackToLogin }) {
               <label htmlFor="signup-password" className="block text-[10px] font-semibold text-mutedtext mb-1.5 uppercase tracking-[.06em]">
                 Нууц үг
               </label>
-              <div className="relative">
-                <input
-                  id="signup-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••"
-                  autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pr-10 bg-inputbg border border-blue-500/20 rounded-md text-text text-sm outline-none focus:border-blue-500/50"
-                />
-                <button
-                  type="button" onClick={() => setShowPassword((v) => !v)} tabIndex={-1}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-mutedtext p-1 flex items-center"
-                >
-                  {showPassword ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a19.6 19.6 0 015.06-6.06M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a19.5 19.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+              <PasswordInput id="signup-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
             </div>
 
             <div className="mb-2">
@@ -152,14 +136,14 @@ export default function SignUpPage({ onBackToLogin }) {
 
 // TODO: доорх текст ЖИШЭЭ (placeholder) гэрээ — хуулийн зөвлөхөөр
 // баталгаажуулсан эцсийн эх бичвэрээр солих шаардлагатай.
-const CONTRACT_TEXT = `ҮЙЛЧИЛГЭЭ ҮЗҮҮЛЭХ ГЭРЭЭ
+const CONTRACT_TEXT = `ГЙЛЧИЛГЭЭ ГЗГГЛЭХ ГЭРЭЭ
 
 1. ЕРӨНХИЙ ЗААЛТ
-1.1. Энэхүү гэрээ нь "Integrated Systems" ХХК (цаашид "Үйлчилгээ үзүүлэгч" гэх) болон Cosmo системд бүртгүүлж буй Сууц Өмчлөгчдийн Холбоо (цаашид "Хэрэглэгч" гэх) хоорондын харилцааг зохицуулна.
+1.1. Энэхүү гэрээ нь "Integrated Systems" ХХК (цаашид "Үйлчилгээ үзүүлэгч" гэх) болон Cosmo системд бүртгүүлж буй Сууц өмчлөгчдийн Холбоо (цаашид "Хэрэглэгч" гэх) хоорондын харилцааг зохицуулна.
 1.2. Хэрэглэгч бүртгэл үүсгэснээр энэхүү гэрээний нөхцлийг бүрэн хүлээн зөвшөөрсөнд тооцно.
 
-2. ҮЙЛЧИЛГЭЭНИЙ ТОДОРХОЙЛОЛТ
-2.1. Cosmo нь олон Сууц Өмчлөгчдийн Холбооны бүртгэл, санхүү, харилцаа холбоог нэгдсэн системд удирдах зориулалттай программ хангамж (SaaS) юм.
+2. ГЙЛЧИЛГЭЭНИЙ ТОДОРХОЙЛОЛТ
+2.1. Cosmo нь олон Сууц өмчлөгчдийн Холбооны бүртгэл, санхүү, харилцаа холбоог нэгдсэн системд удирдах зориулалттай программ хангамж (SaaS) юм.
 2.2. Үйлчилгээ үзүүлэгч нь системийн тасралтгүй ажиллагаа, өгөгдлийн аюулгүй байдлыг ханган ажиллана.
 
 3. ХЭРЭГЛЭГЧИЙН БҮРТГЭЛ БА НУУЦ ҮГ
