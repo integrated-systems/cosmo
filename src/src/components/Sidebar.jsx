@@ -18,10 +18,11 @@ const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menua
 const HOA_PICKED_KEY = 'cosmo-hoa-picked';
 
 export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin }) {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
+  const currentTenantName = tenants.find((t) => t.id === hoaId)?.name;
 
   // HoaSwitcher-ээс шинэ СӨХ сонгоход SPA soft-navigate (react-router) БИШ,
   // **бүтэн хуудсыг рефреш** (window.location.reload()) хийж тэр даруй
@@ -74,6 +75,16 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
       <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
 
+      {/* Ердийн (supersysadmin биш) tenant хэрэглэгчид зориулсан — сонголт
+          биш, зөвхөн нэвтэрсэн өөрийн СӨХ-ийн нэрийг харуулах статик мөр. */}
+      {!isSuperSysAdmin && (
+        <div className="px-3 pt-[23px] pb-1">
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate px-1">
+            {currentTenantName || '—'}
+          </div>
+        </div>
+      )}
+
       {/* Меню хэсэг — бүх линк одоогийн :hoaId-г тээж явна */}
       <nav className="flex-1 overflow-y-auto py-2">
         {MENU_SECTIONS.map((section) => (
@@ -98,9 +109,12 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
           </div>
         ))}
         {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь.
-            Дэд SaaS удирдлагын цэс (Billing г.м) HoaSwitcher-ээс сонгосон
-            :hoaId-той холбогдож харагдана — тухайн сонгосон СӨХ-той
-            холбоотой үйлдэл тул. */}
+            2026-08-16 хэрэглэгчийн олсон алдааг зассан: өмнө зөвхөн дэд
+            SaaS цэс (Billing г.м)-ийг isSuperSysAdmin-аар хамгаалж,
+            ТОЛГОЙ линк өөрийг нь хамгаалаагүй байсан тул ердийн tenant
+            хэрэглэгч ч "SUPERSYSADMIN" линкийг ХАРДАГ байсан. Одоо БГХЭЛ
+            блокийг (толгой линк+дэд цэс хамт) хамгаална. */}
+        {isSuperSysAdmin && (
         <div className="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-bordercol">
           <NavLink
             to={`/${hoaId}${SUPERSYSADMIN.path}`}
@@ -108,7 +122,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
           >
             <span>{SUPERSYSADMIN.label}</span>
           </NavLink>
-          {isSuperSysAdmin && SUPERSYSADMIN_TENANT_ITEMS.map((item) => (
+          {SUPERSYSADMIN_TENANT_ITEMS.map((item) => (
             <NavLink
               key={item.key}
               to={`/${hoaId}${item.path}`}
@@ -118,15 +132,21 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
             </NavLink>
           ))}
         </div>
+        )}
       </nav>
 
-      {/* Доод карт хэсэг */}
+      {/* Доод карт хэсэг — 2026-08-16 хэрэглэгчийн заасны дагуу нэр/role
+          хэсгийг hardcode "SUPERSYSADMIN"/"Админ" placeholder-ээс бодит
+          нэвтэрсэн хэрэглэгчийн (email+role) динамик утга болгов.
+          SIDEBAR_STATS доторх тоо баримт (16 байр·18 орц гэх мэт) ХЭВЭЭР
+          жишээ дата — ирээдүйд tenant тус бүрийн бодит summarized
+          мэдээллээр солих ажил (энэ session-д ХАМРАГДААГҮЙ, тусад нь). */}
       <div className="p-2 border-t border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg">
         <div className="bg-white dark:bg-appbg border border-slate-200 dark:border-bordercol rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-[12px] font-semibold leading-[1.2] text-slate-900 dark:text-white">SUPERSYSADMIN</div>
-              <div className="text-[10px] text-slate-500 dark:text-mutedtext mt-[1px] leading-[1.2]">Админ</div>
+              <div className="text-[12px] font-semibold leading-[1.2] text-slate-900 dark:text-white truncate max-w-[140px]">{user?.email || 'Хэрэглэгч'}</div>
+              <div className="text-[10px] text-slate-500 dark:text-mutedtext mt-[1px] leading-[1.2]">{isSuperSysAdmin ? 'SUPERSYSADMIN' : 'Гишүүн'}</div>
             </div>
             <button
               title="Гарах"
