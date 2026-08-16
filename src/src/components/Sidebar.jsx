@@ -9,21 +9,26 @@ const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex i
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
 const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menuactive border-r-[3px] border-blue-600 dark:border-blue-500';
 
-// 2026-08-15: isSuperSysAdmin одоо App.jsx-аас (AuthContext-ийн бодит role)
-// дамждаг тул TODO-той анхдагч утга (=true) хасагдав.
+// 2026-08-16 хэрэглэгчийн тодорхой заасны дагуу дахин өөрчилсөн: HoaSwitcher
+// dropdown АНХ (session бүрт) "СӨХ сонгох" placeholder-ыг харуулна, сонгосны
+// дараа л бодит нэрийг харуулдаг болно. sessionStorage ашигласан нь
+// window.location.reload() хийсний ДАРАА ч (component бүрэн дахин mount
+// хийгддэг) энэ сонголт "санагдсан" хэвээр үлдэхийн тулд (tab доторх л,
+// browser хаагдвал арилна).
+const HOA_PICKED_KEY = 'cosmo-hoa-picked';
+
 export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin }) {
   const { signOut } = useAuth();
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
 
-  // 2026-08-15 хэрэглэгчийн тодорхой заасны дагуу: HoaSwitcher-ээс шинэ
-  // СӨХ сонгоход SPA soft-navigate (react-router) БИШ, **бүтэн хуудсыг
-  // рефреш** (window.location.reload()) хийж тэр даруй шинэ СӨХ-ийн
-  // хуудсыг цэвэрхэн ачаална — component state/дата хоорондоо холилдохоос
-  // бүрэн сэргийлнэ. Бүтэн reload хийдэг болсноор hoaId үргэлж URL-ээс
-  // (бүрэн найдвартай) уншигдах тул "hasUserPicked" завсрын state
-  // ХЭРЭГГҮЙ болов — dropdown үргэлж бодит сонгогдсон СӨХ-г харуулна.
+  // HoaSwitcher-ээс шинэ СӨХ сонгоход SPA soft-navigate (react-router) БИШ,
+  // **бүтэн хуудсыг рефреш** (window.location.reload()) хийж тэр даруй
+  // шинэ СӨХ-ийн хуудсыг цэвэрхэн ачаална — component state/дата хоорондоо
+  // холилдохоос бүрэн сэргийлнэ.
   function handleHoaChange(newHoaId) {
+    sessionStorage.setItem(HOA_PICKED_KEY, 'true');
     const currentPath = window.location.hash.replace(/^#/, '') || '/dashboard';
     const rest = currentPath.replace(/^\/[^/]+/, '') || '/dashboard';
     window.location.hash = `/${newHoaId}${rest}`;
@@ -67,7 +72,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       {/* SUPERSYSADMIN-д зөвхөн харагдах СӨХ context switcher — "ҮНДСЭН"
           бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
-      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} tenants={tenants} />
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Меню хэсэг — бүх линк одоогийн :hoaId-г тээж явна */}
       <nav className="flex-1 overflow-y-auto py-2">
