@@ -1,18 +1,18 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
 import EditMarketModal from '../components/EditMarketModal';
 import { EditIcon } from '../components/icons/Icons';
-import { MARKET_ROWS, RENTAL_LABELS, deriveMarketSeries } from '../data/realEstateMarket';
+import { RENTAL_LABELS, deriveMarketSeries } from '../data/realEstateMarket';
+import { useMarketRows } from '../hooks/useMarketRows';
 
 // "Зах зээлийн бодит үнэлгээ" (СИСАДМИН → restmarket, /restmarket) хуудас.
-// Dashboard.jsx-ийн 4 чарт ЭНЭ хуудасны датаг (src/data/realEstateMarket.js)
-// уншдаг — НЭГ эх сурвалж, хоёр газар давхар бичигдэхгүй. Хүснэгэлийн
-// дизайн Owners.jsx-ийн загварыг (.ds-table-wrap/.ds-table/.ds-icon-btn)
-// дахин ашигласан (Rule of two). Модаль-аар нэмэгдэх/засагдах өгөгдөл
-// зөвхөн ЭНЭ хуудасны session state дотор амьдардаг — TODO: Backend
-// (Supabase) холбогдоход persist хийнэ.
+// `restmarket` хүснэгэлээс (tenant тус бүрд тусдаа) унших/бичих — Dashboard-той
+// НЭГ эх сурвалж (useMarketRows hook). Шинэ tenant-д мөр байхгүй тул
+// эхлээд хоосон харагдаж, "Сар нэмэх"-ээр өөрсдийн үнийг оруулна.
 function computeChangePct(data) {
+  if (!data || data.length === 0) return 0;
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
   if (!prev) return 0;
@@ -20,7 +20,8 @@ function computeChangePct(data) {
 }
 
 export default function RealEstateMarket() {
-  const [rows, setRows] = useState(MARKET_ROWS);
+  const { hoaId } = useParams();
+  const { rows, loading, error, saveRow } = useMarketRows(hoaId);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
 
@@ -37,14 +38,14 @@ export default function RealEstateMarket() {
   // руу) харуулна — screenshot-ийн эх дизайнтай адил.
   const tableRows = [...rows].reverse();
 
-  function handleSave(rowData) {
-    setRows((prev) => {
-      const idx = prev.findIndex((r) => r.month === rowData.month);
-      const next = idx >= 0 ? prev.map((r, i) => (i === idx ? rowData : r)) : [...prev, rowData];
-      return next.sort((a, b) => a.month.localeCompare(b.month));
-    });
-    setEditing(null);
-    setAdding(false);
+  async function handleSave(rowData) {
+    try {
+      await saveRow(rowData);
+      setEditing(null);
+      setAdding(false);
+    } catch (err) {
+      window.alert(err.message);
+    }
   }
 
   return (
@@ -53,7 +54,13 @@ export default function RealEstateMarket() {
           чартуудтай ЯГ АДИЛ компонент+дата ашигладаг тул хоёр хуудас
           хооронд харагдац зөрөх эрсдэлгүй. Картын урт/өргөний харьцаа
           ТОГТМОЛ 3:1 (aspect-[3/1]). 4 чарт БҮГД хэвтээ тэнхлэг
-          (сүүлийн 12 сар)+дугуй маркер+hover попап-той */}
+          (сүүлийн 12 сар)+дугуй маркер+hover попап-той. Tenant-д дата
+          байхгүй үед хоосон мэдэгдэл харуулна. */}
+      {!loading && rows.length === 0 ? (
+        <div className="ds-card p-6 text-center text-slate-500 dark:text-mutedtext text-sm">
+          Энэ СӨХ-д зах зээлийн үнийн мэдээлэл алга — доорх "Сар нэмэх" товчоор эхлүүлнэ γγ.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
@@ -100,6 +107,7 @@ export default function RealEstateMarket() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Сар бүрийн зах зээлийн үнэ — бүх (Орон сууц/Зогсоол/Агуулах)
           үнийг НЭГ хүснэгэлд харуулна, Owners.jsx-ийн хүснэгэлийн
@@ -127,7 +135,16 @@ export default function RealEstateMarket() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                {tableRows.map((row) => (
+                {loading && (
+                  <tr><td colSpan={13} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+                )}
+                {!loading && error && (
+                  <tr><td colSpan={13} className="py-8 text-center text-customRed">{error}</td></tr>
+                )}
+                {!loading && !error && tableRows.length === 0 && (
+                  <tr><td colSpan={13} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй — "Сар нэмэх"-ээр эхний үнэ оруулна уу</td></tr>
+                )}
+                {!loading && !error && tableRows.map((row) => (
                   <tr key={row.month}>
                     <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{row.month}</td>
                     <td className="py-2.5 px-3">{formatMoney(row.residentialSale)}₮</td>

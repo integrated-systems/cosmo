@@ -1,22 +1,20 @@
+import { useParams } from 'react-router-dom';
 import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
-import { MARKET_ROWS, deriveMarketSeries } from '../data/realEstateMarket';
+import { deriveMarketSeries } from '../data/realEstateMarket';
+import { useMarketRows } from '../hooks/useMarketRows';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
 // хувийн өөрчлөлт тооцно — Dashboard-ийн дээд утга/сумны индикатор энэ
-// НЭГ эх сурвалжаас уншина, тусад нь дахин бичихгүй.
+// НЭГ эх сурвалжаас (Supabase `restmarket`, tenant тус бүрд тусдаа) уншина.
 function computeChangePct(data) {
+  if (!data || data.length === 0) return 0;
   const last = data[data.length - 1];
   const prev = data[data.length - 2];
   if (!prev) return 0;
   return ((last - prev) / prev) * 100;
 }
 
-const marketSeries = deriveMarketSeries(MARKET_ROWS);
-// Агуулах/Зогсоолын 2 чартад сүүлийн 12 сарыг л хэвтээ тэнхлэгтэй харуулна
-const last12Rows = MARKET_ROWS.slice(-12);
-const marketSeries12 = deriveMarketSeries(last12Rows);
-const months12 = last12Rows.map((r) => r.month);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -44,6 +42,13 @@ function StatCard({ label, value, valueColor, detail }) {
 }
 
 export default function Dashboard() {
+  const { hoaId } = useParams();
+  const { rows, loading } = useMarketRows(hoaId);
+  const marketSeries = deriveMarketSeries(rows);
+  const last12Rows = rows.slice(-12);
+  const marketSeries12 = deriveMarketSeries(last12Rows);
+  const months12 = last12Rows.map((r) => r.month);
+
   return (
     <>
       {/* 1. Дээд талын 4 үндсэн мэдээллийн карт */}
@@ -166,7 +171,13 @@ export default function Dashboard() {
 
       {/* 5. Доод талын том график картууд — картын урт/өргөний харьцаа
           ТОГТМОЛ 3:1 (aspect-[3/1]). 4 чарт БҮГД хэвтээ тэнхлэг
-          (сүүлийн 12 сар)+дугуй маркер+hover попап-той */}
+          (сүүлийн 12 сар)+дугуй маркер+hover попап-той. Tenant-д restmarket
+          дата байхгүй үед хоосон мэдэгдэл харуулна. */}
+      {!loading && rows.length === 0 ? (
+        <div className="ds-card p-6 text-center text-slate-500 dark:text-mutedtext text-sm">
+          Зах зээлийн үнийн мэдээлэл алга байна — /restmarket хуудаснаас "Сар нэмэх"-ээр оруулна уу.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <div className="ds-card p-4 flex flex-col aspect-[3/1]">
           <div className="flex flex-col shrink-0">
@@ -221,6 +232,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }
