@@ -18,7 +18,7 @@ const navItemActive = 'text-blue-600 dark:text-blue-500 bg-blue-50 dark:bg-menua
 const HOA_PICKED_KEY = 'cosmo-hoa-picked';
 
 export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin }) {
-  const { signOut, user } = useAuth();
+  const { signOut, user, roles } = useAuth();
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
@@ -146,7 +146,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
           <div className="flex items-center justify-between mb-2">
             <div>
               <div className="text-[12px] font-semibold leading-[1.2] text-slate-900 dark:text-white truncate max-w-[140px]">{user?.email || 'Хэрэглэгч'}</div>
-              <div className="text-[10px] text-slate-500 dark:text-mutedtext mt-[1px] leading-[1.2]">{isSuperSysAdmin ? 'SUPERSYSADMIN' : 'Гишүүн'}</div>
+              <div className="text-[10px] text-slate-500 dark:text-mutedtext mt-[1px] leading-[1.2]">
+                {isSuperSysAdmin ? 'SUPERSYSADMIN' : roles.includes('tenant_admin') ? 'СӨХ-ны админ' : 'Гишүүн'}
+              </div>
             </div>
             <button
               title="Гарах"

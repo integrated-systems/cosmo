@@ -114,7 +114,7 @@ export default function RealEstateMarket() {
           дизайныг дахин ашигласан. Дээр нь "Сар нэмэх" товчтой түүлбэр */}
       <div className="ds-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-900 dark:text-white">Сар бүрийн зах зээлийн үнэ</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">Хотхоны зах зээлийн бодит үнэлгээ (сүүлийн 12 сар)</div>
           <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Сар нэмэх</button>
         </div>
         <div className="ds-table-wrap">
