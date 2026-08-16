@@ -6,6 +6,7 @@ import EditMarketModal from '../components/EditMarketModal';
 import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import { RENTAL_LABELS, deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
+import { useConfirm } from '../hooks/useConfirm';
 
 // "Зах зээлийн бодит үнэлгээ" (СИСАДМИН → restmarket, /restmarket) хуудас.
 // `restmarket` хүснэгэлээс (tenant тус бүрд тусдаа) унших/бичих — Dashboard-той
@@ -22,6 +23,7 @@ function computeChangePct(data) {
 export default function RealEstateMarket() {
   const { hoaId } = useParams();
   const { rows, loading, error, saveRow, deleteRow } = useMarketRows(hoaId);
+  const { confirm, ConfirmDialog } = useConfirm();
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
 
@@ -49,7 +51,7 @@ export default function RealEstateMarket() {
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`${row.month} сарын үнийг устгах уу?`)) return;
+    if (!(await confirm(`${row.month} сарын үнийг устгах уу?`))) return;
     try {
       await deleteRow(row.month);
     } catch (err) {
@@ -187,6 +189,8 @@ export default function RealEstateMarket() {
         row={editing}
         onSave={handleSave}
       />
+
+      <ConfirmDialog />
     </>
   );
 }

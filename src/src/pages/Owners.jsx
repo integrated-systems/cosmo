@@ -7,6 +7,7 @@ import EditOwnerModal from '../components/EditOwnerModal';
 import OwnersToolbar from '../components/OwnersToolbar';
 import OwnersTable from '../components/OwnersTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
+import { useConfirm } from '../hooks/useConfirm';
 
 // 2026-08-15: Supabase-тай холбогдов — EXAMPLE_OWNERS mock массив
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
@@ -19,6 +20,7 @@ export default function Owners() {
   // хуудастай ижил урсгал. DEFAULT_TENANT_ID нь зөвхөн :hoaId алга байх
   // (боломжгүй ч гэсэн) нөхцөлд зориулсан нөөц утга.
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -97,7 +99,7 @@ export default function Owners() {
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`${row.firstname} ${row.lastname}-г устгах уу?`)) return;
+    if (!(await confirm(`${row.firstname} ${row.lastname}-г устгах уу?`))) return;
     const { error } = await supabase.from('owners').delete().eq('id', row.id);
     if (error) { window.alert(error.message); return; }
     setRows((prev) => prev.filter((r) => r.id !== row.id));
@@ -136,6 +138,8 @@ export default function Owners() {
         owner={null}
         onSave={handleSave}
       />
+
+      <ConfirmDialog />
     </>
   );
 }

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { PLANS } from '../data/plans';
 import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import EditTenantModal from '../components/EditTenantModal';
+import { useConfirm } from '../hooks/useConfirm';
 
 // SUPERSYSADMIN-ийн "Tenant Status" хуудас — Төлбөрийн 3-р алхмын
 // "Гараар (invoice)" горим: бодит төлбөрийн шлюз (QPay/SocialPay г.м)
@@ -39,6 +40,7 @@ export default function TenantStatus() {
   const [loadError, setLoadError] = useState('');
   const [savingId, setSavingId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   async function loadTenants() {
     setLoading(true);
@@ -99,7 +101,7 @@ export default function TenantStatus() {
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`"${row.name}" СӨХ-ыг бүрмөсүн устгах уу? Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`)) return;
+    if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсүн устгах уу? Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
     const { error } = await supabase.from('tenants').delete().eq('id', row.id);
     if (error) {
       window.alert(error.message);
@@ -181,6 +183,8 @@ export default function TenantStatus() {
         onSave={handleEditSave}
         onAdminChanged={loadTenants}
       />
+
+      <ConfirmDialog />
     </div>
   );
 }
