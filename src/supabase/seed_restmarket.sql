@@ -1,12 +1,15 @@
--- Integrated Systems (Cosmo) — Real Estate Market seed дата: tenant БҮР үүсгэсэн үедээ
--- өөрсдийн сүүлийн 12 сарын зах зээлийн үнийг оруулсан мэт харагдуулна.
--- 2026-08-16 хэрэглэгчийн хүссэний дагуу: өмнөх ад-хок тест бичлэгүүдийг
--- цэвэрлээд, tenant БҮРД (өнөөгийн одоо байгаа болон ирээдүйд нэмэгдэх)
--- ялгаатай (tenant ID-аас deterministic тооцсон) үнийн жагсаалт үүсгэнэ.
--- Цэвэр жишээ/тест дата (algorithmic боловч ил тод, TODO-той) —
--- production бодит үнэ биш.
+-- Integrated Systems (Cosmo) — Real Estate Market seed дата.
+-- 2026-08-16 хэрэглэгчийн тодорхой заасны дагуу: жинхэнэ (production) tenant
+-- бүр өөрсдийн зах зээлийн судалгааг өөрсдөө хийж оруулна ёстой тул,
+-- SUPERSYSADMIN-ийн тест дата ХЭЗЭЭ Ч бүх tenant-д автоматаар нэвтрэх
+-- ёсгүй. Иймд ЭНЭ script нь зөвхөн ХОЁР тодорхой ТЕСТ tenant-д
+-- (өмнөх ажлаас — "Хүннү 2222" болон "Гэрлүг Виста") хязгаарлагдана,
+-- ирээдүйд нэмэгдэх бусад бодит tenant-д хэзээ ч автоматаар хамаарахгүй.
 
-delete from restmarket;
+delete from restmarket
+where tenant_id in (
+  select id from tenants where name ilike '%Хүннү%2222%' or name ilike '%Гэрлүг%Виста%'
+);
 
 do $$
 declare
@@ -16,9 +19,10 @@ declare
   month_label text;
   variation numeric;
 begin
-  for t in select id from tenants loop
-    -- tenant ID-аас deterministic (санамсаргүй бус, дахин ажиллуулахад
-    -- ижил гарна) үндсэн үнэ тооцно — tenant бүр өөр үнэтэй харагдана.
+  for t in
+    select id from tenants
+    where name ilike '%Хүннү%2222%' or name ilike '%Гэрлүг%Виста%'
+  loop
     base := 5000000 + (abs(hashtext(t.id::text)) % 4000000);
 
     for m in 0..11 loop

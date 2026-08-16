@@ -174,7 +174,13 @@ export default function TenantStatus() {
         </table>
       </div>
 
-      <EditTenantModal tenant={editing} onClose={() => setEditing(null)} onSave={handleEditSave} />
+      <EditTenantModal
+        tenant={editing}
+        adminEmail={editing ? adminEmails[editing.id] : ''}
+        onClose={() => setEditing(null)}
+        onSave={handleEditSave}
+        onAdminChanged={loadTenants}
+      />
     </div>
   );
 }
