@@ -9,6 +9,7 @@ export default function EditClientModal({ open, onClose, client, onSave }) {
     legalEntityName: client?.legal_entity_name || '',
     regNo: client?.reg_no || '',
     sqm: client?.sqm ?? '',
+    propertyNo: client?.property_no || '',
     ceoName: client?.ceo_first_name_last_name || '',
     mobile: client?.mobile || '',
     phone: client?.phone || '',
@@ -52,6 +53,10 @@ export default function EditClientModal({ open, onClose, client, onSave }) {
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²)</label>
         <input type="number" step="0.01" className="ds-input w-full" value={form.sqm} onChange={(e) => set('sqm', e.target.value)} />
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
+        <input className="ds-input w-full" value={form.propertyNo} onChange={(e) => set('propertyNo', e.target.value)} />
       </div>
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гүйцэтгэх удирдлага (Нэр Овог)</label>

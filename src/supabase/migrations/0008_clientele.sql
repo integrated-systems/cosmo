@@ -32,3 +32,8 @@ create policy "clientele: tenant-аараа хязгаарлана"
   on clientele for all
   using (is_supersysadmin() or tenant_id in (select my_tenant_ids()))
   with check (is_supersysadmin() or tenant_id in (select my_tenant_ids()));
+
+-- 2026-08-17: "өмчийн Улсын бүртгэлийн дугаар" багана нэмэв (Owners-ийн
+-- cadastral_no-той адил зорилготой, гэхдээ ААН-д зориулсан тул нэрийг
+-- ялгаатай сонгов).
+alter table clientele add column if not exists property_no text;

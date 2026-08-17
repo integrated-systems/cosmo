@@ -26,6 +26,7 @@ export default function ClientInfoModal({ client, onClose, onEdit }) {
         <div>
           <div className="ds-detail-row"><span className="ds-detail-label">Регистр</span><span className="ds-detail-value">{client.reg_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{client.sqm ?? '—'} м²</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Өмчийн Улсын бүртгэлийн дугаар</span><span className="ds-detail-value">{client.property_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гүйцэтгэх удирдлага</span><span className="ds-detail-value">{client.ceo_first_name_last_name || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гар утас</span><span className="ds-detail-value">{client.mobile || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Утас</span><span className="ds-detail-value">{client.phone || '—'}</span></div>

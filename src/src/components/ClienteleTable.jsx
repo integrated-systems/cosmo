@@ -19,6 +19,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
               <th className="py-2.5 px-3 w-[160px]">ХУУЛИЙН ЭТГЭЭД</th>
               <th className="py-2.5 px-3 w-[100px]">РЕГИСТР</th>
               <th className="py-2.5 px-3 w-[70px]">М²</th>
+              <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БҮРТГЭЛИЙН ДУГААР</th>
               <th className="py-2.5 px-3 w-[140px]">ГҮЙЦЭТГЭХ УДИРДЛАГА</th>
               <th className="py-2.5 px-3 w-[100px]">ГАР УТАС</th>
               <th className="py-2.5 px-3 w-[100px]">УТАС</th>
@@ -36,13 +37,13 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={17} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={18} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={17} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={18} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={17} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={18} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && rows.map((r, idx) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
@@ -50,6 +51,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.legal_entity_name || '—'}</td>
                 <td className="py-2.5 px-3">{r.reg_no || '—'}</td>
                 <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
+                <td className="py-2.5 px-3">{r.property_no || '—'}</td>
                 <td className="py-2.5 px-3">{r.ceo_first_name_last_name || '—'}</td>
                 <td className="py-2.5 px-3">{r.mobile || '—'}</td>
                 <td className="py-2.5 px-3">{r.phone || '—'}</td>

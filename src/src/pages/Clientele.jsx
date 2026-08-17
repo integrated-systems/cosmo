@@ -58,6 +58,7 @@ export default function Clientele() {
       legal_entity_name: form.legalEntityName || null,
       reg_no: form.regNo || null,
       sqm: form.sqm !== '' ? Number(form.sqm) : null,
+      property_no: form.propertyNo || null,
       ceo_first_name_last_name: form.ceoName || null,
       mobile: form.mobile || null,
       phone: form.phone || null,
