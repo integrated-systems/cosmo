@@ -47,11 +47,12 @@ export default function UnitGridCard({ cells, hint }) {
       {floors.length === 0 && (
         <div className="text-sm text-darktext py-6 text-center">Мэдээлэл олдсонгүй</div>
       )}
+      <div className="flex flex-col gap-1">
       {floors.map((f) => {
         const items = buildingCells.filter((c) => c.floor === f);
         return (
-          <div key={f} className="flex items-start gap-2 py-1">
-            <div className="w-7 shrink-0 text-[11px] text-mutedtext pt-2.5">{f}F</div>
+          <div key={f} className="flex items-start gap-2">
+            <div className="w-7 shrink-0 text-[11px] text-mutedtext pt-1.5">{f}F</div>
             <div className="flex flex-wrap gap-1">
               {items.map((it, idx) => {
                 const hasBalance = EXAMPLE_HAS_BALANCE[(it.exampleIdx ?? idx) % EXAMPLE_HAS_BALANCE.length];
@@ -59,7 +60,7 @@ export default function UnitGridCard({ cells, hint }) {
                   <button
                     key={it.id}
                     onClick={it.onClick}
-                    style={{ width: '68px', height: '46px' }}
+                    style={{ width: '58px', height: '44px' }}
                     className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${
                       hasBalance
                         ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
@@ -75,6 +76,7 @@ export default function UnitGridCard({ cells, hint }) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
