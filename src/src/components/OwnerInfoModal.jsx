@@ -26,7 +26,7 @@ export default function OwnerInfoModal({ owner, onClose, onEdit }) {
         <div>
           <div className="ds-detail-row"><span className="ds-detail-label">Байр / Тоот</span><span className="ds-detail-value">{owner.building_no ?? '—'} / {owner.door_no ?? '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{owner.sqm ?? '—'} м²</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">өмчийн Улсын бүртгэлийн дугаар</span><span className="ds-detail-value">{owner.cadastral_no || '—'}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Өмчийн Улсын бүртгэлийн дугаар</span><span className="ds-detail-value">{owner.property_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Утас</span><span className="ds-detail-value">{owner.phones?.join(', ') || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Имэйл</span><span className="ds-detail-value">{owner.emails?.join(', ') || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">өмчлөх огноо</span><span className="ds-detail-value">{owner.own_date ? formatDate(owner.own_date) : '—'}</span></div>

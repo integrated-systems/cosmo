@@ -16,6 +16,7 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
               <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
               <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
               <th className="py-2.5 px-3 w-[80px]">м²</th>
+              <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БҮРТГЭЛИЙН ДУГААР</th>
               <th className="py-2.5 px-3 w-[100px]">НЭР</th>
               <th className="py-2.5 px-3 w-[100px]">ОВОГ</th>
               <th className="py-2.5 px-3 w-[100px]">УТАС</th>
@@ -34,13 +35,13 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={18} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={19} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={18} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={19} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={18} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={19} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && rows.map((r, idx) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
@@ -50,6 +51,7 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
                 <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{r.building_no ?? '—'}</td>
                 <td className="py-2.5 px-3">{formatDoorNo(r.door_no)}</td>
                 <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
+                <td className="py-2.5 px-3">{r.property_no || '—'}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>
                 <td className="py-2.5 px-3">{r.lastname}</td>
                 <td className="py-2.5 px-3">{r.phones?.[0] || '—'}</td>

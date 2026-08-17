@@ -70,7 +70,7 @@ export default function Owners() {
       lastname: form.lastname || null,
       regno: form.regno || null,
       own_date: form.ownDate || null,
-      cadastral_no: form.cadastralNo ? `${form.cadastralPrefix}${form.cadastralNo}` : null,
+      property_no: form.propertyNo || null,
       phones: form.phones.filter(Boolean),
       emails: form.emails.filter(Boolean),
       people_count: form.people !== '' ? Number(form.people) : null,
