@@ -56,16 +56,17 @@ export default function UnitGridCard({ cells, hint }) {
             <div className="flex flex-wrap gap-1">
               {items.map((it, idx) => {
                 const hasBalance = EXAMPLE_HAS_BALANCE[(it.exampleIdx ?? idx) % EXAMPLE_HAS_BALANCE.length];
+                const colorClass = it.vacant
+                  ? 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400'
+                  : hasBalance
+                    ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
+                    : 'bg-blue-500/[0.12] border-blue-500/40 text-customBlue hover:border-customBlue';
                 return (
                   <button
                     key={it.id}
                     onClick={it.onClick}
                     style={{ width: '58px', height: '44px' }}
-                    className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${
-                      hasBalance
-                        ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
-                        : 'bg-blue-500/[0.12] border-blue-500/40 text-customBlue hover:border-customBlue'
-                    }`}
+                    className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${colorClass}`}
                   >
                     <div className="text-[11px] font-semibold leading-tight">{it.code}</div>
                     {it.area && <div className="text-[9px] opacity-80 leading-tight">{it.area}м²</div>}

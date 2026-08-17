@@ -11,24 +11,23 @@ import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
-// зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна).
+// зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
+// өмчлөгчгүй нүүд саарал өнгөтэй). 2026-08-17 (2-р засвар): Тоот таб
+// өмнө БУРУУ зөвхөн `owners`-оос л уншиж байсныг олж, `unit_layouts`
+// (AddressConfig.jsx-д зохион байгуулсан) ЭХ СУРВАЛЖ болгож зассан.
 // Зогсоол/Агуулах таб: Owners.jsx-ийн .ds-table загварыг дахин ашигласан
-// хүснэгэл — 2026-08-17 хэрэглэгчийн заасны дагуу **Owners БОЛОН
-// Clientele (ААН) хоёулангийн зогсоол/агуулахыг НИЙЛГЭЖ** харуулна.
-//
-// TODO: одоохондоо зөвхөн БОДИТ бүртгэлтэй (өмчлөгчтэй) нүүдтэй л
-// харуулна — бүтэн байрны зохион байгуулалт "Хаягжилт тохиргоо"
-// (ирээдүйд бүтээгдэх СИСАДМИН хуудас)-аас хамаарна.
+// хүснэгэл — Owners БОЛОН Clientele (ААН) хоёулангийн зогсоол/агуулахыг
+// НИЙЛГЭЖ харуулна.
 const TABS = [
   { key: 'household', label: 'Тоот' },
   { key: 'parking', label: 'Зогсоол' },
   { key: 'storage', label: 'Агуулах' },
 ];
 
-function formatCode(buildingNo, floor, doorNo) {
+function formatCode(buildingNo, spacer, floor, doorNo) {
   const f = String(floor ?? 0).padStart(2, '0');
   const d = String(doorNo ?? 0).padStart(2, '0');
-  return `${buildingNo}${f}${d}`;
+  return `${buildingNo}${spacer || ''}${f}${d}`;
 }
 
 export default function Property() {
@@ -37,6 +36,7 @@ export default function Property() {
   const [search, setSearch] = useState('');
   const [owners, setOwners] = useState([]);
   const [clientele, setClientele] = useState([]);
+  const [unitLayouts, setUnitLayouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [editingOwner, setEditingOwner] = useState(null);
@@ -45,12 +45,14 @@ export default function Property() {
 
   async function loadAll() {
     setLoading(true);
-    const [ownersRes, clienteleRes] = await Promise.all([
+    const [ownersRes, clienteleRes, layoutsRes] = await Promise.all([
       supabase.from('owners').select('*').eq('tenant_id', hoaId),
       supabase.from('clientele').select('*').eq('tenant_id', hoaId),
+      supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false),
     ]);
     setOwners(ownersRes.data ?? []);
     setClientele(clienteleRes.data ?? []);
+    setUnitLayouts(layoutsRes.data ?? []);
     setLoading(false);
   }
 
@@ -121,18 +123,28 @@ export default function Property() {
 
   const q = search.trim().toLowerCase();
 
-  const householdCells = owners
-    .filter((o) => o.building_no && o.floor != null && o.door_no != null)
-    .map((o, idx) => ({
-      id: o.id,
-      buildingNo: o.building_no,
-      floor: o.floor,
-      code: formatCode(o.building_no, o.floor, o.door_no),
-      area: o.sqm,
+  // Тоот таб — AddressConfig.jsx-д зохион байгуулсан `unit_layouts`-ыг
+  // ЭХ СУРВАЛЖ болгоно (өмнө буруу зөвхөн `owners`-оос уншиж байсан
+  // алдааг олж зассан). Тоот бүрд тохирох өмчлөгчийг байр/давхар/тоотоор
+  // хайж олно — байвал OwnerInfoModal, үгүй бол "бүртгэлгүй" мэдэгдэнэ.
+  const householdCells = unitLayouts.map((row, idx) => {
+    const owner = owners.find(
+      (o) => o.building_no === row.building_no && o.floor === row.floor && o.door_no === row.door_no
+    );
+    return {
+      id: row.id,
+      buildingNo: row.building_no,
+      floor: row.floor,
+      code: formatCode(row.building_no, row.spacer, row.floor, row.door_no),
+      area: row.sqm,
       exampleIdx: idx,
-      onClick: () => setSelectedOwner(o),
-    }))
-    .filter((c) => !q || c.code.toLowerCase().includes(q));
+      vacant: !owner,
+      onClick: () => {
+        if (owner) setSelectedOwner(owner);
+        else window.alert('Энэ тоотод өмчлөгч бүртгэгдээгүй байна.');
+      },
+    };
+  }).filter((c) => !q || c.code.toLowerCase().includes(q));
 
   // Зогсоол/Агуулах — Owners БОЛОН Clientele (ААН) хоёулангийн
   // parkings/storages jsonb-ээс НИЙЛГЭЖ мөр үүсгэнэ.
