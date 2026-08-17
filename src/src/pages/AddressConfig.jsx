@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+import { DEFAULT_TENANT_ID } from '../config/tenant';
 import UnitEditModal from '../components/UnitEditModal';
 
 // "Хаягжилт тохиргоо" (СИСАДМИН, /addressing) хуудас — 2026-08-17
@@ -7,9 +10,10 @@ import UnitEditModal from '../components/UnitEditModal';
 // ЭНД түүнийг ЗОХИОДОГ (interactive, Excel/Word шиг мөр/багана нэмэх-
 // хасах) СИСАДМИН хуудас юм.
 //
-// TODO: одоохондоо ЗӨВХӨН local React state дээр ажиллана (Supabase
-// холбогдоогүй) — хэрэглэгчтэй хүснэгэл нэр (`unit_layouts`) тохиролцсны
-// дараа persist хийх ажил дараагийн алхам.
+// 2026-08-17: `unit_layouts` хүснэгэлтэй холбогдов (хэрэглэгч
+// зөвшөөрсөн нэр). Excel/Word шиг: локал засвар хийгээд "Хадгалах"
+// дарахад түүнийг СНЭПШОТ (delete+insert) байдлаар бүхэлд нь бичнэ —
+// үйлдэл бүрийг тусад нь autosave хийхгүй, зорилготойгоор энгийн байлгав.
 let nextId = 1000;
 function genId() { return nextId++; }
 
@@ -30,9 +34,83 @@ function formatCode(buildingNo, floor, doorNo) {
 }
 
 export default function AddressConfig() {
+  const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [buildingNo, setBuildingNo] = useState('101');
   const [entrances, setEntrances] = useState([makeEntrance('1')]);
-  const [editing, setEditing] = useState(null); // { entranceId, floorId, unit }
+  const [editing, setEditing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function loadLayout(bNoRaw) {
+    const bNo = Number(bNoRaw);
+    if (!bNo) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from('unit_layouts')
+      .select('*')
+      .eq('tenant_id', hoaId)
+      .eq('building_no', bNo);
+
+    if (!data || data.length === 0) {
+      setEntrances([makeEntrance('1')]);
+      setLoading(false);
+      return;
+    }
+
+    const byEntrance = {};
+    data.forEach((row) => {
+      byEntrance[row.entrance_no] = byEntrance[row.entrance_no] || {};
+      byEntrance[row.entrance_no][row.floor] = byEntrance[row.entrance_no][row.floor] || [];
+      byEntrance[row.entrance_no][row.floor].push(row);
+    });
+    const newEntrances = Object.keys(byEntrance).sort().map((entNo) => {
+      const floorsObj = byEntrance[entNo];
+      const floors = Object.keys(floorsObj).map(Number).sort((a, b) => b - a).map((floorNo) => ({
+        id: genId(),
+        floorNo,
+        units: floorsObj[floorNo]
+          .sort((a, b) => a.door_no - b.door_no)
+          .map((row) => ({ id: genId(), doorNo: row.door_no, sqm: row.sqm, hidden: row.hidden })),
+      }));
+      return { id: genId(), entranceNo: entNo, floors };
+    });
+    setEntrances(newEntrances);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadLayout(buildingNo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId]);
+
+  async function handleSaveLayout() {
+    const bNo = Number(buildingNo);
+    if (!bNo) { window.alert('Байрны дугаар оруулна уу'); return; }
+    setSaving(true);
+    await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', bNo);
+    const rows = [];
+    entrances.forEach((e) => {
+      e.floors.forEach((f) => {
+        f.units.forEach((u) => {
+          rows.push({
+            tenant_id: hoaId,
+            building_no: bNo,
+            entrance_no: e.entranceNo,
+            floor: f.floorNo,
+            door_no: u.doorNo,
+            sqm: u.sqm,
+            hidden: u.hidden,
+          });
+        });
+      });
+    });
+    if (rows.length > 0) {
+      const { error } = await supabase.from('unit_layouts').insert(rows);
+      if (error) { window.alert(error.message); setSaving(false); return; }
+    }
+    setSaving(false);
+    window.alert('Амжилттай хадгалагдлаа.');
+  }
 
   function addFloor(entranceId) {
     setEntrances((prev) => prev.map((e) => {
@@ -103,15 +181,27 @@ export default function AddressConfig() {
 
   return (
     <div className="ds-card p-4">
-      <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байрны дугаар</label>
-        <input className="ds-input w-32" value={buildingNo} onChange={(e) => setBuildingNo(e.target.value)} />
+      <div className="flex items-end justify-between mb-4">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байрны дугаар</label>
+          <input
+            className="ds-input w-32"
+            value={buildingNo}
+            onChange={(e) => setBuildingNo(e.target.value)}
+            onBlur={(e) => loadLayout(e.target.value)}
+          />
+        </div>
+        <button className="ds-btn-primary" onClick={handleSaveLayout} disabled={saving || loading}>
+          {saving ? 'Хадгалж байна...' : 'Хадгалах'}
+        </button>
       </div>
 
+      {loading ? (
+        <div className="text-center text-darktext text-sm py-8">Ачаалж байна...</div>
+      ) : (
       <div className="flex items-start gap-4 overflow-x-auto pb-2">
         {entrances.map((entrance) => (
           <div key={entrance.id} className="shrink-0">
-            {/* Давхар нэмэх/хасах товч */}
             <div className="flex items-center gap-1 mb-1">
               <button
                 onClick={() => addFloor(entrance.id)}
@@ -151,7 +241,6 @@ export default function AddressConfig() {
                 ))}
               </div>
 
-              {/* Давхарт байрлах тоот нэмэх/хасах товч */}
               <div className="flex flex-col gap-1 self-stretch">
                 <button
                   onClick={() => addUnitColumn(entrance.id)}
@@ -170,7 +259,6 @@ export default function AddressConfig() {
               </div>
             </div>
 
-            {/* Орцны дугаар оруулах талбар */}
             <div className="mt-2 flex items-center gap-1.5">
               <input
                 className="ds-input w-24 text-center"
@@ -191,7 +279,6 @@ export default function AddressConfig() {
           </div>
         ))}
 
-        {/* Орц нэмэх товч */}
         <button
           onClick={addEntrance}
           title="Орц нэмэх"
@@ -200,6 +287,7 @@ export default function AddressConfig() {
           ▶
         </button>
       </div>
+      )}
 
       <UnitEditModal
         key={editing?.unit?.id}
