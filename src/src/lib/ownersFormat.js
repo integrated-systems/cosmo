@@ -1,16 +1,9 @@
 // Owners.jsx-ийн хүснэгэл БОЛОН Инфо модаль хоёуланд ижилхэн ашиглагддаг
-// формат хийх туслах функцүүд — 2026-08-15 хэрэглэгчийн заасны дагуу
-// тусдаа файл болгов (Rule of two).
+// формат хийх туслах функцүүд. summarizeSpots/summarizeVehicles нь ерүнхий
+// (Clientele.jsx-д ч ашиглагддаг) тул spotVehicleFormat.js-ээс дахин
+// экспортолно (Rule of two, 2026-08-16).
 
-export function summarizeSpots(items) {
-  if (!items || items.length === 0) return '—';
-  return items.map((it) => `${it.floor}-${it.no}`).join(', ');
-}
-
-export function summarizeVehicles(items) {
-  if (!items || items.length === 0) return '—';
-  return items.map((it) => `${it.digits} ${it.letters}`).join(', ');
-}
+export { summarizeSpots, summarizeVehicles } from './spotVehicleFormat';
 
 export function formatDoorNo(n) {
   if (n == null) return '—';

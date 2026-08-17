@@ -1,0 +1,118 @@
+import { useState } from 'react';
+import Modal from './Modal';
+import { SpotListField, VehicleListField } from './formFields/ListFields';
+
+// "Аж ахуйн нэгж бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
+// EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
+export default function EditClientModal({ open, onClose, client, onSave }) {
+  const [form, setForm] = useState(() => ({
+    legalEntityName: client?.legal_entity_name || '',
+    regNo: client?.reg_no || '',
+    sqm: client?.sqm ?? '',
+    ceoName: client?.ceo_first_name_last_name || '',
+    mobile: client?.mobile || '',
+    phone: client?.phone || '',
+    email: client?.email || '',
+    contractNo: client?.contract_no || '',
+    contractStart: client?.contract_start || '',
+    contractEnd: client?.contract_end || '',
+    hasParking: client?.has_parking || false, parkings: client?.parkings || [],
+    hasStorage: client?.has_storage || false, storages: client?.storages || [],
+    hasVehicle: client?.has_vehicle || false, vehicles: client?.vehicles || [],
+    note: client?.note || '',
+  }));
+
+  function set(field, val) {
+    setForm((f) => ({ ...f, [field]: val }));
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={client ? 'Аж ахуйн нэгж засах' : 'Аж ахуйн нэгж нэмэх'}
+      size="md"
+      footer={
+        <>
+          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хуулийн этгээдийн нэр</label>
+          <input className="ds-input w-full" value={form.legalEntityName} onChange={(e) => set('legalEntityName', e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Регистрийн дугаар</label>
+          <input className="ds-input w-full" value={form.regNo} onChange={(e) => set('regNo', e.target.value)} />
+        </div>
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²)</label>
+        <input type="number" step="0.01" className="ds-input w-full" value={form.sqm} onChange={(e) => set('sqm', e.target.value)} />
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гүйцэтгэх удирдлага (Нэр Овог)</label>
+        <input className="ds-input w-full" value={form.ceoName} onChange={(e) => set('ceoName', e.target.value)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гар утас</label>
+          <input className="ds-input w-full" value={form.mobile} onChange={(e) => set('mobile', e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Утас</label>
+          <input className="ds-input w-full" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        </div>
+      </div>
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Имэйл</label>
+        <input className="ds-input w-full" value={form.email} onChange={(e) => set('email', e.target.value)} />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гэрээ №</label>
+          <input className="ds-input w-full" value={form.contractNo} onChange={(e) => set('contractNo', e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гэрээ эхлэх</label>
+          <input type="date" className="ds-input w-full" value={form.contractStart} onChange={(e) => set('contractStart', e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гэрээ дуусах</label>
+          <input type="date" className="ds-input w-full" value={form.contractEnd} onChange={(e) => set('contractEnd', e.target.value)} />
+        </div>
+      </div>
+
+      <SpotListField
+        label="Зогсоол" checked={form.hasParking}
+        onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ floor: '', no: '' }] : f.parkings }))}
+        items={form.parkings} onChange={(v) => set('parkings', v)} addLabel="+ Зогсоол нэмэх"
+      />
+      <SpotListField
+        label="Агуулах" checked={form.hasStorage}
+        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ floor: '', no: '' }] : f.storages }))}
+        items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
+      />
+      <VehicleListField
+        checked={form.hasVehicle}
+        onToggle={(v) => setForm((f) => ({ ...f, hasVehicle: v, vehicles: v && f.vehicles.length === 0 ? [{ digits: '', letters: '' }] : f.vehicles }))}
+        items={form.vehicles} onChange={(v) => set('vehicles', v)}
+      />
+
+      <div className="mb-4">
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
+        <textarea
+          className="ds-input w-full resize-none"
+          style={{ height: '52px' }}
+          value={form.note}
+          onChange={(e) => set('note', e.target.value)}
+        />
+      </div>
+    </Modal>
+  );
+}
