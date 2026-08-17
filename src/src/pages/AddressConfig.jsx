@@ -4,17 +4,18 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
+import { useConfirm } from '../hooks/useConfirm';
 
 // "Хаягжилт тохиргоо" (СИСАДМИН, /addressing) хуудас — Property.jsx-ийн
 // Тоот tab-ийн grid-ийг ЗОХИОДОГ interactive designer.
 //
-// 2026-08-17 (2-р засвар):
-// - Spacer талбар: Байрны дугаар+Тоотын дугаарын хоорондох сонголтот
-//   тэмдэгт (жиш нь "-", " ", ":", "/") — хотхон бүр өөрийн хаягжилтын
-//   хэлбэртэй, үйлчилгээний нэхэмжлэхтэй холбоотой тул автоматаар
-//   тооцохгүй, зөвхөн хэрэглэгч ӨӨРӨӨ тодорхойлно.
-// - Давхар/Тоот/Орц нэмэх товчнуудыг текстгүй, chevron icon-той, 24px
-//   зузаантай, тэгш хэмтэй (flex stretch) болгов.
+// 2026-08-17 (3-р засвар):
+// - Байрны дугаарыг ТЕКСТ болгов (жиш нь "58/1", "12А" гэх мэт "/", "-",
+//   үсэг орсон байрны дугаар дэмжигдэнэ — өмнө Number()-ээр шалгаж байсан
+//   тул иймэрхүү дугаар алдаа өгдөг байсан).
+// - Байрын жагсаалт (таб)+Байр нэмэх/устгах үйлдэл нэмэв — өмнө зөвхөн
+//   ганц input-оор blur дээр ачаалдаг байсан, олон байр хооронд шилжих/
+//   сонгох боломжгүй байв.
 let nextId = 1000;
 function genId() { return nextId++; }
 
@@ -36,16 +37,29 @@ function formatCode(buildingNo, spacer, floor, doorNo) {
 
 export default function AddressConfig() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
-  const [buildingNo, setBuildingNo] = useState('101');
+  const { confirm, ConfirmDialog } = useConfirm();
+  const [buildingList, setBuildingList] = useState([]);
+  const [buildingNo, setBuildingNo] = useState('');
   const [spacer, setSpacer] = useState('');
   const [entrances, setEntrances] = useState([makeEntrance('1')]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function loadLayout(bNoRaw) {
-    const bNo = Number(bNoRaw);
-    if (!bNo) return;
+  async function loadBuildingList() {
+    const { data } = await supabase.from('unit_layouts').select('building_no').eq('tenant_id', hoaId);
+    const uniq = [...new Set((data ?? []).map((r) => r.building_no))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    setBuildingList(uniq);
+    return uniq;
+  }
+
+  async function loadLayout(bNo) {
+    if (!bNo) {
+      setEntrances([makeEntrance('1')]);
+      setSpacer('');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from('unit_layouts')
@@ -83,12 +97,32 @@ export default function AddressConfig() {
   }
 
   useEffect(() => {
-    loadLayout(buildingNo);
+    (async () => {
+      const list = await loadBuildingList();
+      if (list.length > 0) {
+        setBuildingNo(list[0]);
+        await loadLayout(list[0]);
+      } else {
+        setLoading(false);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoaId]);
 
+  function selectBuilding(bNo) {
+    setBuildingNo(bNo);
+    loadLayout(bNo);
+  }
+
+  function startNewBuilding() {
+    setBuildingNo('');
+    setSpacer('');
+    setEntrances([makeEntrance('1')]);
+    setLoading(false);
+  }
+
   async function handleSaveLayout() {
-    const bNo = Number(buildingNo);
+    const bNo = buildingNo.trim();
     if (!bNo) { window.alert('Байрны дугаар оруулна уу'); return; }
     setSaving(true);
     await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', bNo);
@@ -114,7 +148,22 @@ export default function AddressConfig() {
       if (error) { window.alert(error.message); setSaving(false); return; }
     }
     setSaving(false);
+    await loadBuildingList();
     window.alert('Амжилттай хадгалагдлаа.');
+  }
+
+  async function handleDeleteBuilding() {
+    const bNo = buildingNo.trim();
+    if (!bNo) return;
+    if (!(await confirm(`"${bNo}" байрны бүх хаягжилтыг устгах уу? Энэ үйлдлийг буцаах боломжгүй.`))) return;
+    await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', bNo);
+    const list = await loadBuildingList();
+    if (list.length > 0) {
+      setBuildingNo(list[0]);
+      await loadLayout(list[0]);
+    } else {
+      startNewBuilding();
+    }
   }
 
   function addFloor(entranceId) {
@@ -184,8 +233,34 @@ export default function AddressConfig() {
     setEditing(null);
   }
 
+  const isExistingBuilding = buildingList.includes(buildingNo.trim());
+
   return (
     <div className="ds-card p-4">
+      {/* Байрны жагсаалт (таб)+Байр нэмэх */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+        {buildingList.map((b) => (
+          <button
+            key={b}
+            onClick={() => selectBuilding(b)}
+            className={`px-3 py-1.5 rounded text-xs font-semibold border transition-colors ${
+              b === buildingNo
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'border-bordercol text-mutedtext hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            {b}
+          </button>
+        ))}
+        <button
+          onClick={startNewBuilding}
+          title="Байр нэмэх"
+          className="px-3 py-1.5 rounded text-xs font-semibold border border-blue-500/40 text-blue-400 hover:bg-blue-500/20"
+        >
+          + Байр нэмэх
+        </button>
+      </div>
+
       <div className="flex items-end justify-between mb-4">
         <div className="flex items-end gap-2">
           <div>
@@ -194,7 +269,8 @@ export default function AddressConfig() {
               className="ds-input w-32"
               value={buildingNo}
               onChange={(e) => setBuildingNo(e.target.value)}
-              onBlur={(e) => loadLayout(e.target.value)}
+              onBlur={(e) => { if (buildingList.includes(e.target.value.trim())) loadLayout(e.target.value.trim()); }}
+              placeholder="жиш: 58/1"
             />
           </div>
           <div>
@@ -209,9 +285,14 @@ export default function AddressConfig() {
             />
           </div>
         </div>
-        <button className="ds-btn-primary" onClick={handleSaveLayout} disabled={saving || loading}>
-          {saving ? 'Хадгалж байна...' : 'Хадгалах'}
-        </button>
+        <div className="flex items-center gap-2">
+          {isExistingBuilding && (
+            <button className="ds-btn-secondary" onClick={handleDeleteBuilding}>Байр устгах</button>
+          )}
+          <button className="ds-btn-primary" onClick={handleSaveLayout} disabled={saving || loading}>
+            {saving ? 'Хадгалж байна...' : 'Хадгалах'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -324,6 +405,8 @@ export default function AddressConfig() {
         onSave={handleUnitSave}
         onHide={handleUnitHide}
       />
+
+      <ConfirmDialog />
     </div>
   );
 }

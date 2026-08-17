@@ -63,7 +63,7 @@ export default function Property() {
   async function handleSaveOwner(form) {
     if (!editingOwner) return;
     const payload = {
-      building_no: form.buildingNo ? Number(form.buildingNo) : null,
+      building_no: form.buildingNo || null,
       floor: form.floor !== '' ? Number(form.floor) : null,
       door_no: form.doorNo !== '' ? Number(form.doorNo) : null,
       sqm: form.sqm !== '' ? Number(form.sqm) : null,

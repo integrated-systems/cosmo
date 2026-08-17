@@ -62,7 +62,7 @@ export default function Owners() {
   async function handleSave(form) {
     const payload = {
       tenant_id: hoaId,
-      building_no: form.buildingNo ? Number(form.buildingNo) : null,
+      building_no: form.buildingNo || null,
       floor: form.floor !== '' ? Number(form.floor) : null,
       door_no: form.doorNo !== '' ? Number(form.doorNo) : null,
       sqm: form.sqm !== '' ? Number(form.sqm) : null,

@@ -24,7 +24,7 @@ export function useUnitLayouts(hoaId) {
       });
   }, [hoaId]);
 
-  const buildingNos = [...new Set(rows.map((r) => r.building_no))].sort((a, b) => a - b);
+  const buildingNos = [...new Set(rows.map((r) => r.building_no))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
   const buildings = buildingNos.map((buildingNo) => {
     const buildingRows = rows.filter((r) => r.building_no === buildingNo);
     const spacer = buildingRows[0]?.spacer || '';

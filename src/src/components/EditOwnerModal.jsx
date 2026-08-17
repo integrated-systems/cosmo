@@ -71,16 +71,16 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId }) 
     setForm((f) => ({ ...f, [field]: val }));
   }
 
-  const currentBuilding = buildings.find((b) => b.buildingNo === Number(form.buildingNo));
+  const currentBuilding = buildings.find((b) => b.buildingNo === form.buildingNo);
   const unitOptions = currentBuilding?.units || [];
   const selectedUnitKey = form.floor !== '' && form.doorNo !== '' ? `${form.floor}|${form.doorNo}` : '';
 
   function handleBuildingChange(val) {
-    const b = buildings.find((x) => x.buildingNo === Number(val));
+    const b = buildings.find((x) => x.buildingNo === val);
     const firstUnit = b?.units[0];
     setForm((f) => ({
       ...f,
-      buildingNo: Number(val),
+      buildingNo: val,
       floor: firstUnit?.floor ?? '',
       doorNo: firstUnit?.doorNo ?? '',
       sqm: firstUnit?.sqm ?? f.sqm,

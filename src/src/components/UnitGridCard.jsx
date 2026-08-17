@@ -13,7 +13,7 @@ import { useState } from 'react';
 const EXAMPLE_HAS_BALANCE = [false, false, true, false, false, true, false, true, false, false, true, false];
 
 export default function UnitGridCard({ cells, hint }) {
-  const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => a - b);
+  const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
   const [selectedBuilding, setSelectedBuilding] = useState(buildings[0]);
   const activeBuilding = buildings.includes(selectedBuilding) ? selectedBuilding : buildings[0];
 
