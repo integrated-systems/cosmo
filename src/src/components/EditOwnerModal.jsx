@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SimpleListField, SpotListField, VehicleListField } from './formFields/ListFields';
+import { useUnitLayouts } from '../hooks/useUnitLayouts';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
 // 2026-08-13 хэрэглэгчийн өгсөн 2 screenshot-той тулгаж бүтээв. Хэдэн ч
@@ -8,8 +9,12 @@ import { SimpleListField, SpotListField, VehicleListField } from './formFields/L
 // хэсгүүдийг (SimpleListField/SpotListField/VehicleListField) "Rule of
 // two"-ийн дагуу тусад нь задалж (formFields/ListFields.jsx, 2026-08-16
 // EditClientModal.jsx-д ч дахин ашиглав), 5+ газарт дахин ашиглав.
-
-const BUILDING_OPTIONS = [101, 102, 103, 109];
+//
+// 2026-08-17 (3-р засвар): "Байр"+"Тоот" hardcode dropdown-ыг арилгаж
+// `unit_layouts`-аас (AddressConfig.jsx-д зохион байгуулсан бодит
+// хаягжилт) ЛИНКЭД dropdown болгов — "Давхар" dropdown бүрмөсүн
+// устгав (Тоот сонгомогц давхар нь автоматаар тодорхойлогдоно). "Байр
+// ба тоот дугаарууд хаягжилтын голлох мэдээлэл" гэдгийг тусгав.
 
 function SectionTitle({ children }) {
   return (
@@ -19,12 +24,14 @@ function SectionTitle({ children }) {
   );
 }
 
-export default function EditOwnerModal({ open, onClose, owner, onSave }) {
+export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId }) {
+  const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
+
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
   // — өмнө mock EXAMPLE_OWNERS-ийн бүтэц (building/phone/email г.м)
   // ашигладаг байсныг бодит DB талбарын нэртэй уялдуулав.
   const [form, setForm] = useState(() => ({
-    buildingNo: owner?.building_no || BUILDING_OPTIONS[0],
+    buildingNo: owner?.building_no ?? '',
     floor: owner?.floor ?? '',
     doorNo: owner?.door_no ?? '',
     sqm: owner?.sqm ?? '',
@@ -44,8 +51,46 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
     note: owner?.note || '',
   }));
 
+  // Шинээр нэмэх үед (owner=null) хаягжилт ачаалагдмагц анхны байр+тоот
+  // автоматаар сонгогдоно (хэрэглэгч заавал ГАРААР сонгох шаардлагагүй).
+  useEffect(() => {
+    if (owner || layoutsLoading || buildings.length === 0 || form.buildingNo !== '') return;
+    const firstBuilding = buildings[0];
+    const firstUnit = firstBuilding.units[0];
+    setForm((f) => ({
+      ...f,
+      buildingNo: firstBuilding.buildingNo,
+      floor: firstUnit?.floor ?? '',
+      doorNo: firstUnit?.doorNo ?? '',
+      sqm: firstUnit?.sqm ?? f.sqm,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layoutsLoading, buildings]);
+
   function set(field, val) {
     setForm((f) => ({ ...f, [field]: val }));
+  }
+
+  const currentBuilding = buildings.find((b) => b.buildingNo === Number(form.buildingNo));
+  const unitOptions = currentBuilding?.units || [];
+  const selectedUnitKey = form.floor !== '' && form.doorNo !== '' ? `${form.floor}|${form.doorNo}` : '';
+
+  function handleBuildingChange(val) {
+    const b = buildings.find((x) => x.buildingNo === Number(val));
+    const firstUnit = b?.units[0];
+    setForm((f) => ({
+      ...f,
+      buildingNo: Number(val),
+      floor: firstUnit?.floor ?? '',
+      doorNo: firstUnit?.doorNo ?? '',
+      sqm: firstUnit?.sqm ?? f.sqm,
+    }));
+  }
+  function handleUnitChange(val) {
+    if (!val) return;
+    const [floor, doorNo] = val.split('|').map(Number);
+    const unit = unitOptions.find((u) => u.floor === floor && u.doorNo === doorNo);
+    setForm((f) => ({ ...f, floor, doorNo, sqm: unit?.sqm ?? f.sqm }));
   }
 
   return (
@@ -62,23 +107,21 @@ export default function EditOwnerModal({ open, onClose, owner, onSave }) {
       }
     >
       <SectionTitle>Тоотын мэдээлэл</SectionTitle>
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Байр</label>
-          <select className="ds-select w-full" value={form.buildingNo} onChange={(e) => set('buildingNo', e.target.value)}>
-            {BUILDING_OPTIONS.map((b) => <option key={b} value={b}>{b}-р байр</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Давхар</label>
-          <select className="ds-select w-full" value={form.floor} onChange={(e) => set('floor', e.target.value)}>
-            {Array.from({ length: 9 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+          <select className="ds-select w-full" value={form.buildingNo} onChange={(e) => handleBuildingChange(e.target.value)}>
+            {buildings.length === 0 && <option value="">{layoutsLoading ? 'Ачаалж байна...' : 'Хаягжилт тохируулаагүй'}</option>}
+            {buildings.map((b) => <option key={b.buildingNo} value={b.buildingNo}>{b.buildingNo}-р байр</option>)}
           </select>
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоот</label>
-          <select className="ds-select w-full" value={form.doorNo} onChange={(e) => set('doorNo', e.target.value)}>
-            {Array.from({ length: 8 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
+          <select className="ds-select w-full" value={selectedUnitKey} onChange={(e) => handleUnitChange(e.target.value)}>
+            <option value="">Сонгоно уу</option>
+            {unitOptions.map((u) => (
+              <option key={`${u.floor}-${u.doorNo}`} value={`${u.floor}|${u.doorNo}`}>{u.code}</option>
+            ))}
           </select>
         </div>
       </div>

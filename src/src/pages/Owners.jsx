@@ -130,6 +130,7 @@ export default function Owners() {
         onClose={() => setEditing(null)}
         owner={editing}
         onSave={handleSave}
+        hoaId={hoaId}
       />
 
       <EditOwnerModal
@@ -137,6 +138,7 @@ export default function Owners() {
         onClose={() => setAdding(false)}
         owner={null}
         onSave={handleSave}
+        hoaId={hoaId}
       />
 
       <ConfirmDialog />

@@ -226,6 +226,7 @@ export default function Property() {
         onClose={() => setEditingOwner(null)}
         owner={editingOwner}
         onSave={handleSaveOwner}
+        hoaId={hoaId}
       />
 
       <ClientInfoModal
