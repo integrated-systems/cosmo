@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Modal from './Modal';
 import { SpotListField, VehicleListField } from './formFields/ListFields';
 
-// "Аж ахуйн нэгж бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
+// "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
 // EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
 export default function EditClientModal({ open, onClose, client, onSave }) {
   const [form, setForm] = useState(() => ({
@@ -31,7 +31,7 @@ export default function EditClientModal({ open, onClose, client, onSave }) {
     <Modal
       open={open}
       onClose={onClose}
-      title={client ? 'Аж ахуйн нэгж засах' : 'Аж ахуйн нэгж нэмэх'}
+      title={client ? 'Талбай өмчлөгч засах' : 'Талбай өмчлөгч нэмэх'}
       size="md"
       footer={
         <>

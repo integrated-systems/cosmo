@@ -1,5 +1,5 @@
 // Хэрэглэгчийн 2026-08-12 өгсөн Notepad++ схемээс (7 бүлэг, 51 модуль) —
-// баганa 1 = Sidebar-т харагдах Монгол нэр, багана 2 = англи route/key нэр
+// багана 1 = Sidebar-т харагдах Монгол нэр, багана 2 = англи route/key нэр
 // (эхнээсээ хэрэглэгчийн сонгосон нэршил, дараа өөрчлөгдвөл зөвхөн энд
 // нэг л газар засна). Хуудсын дизайныг хэрэглэгч өөрөө маргаашаас эхлэн
 // хийнэ — одоогоор бүгд PageInProgress ашиглана (Dashboard/Owners(өмнөх
@@ -29,7 +29,7 @@ export const MENU_SECTIONS = [
     groupKey: 'hoaregistries',
     items: [
       { key: 'owners', label: 'Сууц өмчлөгч бүртгэл', path: '/owners' },
-      { key: 'clientele', label: 'Аж ахуйн нэгж бүртгэл', path: '/clientele' },
+      { key: 'clientele', label: 'Талбай өмчлөгч бүртгэл', path: '/clientele' },
       { key: 'property', label: 'Тоот, зогсоол, агуулах', path: '/property' },
       { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
       { key: 'dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
@@ -120,6 +120,6 @@ export const SIDEBAR_STATS = [
   { label: 'Агуулах', value: 7 },
   { label: 'Зогсоол', value: 9 },
   { label: 'Бүртгэлтэй машин', value: 4 },
-  { label: 'Аж ахуйн нэгж', value: 38 },
+  { label: 'Талбай өмчлөгч', value: 38 },
   { label: 'Харилцагч байгууллага', value: 24 },
 ];

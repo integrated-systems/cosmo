@@ -8,7 +8,7 @@ import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useConfirm } from '../hooks/useConfirm';
 
-// "Аж ахуйн нэгж бүртгэл" (/clientele) хуудас — Owners.jsx-ийн бүтэц/
+// "Талбай өмчлөгч бүртгэл" (/clientele) хуудас — Owners.jsx-ийн бүтэц/
 // компонент задаргааны загварыг яг дахин ашигласан (Rule of two). Supabase
 // "clientele" хүснэгэлээс tenant_id-аар шүүж унших/бичих/устгах.
 export default function Clientele() {

@@ -20,7 +20,7 @@ export default function ClienteleToolbar({ search, onSearchChange, onAddClick })
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
         <button className="ds-btn-secondary">Экспортлох</button>
-        <button className="ds-btn-primary" onClick={onAddClick}>+ Аж ахуйн нэгж нэмэх</button>
+        <button className="ds-btn-primary" onClick={onAddClick}>+ Талбай өмчлөгч нэмэх</button>
       </div>
     </div>
   );

@@ -22,11 +22,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // Энэ бол зδвхδн дизайны жишээ мδр (projectcosmo.html-ийн эх дизайнтай
 // ижил, algorithmic биш, гараар бичсэн 5 мөр).
 const DEBTORS_EXAMPLE = [
-  { name: 'Tous Les Jours', type: 'Аж ахуйн нэгж', months: '2 сар', amount: 4400000 },
-  { name: 'Эрхий Мэргэн Цэцэрлэг', type: 'Аж ахуйн нэгж', months: '2 сар', amount: 4000000 },
-  { name: 'BlackBull carwash', type: 'Аж ахуйн нэгж', months: '2 сар', amount: 1800000 },
-  { name: 'Ace Esport', type: 'Аж ахуйн нэгж', months: '2 сар', amount: 1400000 },
-  { name: 'Cafe Fonte', type: 'Аж ахуйн нэгж', months: '2 сар', amount: 1260000 },
+  { name: 'Tous Les Jours', type: 'Талбай өмчлөгч', months: '2 сар', amount: 4400000 },
+  { name: 'Эрхий Мэргэн Цэцэрлэг', type: 'Талбай өмчлөгч', months: '2 сар', amount: 4000000 },
+  { name: 'BlackBull carwash', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1800000 },
+  { name: 'Ace Esport', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1400000 },
+  { name: 'Cafe Fonte', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1260000 },
 ];
 
 function StatCard({ label, value, valueColor, detail }) {
@@ -54,11 +54,11 @@ export default function Dashboard() {
       {/* 1. Дээд талын 4 үндсэн мэдээллийн карт */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
         <StatCard label="ЭНЭ САРД НЭХЭМЖИЛСЭН" value={`${formatMoney(14385000)}₮`} valueColor="text-customBlue"
-          detail={[`Сууц өмчлөгч - ${formatMoney(1510000)}₮`, `Аж ахуйн нэгж - ${formatMoney(12875000)}₮`]} />
+          detail={[`Сууц өмчлөгч - ${formatMoney(1510000)}₮`, `Талбай өмчлөгч - ${formatMoney(12875000)}₮`]} />
         <StatCard label="ЭНЭ САРЫН ОРЛОГО" value={`${formatMoney(0)}₮`} valueColor="text-customGreen"
-          detail={['Сууц өмчлөгч - 0/18', 'Аж ахуйн нэгж - 0/36']} />
+          detail={['Сууц өмчлөгч - 0/18', 'Талбай өмчлөгч - 0/36']} />
         <StatCard label="НИЙТ ӨР АВЛАГА" value={`${formatMoney(28770000)}₮`} valueColor="text-customRed"
-          detail={['Сууц өмчлөгч - 18/18', 'Аж ахуйн нэгж - 36/36']} />
+          detail={['Сууц өмчлөгч - 18/18', 'Талбай өмчлөгч - 36/36']} />
         <StatCard label="НИЙТ ОРШИН СУУГЧ" value="65" valueColor="text-slate-900 dark:text-text"
           detail={['0-6 насны хүүхэд - 13', '6-18 насны хүүхэд - 16']} />
       </div>
