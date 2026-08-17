@@ -7,12 +7,14 @@ import UnitGridCard from '../components/UnitGridCard';
 import SpotTable from '../components/SpotTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import EditOwnerModal from '../components/EditOwnerModal';
+import ClientInfoModal from '../components/ClientInfoModal';
+import EditClientModal from '../components/EditClientModal';
 
-// "Үл хөдлөх бүртгэл" (/property) хуудас — Тоот таб: менежерийн зорилготой
-// визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна). Зогсоол/
-// Агуулах таб: Owners.jsx-ийн .ds-table загварыг дахин ашигласан
-// хүснэгэл (grid БИШ). "Талбай" таб 2026-08-17 хэрэглэгчийн заасны дагуу
-// арилгасан — "Талбай өмчлөгч бүртгэл" (/clientele) хуудас хүрэлцээтэй.
+// "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
+// зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна).
+// Зогсоол/Агуулах таб: Owners.jsx-ийн .ds-table загварыг дахин ашигласан
+// хүснэгэл — 2026-08-17 хэрэглэгчийн заасны дагуу **Owners БОЛОН
+// Clientele (ААН) хоёулангийн зогсоол/агуулахыг НИЙЛГЭЖ** харуулна.
 //
 // TODO: одоохондоо зөвхөн БОДИТ бүртгэлтэй (өмчлөгчтэй) нүүдтэй л
 // харуулна — бүтэн байрны зохион байгуулалт "Хаягжилт тохиргоо"
@@ -34,19 +36,26 @@ export default function Property() {
   const [tab, setTab] = useState('household');
   const [search, setSearch] = useState('');
   const [owners, setOwners] = useState([]);
+  const [clientele, setClientele] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [editingOwner, setEditingOwner] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [editingClient, setEditingClient] = useState(null);
 
-  async function loadOwners() {
+  async function loadAll() {
     setLoading(true);
-    const { data } = await supabase.from('owners').select('*').eq('tenant_id', hoaId);
-    setOwners(data ?? []);
+    const [ownersRes, clienteleRes] = await Promise.all([
+      supabase.from('owners').select('*').eq('tenant_id', hoaId),
+      supabase.from('clientele').select('*').eq('tenant_id', hoaId),
+    ]);
+    setOwners(ownersRes.data ?? []);
+    setClientele(clienteleRes.data ?? []);
     setLoading(false);
   }
 
   useEffect(() => {
-    loadOwners();
+    loadAll();
   }, [hoaId]);
 
   async function handleSaveOwner(form) {
@@ -78,7 +87,36 @@ export default function Property() {
     if (error) { window.alert(error.message); return; }
     setEditingOwner(null);
     setSelectedOwner(null);
-    await loadOwners();
+    await loadAll();
+  }
+
+  async function handleSaveClient(form) {
+    if (!editingClient) return;
+    const payload = {
+      legal_entity_name: form.legalEntityName || null,
+      reg_no: form.regNo || null,
+      sqm: form.sqm !== '' ? Number(form.sqm) : null,
+      property_no: form.propertyNo || null,
+      ceo_first_name_last_name: form.ceoName || null,
+      mobile: form.mobile || null,
+      phone: form.phone || null,
+      email: form.email || null,
+      contract_no: form.contractNo || null,
+      contract_start: form.contractStart || null,
+      contract_end: form.contractEnd || null,
+      has_parking: form.hasParking,
+      parkings: form.parkings,
+      has_storage: form.hasStorage,
+      storages: form.storages,
+      has_vehicle: form.hasVehicle,
+      vehicles: form.vehicles,
+      note: form.note || null,
+    };
+    const { error } = await supabase.from('clientele').update(payload).eq('id', editingClient.id);
+    if (error) { window.alert(error.message); return; }
+    setEditingClient(null);
+    setSelectedClient(null);
+    await loadAll();
   }
 
   const q = search.trim().toLowerCase();
@@ -96,7 +134,9 @@ export default function Property() {
     }))
     .filter((c) => !q || c.code.toLowerCase().includes(q));
 
-  function spotRows(field, locationPrefix) {
+  // Зогсоол/Агуулах — Owners БОЛОН Clientele (ААН) хоёулангийн
+  // parkings/storages jsonb-ээс НИЙЛГЭЖ мөр үүсгэнэ.
+  function spotRows(field) {
     const rows = [];
     owners.forEach((o) => {
       (o[field] || []).forEach((sp, i) => {
@@ -104,12 +144,27 @@ export default function Property() {
         const location = `${sp.floor}-${sp.no}`;
         if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
         rows.push({
-          id: `${o.id}-${field}-${i}`,
+          id: `o-${o.id}-${field}-${i}`,
           buildingNo: o.building_no,
           location,
           ownerName,
           phone: o.phones?.[0] || '',
           onClick: () => setSelectedOwner(o),
+        });
+      });
+    });
+    clientele.forEach((c) => {
+      (c[field] || []).forEach((sp, i) => {
+        const ownerName = c.legal_entity_name || '';
+        const location = `${sp.floor}-${sp.no}`;
+        if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
+        rows.push({
+          id: `c-${c.id}-${field}-${i}`,
+          buildingNo: null,
+          location,
+          ownerName,
+          phone: c.mobile || c.phone || '',
+          onClick: () => setSelectedClient(c),
         });
       });
     });
@@ -153,13 +208,25 @@ export default function Property() {
         onClose={() => setSelectedOwner(null)}
         onEdit={(owner) => { setEditingOwner(owner); setSelectedOwner(null); }}
       />
-
       <EditOwnerModal
         key={editingOwner?.id}
         open={!!editingOwner}
         onClose={() => setEditingOwner(null)}
         owner={editingOwner}
         onSave={handleSaveOwner}
+      />
+
+      <ClientInfoModal
+        client={selectedClient}
+        onClose={() => setSelectedClient(null)}
+        onEdit={(client) => { setEditingClient(client); setSelectedClient(null); }}
+      />
+      <EditClientModal
+        key={editingClient?.id}
+        open={!!editingClient}
+        onClose={() => setEditingClient(null)}
+        client={editingClient}
+        onSave={handleSaveClient}
       />
     </>
   );

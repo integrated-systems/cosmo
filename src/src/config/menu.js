@@ -30,7 +30,7 @@ export const MENU_SECTIONS = [
     items: [
       { key: 'owners', label: 'Сууц өмчлөгч бүртгэл', path: '/owners' },
       { key: 'clientele', label: 'Талбай өмчлөгч бүртгэл', path: '/clientele' },
-      { key: 'property', label: 'Үл хөдлөх бүртгэл', path: '/property' },
+      { key: 'property', label: 'Тоот, Зогсоол, Агуулах', path: '/property' },
       { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
       { key: 'dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
       { key: 'nfcgate', label: 'Хаалт удирдлага', path: '/nfcgate' },
