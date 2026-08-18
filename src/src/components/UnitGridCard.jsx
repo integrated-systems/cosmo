@@ -38,9 +38,9 @@ export default function UnitGridCard({ cells, hint }) {
                       <div className="flex flex-wrap gap-1">
                         {items.map((it, idx) => {
                           const hasBalance = EXAMPLE_HAS_BALANCE[(it.exampleIdx ?? idx) % EXAMPLE_HAS_BALANCE.length];
-                          const colorClass = hasBalance
-                            ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
-                            : 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400';
+                          const colorClass = (it.vacant || !hasBalance)
+                            ? 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400'
+                            : 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed';
                           return (
                             <button
                               key={it.id}

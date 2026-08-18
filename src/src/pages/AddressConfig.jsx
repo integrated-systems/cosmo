@@ -109,7 +109,7 @@ export default function AddressConfig() {
     if (!b) return;
     if (!(await confirm(`"${b.buildingNo || '(нэргүй)'}" байрыг устгах уу?`))) return;
     if (b.buildingNo.trim()) {
-      await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', b.buildingNo.trim());
+      await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', b.buildingNo);
     }
     setBuildings((prev) => prev.filter((x) => x.id !== buildingId));
   }
@@ -119,8 +119,11 @@ export default function AddressConfig() {
     await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId);
     const rows = [];
     buildings.forEach((bld) => {
-      const bNo = bld.buildingNo.trim();
-      if (!bNo) return;
+      // 2026-08-18: .trim() зөвхөн ХООСОН эсэхийг шалгахад л ашиглана —
+      // Байрны дугаарт хэрэглэгч зориудаар оруулсан хоосон зай (spacer
+      // болгон ашиглах зорилготой) хадгалахдаа арилахгүй байх ёстой.
+      const bNo = bld.buildingNo;
+      if (!bNo || !bNo.trim()) return;
       bld.entrances.forEach((e) => {
         e.floors.forEach((f) => {
           f.units.forEach((u) => {
