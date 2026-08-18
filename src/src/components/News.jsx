@@ -80,6 +80,13 @@ function NewsMedia({ media }) {
   return null;
 }
 
+// Параграфын эхэнд санамсаргvй орсон space/NBSP/zero-width зэрэг
+// vзэгдэхгvй тэмдэгтvvдийг арилгана — 2026-08-19 хэрэглэгч screenshot-оор
+// зааж, параграф бvр урдаа 1 space зайтай харагдаж байгааг мэдэгдсэн.
+function stripInvisible(s) {
+  return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
+}
+
 export default function News({ badges, datetime, category, viewCount, title, bodyText, media }) {
   const [expanded, setExpanded] = useState(false);
   // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
@@ -107,7 +114,7 @@ export default function News({ badges, datetime, category, viewCount, title, bod
       <div className="flex flex-col gap-1">
         <NewsBadges badges={badges} />
         <div className="text-[11px] text-mutedtext">
-          {formatNewsDateTime(datetime)} | {category} | Vзсэн: {formatViewCount(viewCount)}
+          {formatNewsDateTime(datetime)} | {category} | Үзсэн: {formatViewCount(viewCount)}
         </div>
       </div>
 
@@ -125,14 +132,14 @@ export default function News({ badges, datetime, category, viewCount, title, bod
           {expanded ? (
             <div ref={textRef}>
               {bodyText.split(/\n\n+/).map((para, i) => (
-                <p key={i} className="text-xs text-mutedtext text-justify mb-2 last:mb-0">
-                  {para.trim()}
+                <p key={i} className="text-xs text-mutedtext text-justify indent-0 mb-2 last:mb-0">
+                  {stripInvisible(para)}
                 </p>
               ))}
             </div>
           ) : (
-            <p ref={textRef} className="text-xs text-mutedtext text-justify line-clamp-4">
-              {bodyText.replace(/\n+/g, ' ').trim()}
+            <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 line-clamp-4">
+              {stripInvisible(bodyText.replace(/\n+/g, ' '))}
             </p>
           )}
           {isTruncated && (
@@ -140,7 +147,7 @@ export default function News({ badges, datetime, category, viewCount, title, bod
               onClick={() => setExpanded((v) => !v)}
               className="text-xs text-customBlue hover:underline mt-1"
             >
-              {expanded ? 'Хураах' : 'Дэлгэрэнгvй харах'}
+              {expanded ? 'Хураах' : 'Дэлгэрэнгvй'}
             </button>
           )}
         </div>
