@@ -7,7 +7,8 @@ import News from '../components/News';
 // агрегат. Сууц вмчлвгч гар утасны аппаараа vзэх тул responsive
 // (нэг багана, mobile/desktop ижил — 2 баганатай масон grid БИШ, зурган
 // жишээн дэх хажуу зэрэгцvvлэлт нь зvвхvн 2 тvvврийг зэрэг харуулах
-// зорилготой байсан гэдгийг 2026-08-19 хэрэглэгч тодруулсан).
+// зорилготой байсан гэдгийг 2026-08-19 хэрэглэгч тодруулсан). Мэдээний
+// жагсаалт mobile vед бvтэн өргөн, desktop vед макс 720px (2026-08-19).
 //
 // TODO: backend (Supabase `news` хvснэгэл) хараахан vvсээгvй тул
 // доорхи EXAMPLE_DATA нь зvвхvн дизайны жишээ — бодит tenant-д
@@ -85,7 +86,7 @@ export default function NewsPage() {
       </div>
 
       {tab === 'published' && (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2.5 w-full max-w-[720px]">
           {items.map((n) => (
             <News key={n.id} {...n} />
           ))}
