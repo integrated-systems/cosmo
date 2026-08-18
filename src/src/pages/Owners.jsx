@@ -8,6 +8,7 @@ import OwnersToolbar from '../components/OwnersToolbar';
 import OwnersTable from '../components/OwnersTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import { useConfirm } from '../hooks/useConfirm';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 // 2026-08-15: Supabase-тай холбогдов — EXAMPLE_OWNERS mock массив
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
@@ -35,7 +36,7 @@ export default function Owners() {
     setLoadError('');
     const [ownersRes, layoutsRes] = await Promise.all([
       supabase.from('owners').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false }),
-      supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId),
+      fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId)),
     ]);
     if (ownersRes.error) {
       setLoadError(ownersRes.error.message);

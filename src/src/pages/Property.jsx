@@ -10,6 +10,7 @@ import EditOwnerModal from '../components/EditOwnerModal';
 import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useAlert } from '../hooks/useAlert';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
 // зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
@@ -56,7 +57,7 @@ export default function Property() {
     const [ownersRes, clienteleRes, layoutsRes] = await Promise.all([
       supabase.from('owners').select('*').eq('tenant_id', hoaId),
       supabase.from('clientele').select('*').eq('tenant_id', hoaId),
-      supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false),
+      fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false)),
     ]);
     setOwners(ownersRes.data ?? []);
     setClientele(clienteleRes.data ?? []);

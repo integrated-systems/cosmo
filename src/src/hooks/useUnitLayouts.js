@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 // AddressConfig.jsx-д зохион байгуулсан `unit_layouts`-ыг байраар
 // бүлэглэж, EditOwnerModal.jsx-ийн "Байр"+"Тоот" линкэд dropdown-д
-// өгдөг hook. 2026-08-17 хэрэглэгчийн заасны дагуу: сисадмин эхлээд
+// үгдүг hook. 2026-08-17 хэрэглэгчийн заасны дагуу: сисадмин эхлээд
 // хаягжилт зохиож хадгалснаас үүсдэг жинхэнэ жагсаалт — hardcode
 // BUILDING_OPTIONS-ийг сольсон.
 export function useUnitLayouts(hoaId) {
@@ -13,15 +14,12 @@ export function useUnitLayouts(hoaId) {
   useEffect(() => {
     if (!hoaId) return;
     setLoading(true);
-    supabase
-      .from('unit_layouts')
-      .select('*')
-      .eq('tenant_id', hoaId)
-      .eq('hidden', false)
-      .then(({ data }) => {
-        setRows(data ?? []);
-        setLoading(false);
-      });
+    fetchAllRows(() =>
+      supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false)
+    ).then(({ data }) => {
+      setRows(data ?? []);
+      setLoading(false);
+    });
   }, [hoaId]);
 
   const buildingNos = [...new Set(rows.map((r) => r.building_no))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));

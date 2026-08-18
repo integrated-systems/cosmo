@@ -6,6 +6,7 @@ import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons
 import UnitEditModal from '../components/UnitEditModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 // "Хаягжилт тохиргоо" (СИСАДМИН, /addressing) хуудас — Property.jsx-ийн
 // Тоот tab-ийн grid-ийг ЗОХИОДОГ interactive designer.
@@ -55,7 +56,7 @@ export default function AddressConfig() {
 
   async function loadAllBuildings() {
     setLoading(true);
-    const { data } = await supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId);
+    const { data } = await fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId));
     if (!data || data.length === 0) {
       setBuildings([]);
       setLoading(false);
@@ -137,9 +138,14 @@ export default function AddressConfig() {
         });
       });
     });
+    // Их хэмжээний мөрийг (олон байр*давхар) НЭГ insert хүсэлтэд илгээхээс
+    // зайлсхийж 500-аар багцлана (хүсэлтийн хэмжээ/тоо хязгаараас найдвартай байлгах).
     if (rows.length > 0) {
-      const { error } = await supabase.from('unit_layouts').insert(rows);
-      if (error) { alert(error.message); setSaving(false); return; }
+      const BATCH = 500;
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const { error } = await supabase.from('unit_layouts').insert(rows.slice(i, i + BATCH));
+        if (error) { alert(error.message); setSaving(false); return; }
+      }
     }
     setSaving(false);
     alert('Амжилттай хадгалагдлаа.');
