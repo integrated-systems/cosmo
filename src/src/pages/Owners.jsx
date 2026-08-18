@@ -22,6 +22,7 @@ export default function Owners() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { confirm, ConfirmDialog } = useConfirm();
   const [rows, setRows] = useState([]);
+  const [unitLayouts, setUnitLayouts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -32,16 +33,16 @@ export default function Owners() {
   async function loadOwners() {
     setLoading(true);
     setLoadError('');
-    const { data, error } = await supabase
-      .from('owners')
-      .select('*')
-      .eq('tenant_id', hoaId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      setLoadError(error.message);
+    const [ownersRes, layoutsRes] = await Promise.all([
+      supabase.from('owners').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false }),
+      supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId),
+    ]);
+    if (ownersRes.error) {
+      setLoadError(ownersRes.error.message);
     } else {
-      setRows(data ?? []);
+      setRows(ownersRes.data ?? []);
     }
+    setUnitLayouts(layoutsRes.data ?? []);
     setLoading(false);
   }
 
@@ -111,6 +112,7 @@ export default function Owners() {
 
       <OwnersTable
         rows={filteredRows}
+        unitLayouts={unitLayouts}
         loading={loading}
         loadError={loadError}
         onRowClick={setSelected}

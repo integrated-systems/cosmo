@@ -43,6 +43,7 @@ export default function AddressConfig() {
   const [buildingList, setBuildingList] = useState([]);
   const [buildingNo, setBuildingNo] = useState('');
   const [spacer, setSpacer] = useState('');
+  const [structureType, setStructureType] = useState('floor');
   const [entrances, setEntrances] = useState([makeEntrance('1')]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +60,7 @@ export default function AddressConfig() {
     if (!bNo) {
       setEntrances([makeEntrance('1')]);
       setSpacer('');
+      setStructureType('floor');
       setLoading(false);
       return;
     }
@@ -72,11 +74,13 @@ export default function AddressConfig() {
     if (!data || data.length === 0) {
       setEntrances([makeEntrance('1')]);
       setSpacer('');
+      setStructureType('floor');
       setLoading(false);
       return;
     }
 
     setSpacer(data[0].spacer || '');
+    setStructureType(data[0].structure_type || 'floor');
     const byEntrance = {};
     data.forEach((row) => {
       byEntrance[row.entrance_no] = byEntrance[row.entrance_no] || {};
@@ -119,6 +123,7 @@ export default function AddressConfig() {
   function startNewBuilding() {
     setBuildingNo('');
     setSpacer('');
+    setStructureType('floor');
     setEntrances([makeEntrance('1')]);
     setLoading(false);
   }
@@ -141,6 +146,7 @@ export default function AddressConfig() {
             sqm: u.sqm,
             hidden: u.hidden,
             spacer: spacer || null,
+            structure_type: structureType,
           });
         });
       });
@@ -403,6 +409,8 @@ export default function AddressConfig() {
       <UnitEditModal
         key={editing?.unit?.id}
         unit={editing?.unit}
+        structureType={structureType}
+        onStructureTypeChange={setStructureType}
         onClose={() => setEditing(null)}
         onSave={handleUnitSave}
         onHide={handleUnitHide}

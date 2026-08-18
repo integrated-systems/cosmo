@@ -5,7 +5,22 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 
 // Owners.jsx-ийн хүснэгэл (thead+tbody, sticky толгойтой) — 2026-08-15
 // хэрэглэгчийн заасны дагуу тусдаа компонент болгов (Rule of two).
-export default function OwnersTable({ rows, loading, loadError, onRowClick, onEdit, onDelete }) {
+// 2026-08-17 (4-р засвар): "БАЙР" ба "ТООТ" баганын хооронд динамик
+// "ДАВХАР"/"ОРЦ" багана нэмэв — AddressConfig.jsx-д тухайн байрны
+// сонгосон "Дугаарын бүтэц" (structure_type)-ээс хамаарна.
+function findLayoutRow(unitLayouts, r) {
+  return unitLayouts.find(
+    (u) => u.building_no === r.building_no && u.floor === r.floor && u.door_no === r.door_no
+  );
+}
+
+export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete }) {
+  // Ихэнх тохиолдолд tenant бүхэлдээ НЭГ дугаарлалтын бүтэц ашиглана
+  // (анхны байрны утгаар баганын гарчгийг тодорхойлно, мөр бүр өөрийн
+  // бодит утгыг харуулна).
+  const headerStructure = unitLayouts[0]?.structure_type || 'floor';
+  const structureLabel = headerStructure === 'entrance' ? 'ОРЦ' : 'ДАВХАР';
+
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto">
@@ -14,6 +29,7 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
             <tr>
               <th className="py-2.5 px-3 w-10 text-center"></th>
               <th className="py-2.5 px-3 w-[80px]">БАЙР</th>
+              <th className="py-2.5 px-3 w-[80px]">{structureLabel}</th>
               <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
               <th className="py-2.5 px-3 w-[80px]">м²</th>
               <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БҮРТГЭЛИЙН ДУГААР</th>
@@ -35,20 +51,26 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={19} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={20} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={19} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={20} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={19} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={20} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
-            {!loading && !loadError && rows.map((r, idx) => (
+            {!loading && !loadError && rows.map((r, idx) => {
+              const layoutRow = findLayoutRow(unitLayouts, r);
+              const structureVal = layoutRow?.structure_type === 'entrance'
+                ? (layoutRow.entrance_no ?? '—')
+                : (r.floor ?? '—');
+              return (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">
                   {idx + 1}
                 </td>
                 <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{r.building_no ?? '—'}</td>
+                <td className="py-2.5 px-3">{structureVal}</td>
                 <td className="py-2.5 px-3">{formatDoorNo(r.door_no)}</td>
                 <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.property_no || '—'}</td>
@@ -74,7 +96,8 @@ export default function OwnersTable({ rows, loading, loadError, onRowClick, onEd
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
