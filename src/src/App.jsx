@@ -13,6 +13,7 @@ import TenantStatus from './pages/TenantStatus';
 import Clientele from './pages/Clientele';
 import Property from './pages/Property';
 import AddressConfig from './pages/AddressConfig';
+import NewsPage from './pages/News';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
@@ -102,12 +103,13 @@ function AppRoutes() {
         <Route path="clientele" element={<Clientele />} />
         <Route path="property" element={<Property />} />
         <Route path="addressing" element={<AddressConfig />} />
+        <Route path="news" element={<NewsPage />} />
         {/* Tenant Status — SUPERSYSADMIN-ийн Төлбөрийн 3-р алхам (гараар
             invoice горим). SUPERSYSADMIN_TENANT_ITEMS-д багтдаг тул
             RequireRole ХЭРЭГТЭЙ. */}
         <Route path="tenant-status" element={<RequireRole roles={['supersysadmin']}><TenantStatus /></RequireRole>} />
         {/* Цэсний бусад бүх линк (47 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
-        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/clientele', '/property', '/addressing'].includes(i.path)).map((item) => {
+        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/clientele', '/property', '/addressing', '/news'].includes(i.path)).map((item) => {
           const isTenantSaasItem = TENANT_ITEM_PATHS.includes(item.path) || item.path === SUPERSYSADMIN.path;
           const element = isTenantSaasItem
             ? <RequireRole roles={['supersysadmin']}><PageInProgress /></RequireRole>
