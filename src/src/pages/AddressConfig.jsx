@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
 import { useConfirm } from '../hooks/useConfirm';
+import { useAlert } from '../hooks/useAlert';
 
 // "Хаягжилт тохиргоо" (СИСАДМИН, /addressing) хуудас — Property.jsx-ийн
 // Тоот tab-ийн grid-ийг ЗОХИОДОГ interactive designer.
@@ -38,6 +39,7 @@ function formatCode(buildingNo, spacer, floor, doorNo) {
 export default function AddressConfig() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { alert, AlertDialog } = useAlert();
   const [buildingList, setBuildingList] = useState([]);
   const [buildingNo, setBuildingNo] = useState('');
   const [spacer, setSpacer] = useState('');
@@ -123,7 +125,7 @@ export default function AddressConfig() {
 
   async function handleSaveLayout() {
     const bNo = buildingNo.trim();
-    if (!bNo) { window.alert('Байрны дугаар оруулна уу'); return; }
+    if (!bNo) { alert('Байрны дугаар оруулна уу'); return; }
     setSaving(true);
     await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId).eq('building_no', bNo);
     const rows = [];
@@ -145,11 +147,11 @@ export default function AddressConfig() {
     });
     if (rows.length > 0) {
       const { error } = await supabase.from('unit_layouts').insert(rows);
-      if (error) { window.alert(error.message); setSaving(false); return; }
+      if (error) { alert(error.message); setSaving(false); return; }
     }
     setSaving(false);
     await loadBuildingList();
-    window.alert('Амжилттай хадгалагдлаа.');
+    alert('Амжилттай хадгалагдлаа.');
   }
 
   async function handleDeleteBuilding() {
@@ -407,6 +409,7 @@ export default function AddressConfig() {
       />
 
       <ConfirmDialog />
+      <AlertDialog />
     </div>
   );
 }

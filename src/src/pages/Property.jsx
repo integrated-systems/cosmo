@@ -9,6 +9,7 @@ import OwnerInfoModal from '../components/OwnerInfoModal';
 import EditOwnerModal from '../components/EditOwnerModal';
 import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
+import { useAlert } from '../hooks/useAlert';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
 // зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
@@ -18,6 +19,11 @@ import EditClientModal from '../components/EditClientModal';
 // Зогсоол/Агуулах таб: Owners.jsx-ийн .ds-table загварыг дахин ашигласан
 // хүснэгэл — Owners БОЛОН Clientele (ААН) хоёулангийн зогсоол/агуулахыг
 // НИЙЛГЭЖ харуулна.
+//
+// 2026-08-17 (3-р засвар): өмчлөгчгүй тоот дарахад өмнө "бүртгэлгүй"
+// гэсэн window.alert харуулдаг байснийг арилгаж, орондоо "Сууц өмчлөгч
+// нэмэх" модалийг ШУУД (тоот/байр урьдчилан бүглэгдсэн байдлаар) нээдэг
+// болгов — менежер хуудас солилгүйгээр өмчлөгч нэмэх боломжтой.
 const TABS = [
   { key: 'household', label: 'Тоот' },
   { key: 'parking', label: 'Зогсоол' },
@@ -32,6 +38,7 @@ function formatCode(buildingNo, spacer, floor, doorNo) {
 
 export default function Property() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { alert, AlertDialog } = useAlert();
   const [tab, setTab] = useState('household');
   const [search, setSearch] = useState('');
   const [owners, setOwners] = useState([]);
@@ -40,6 +47,7 @@ export default function Property() {
   const [loading, setLoading] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [editingOwner, setEditingOwner] = useState(null);
+  const [addingUnit, setAddingUnit] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [editingClient, setEditingClient] = useState(null);
 
@@ -60,9 +68,8 @@ export default function Property() {
     loadAll();
   }, [hoaId]);
 
-  async function handleSaveOwner(form) {
-    if (!editingOwner) return;
-    const payload = {
+  function ownerPayload(form) {
+    return {
       building_no: form.buildingNo || null,
       floor: form.floor !== '' ? Number(form.floor) : null,
       door_no: form.doorNo !== '' ? Number(form.doorNo) : null,
@@ -85,9 +92,18 @@ export default function Property() {
       vehicles: form.vehicles,
       note: form.note || null,
     };
-    const { error } = await supabase.from('owners').update(payload).eq('id', editingOwner.id);
-    if (error) { window.alert(error.message); return; }
-    setEditingOwner(null);
+  }
+
+  async function handleSaveOwner(form) {
+    if (editingOwner) {
+      const { error } = await supabase.from('owners').update(ownerPayload(form)).eq('id', editingOwner.id);
+      if (error) { alert(error.message); return; }
+      setEditingOwner(null);
+    } else if (addingUnit) {
+      const { error } = await supabase.from('owners').insert({ tenant_id: hoaId, ...ownerPayload(form) });
+      if (error) { alert(error.message); return; }
+      setAddingUnit(null);
+    }
     setSelectedOwner(null);
     await loadAll();
   }
@@ -115,7 +131,7 @@ export default function Property() {
       note: form.note || null,
     };
     const { error } = await supabase.from('clientele').update(payload).eq('id', editingClient.id);
-    if (error) { window.alert(error.message); return; }
+    if (error) { alert(error.message); return; }
     setEditingClient(null);
     setSelectedClient(null);
     await loadAll();
@@ -124,9 +140,9 @@ export default function Property() {
   const q = search.trim().toLowerCase();
 
   // Тоот таб — AddressConfig.jsx-д зохион байгуулсан `unit_layouts`-ыг
-  // ЭХ СУРВАЛЖ болгоно (өмнө буруу зөвхөн `owners`-оос уншиж байсан
-  // алдааг олж зассан). Тоот бүрд тохирох өмчлөгчийг байр/давхар/тоотоор
-  // хайж олно — байвал OwnerInfoModal, үгүй бол "бүртгэлгүй" мэдэгдэнэ.
+  // ЭХ СУРВАЛЖ болгоно. Тоот бүрд тохирох өмчлөгчийг байр/давхар/тоотоор
+  // хайж олно — байвал OwnerInfoModal, үгүй бол "Сууц өмчлөгч нэмэх"
+  // модалийг тэр тоот/байраар нь урьдчилан бүглэж шууд нээнэ.
   const householdCells = unitLayouts.map((row, idx) => {
     const owner = owners.find(
       (o) => o.building_no === row.building_no && o.floor === row.floor && o.door_no === row.door_no
@@ -141,7 +157,7 @@ export default function Property() {
       vacant: !owner,
       onClick: () => {
         if (owner) setSelectedOwner(owner);
-        else window.alert('Энэ тоотод өмчлөгч бүртгэгдээгүй байна.');
+        else setAddingUnit({ buildingNo: row.building_no, floor: row.floor, doorNo: row.door_no, sqm: row.sqm });
       },
     };
   }).filter((c) => !q || c.code.toLowerCase().includes(q));
@@ -229,6 +245,18 @@ export default function Property() {
         hoaId={hoaId}
       />
 
+      {/* Өмчлөгчгүй тоот дарахад ШУУД нээгдэх "Сууц өмчлөгч нэмэх" —
+          тухайн тоотын байр/давхар/дугаар/м² урьдчилан бүглэгдсэн байна. */}
+      <EditOwnerModal
+        key={addingUnit ? `${addingUnit.buildingNo}-${addingUnit.floor}-${addingUnit.doorNo}` : 'add'}
+        open={!!addingUnit}
+        onClose={() => setAddingUnit(null)}
+        owner={null}
+        initialUnit={addingUnit}
+        onSave={handleSaveOwner}
+        hoaId={hoaId}
+      />
+
       <ClientInfoModal
         client={selectedClient}
         onClose={() => setSelectedClient(null)}
@@ -241,6 +269,8 @@ export default function Property() {
         client={editingClient}
         onSave={handleSaveClient}
       />
+
+      <AlertDialog />
     </>
   );
 }

@@ -24,17 +24,19 @@ function SectionTitle({ children }) {
   );
 }
 
-export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId }) {
+export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit }) {
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
 
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
   // — өмнө mock EXAMPLE_OWNERS-ийн бүтэц (building/phone/email г.м)
-  // ашигладаг байсныг бодит DB талбарын нэртэй уялдуулав.
+  // ашигладаг байсныг бодит DB талбарын нэртэй уялдуулав. 2026-08-17:
+  // `initialUnit` prop-оор (Property.jsx-ийн өмчлөгчгүй тоот дарахад)
+  // тодорхой байр/давхар/тоот/м²-ийг урьдчилан бүглэж болно.
   const [form, setForm] = useState(() => ({
-    buildingNo: owner?.building_no ?? '',
-    floor: owner?.floor ?? '',
-    doorNo: owner?.door_no ?? '',
-    sqm: owner?.sqm ?? '',
+    buildingNo: owner?.building_no ?? initialUnit?.buildingNo ?? '',
+    floor: owner?.floor ?? initialUnit?.floor ?? '',
+    doorNo: owner?.door_no ?? initialUnit?.doorNo ?? '',
+    sqm: owner?.sqm ?? initialUnit?.sqm ?? '',
     propertyNo: owner?.property_no || '',
     firstname: owner?.firstname || '',
     lastname: owner?.lastname || '',
@@ -52,7 +54,9 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId }) 
   }));
 
   // Шинээр нэмэх үед (owner=null) хаягжилт ачаалагдмагц анхны байр+тоот
-  // автоматаар сонгогдоно (хэрэглэгч заавал ГАРААР сонгох шаардлагагүй).
+  // автоматаар сонгогдоно (хэрэглэгч заавал ГАРААР сонгох шаардлагагүй)
+  // — гэхдээ `initialUnit`-аар аль хэдийн тодорхой тоот бүглэгдсэн бол
+  // (form.buildingNo аль хэдийн хоосон биш) энэ автомат сонголт ажиллахгүй.
   useEffect(() => {
     if (owner || layoutsLoading || buildings.length === 0 || form.buildingNo !== '') return;
     const firstBuilding = buildings[0];
