@@ -3,6 +3,8 @@ import NewsToolbar from '../components/NewsToolbar';
 import TabButton from '../components/TabButton';
 import News from '../components/News';
 import NewsAggregateTable from '../components/NewsAggregateTable';
+import NewsFormModal from '../components/NewsFormModal';
+import { useConfirm } from '../hooks/useConfirm';
 
 // "Мэдээ, мэдээлэл" (/news) — 2 таб: Нийтлэгдсэн мэдээ / Мэдээний
 // агрегат. Сууц вмчлвгч гар утасны аппаараа vзэх тул responsive
@@ -97,16 +99,58 @@ const EXAMPLE_AGGREGATE_ROWS = [
 export default function NewsPage() {
   const [tab, setTab] = useState('published');
   const [category, setCategory] = useState('');
+  const [aggregateRows, setAggregateRows] = useState(EXAMPLE_AGGREGATE_ROWS);
+  const [editingNews, setEditingNews] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const items = EXAMPLE_DATA.filter((n) => !category || n.category === category);
-  const aggregateRows = EXAMPLE_AGGREGATE_ROWS.filter((r) => !category || r.category === category);
+  const filteredAggregateRows = aggregateRows.filter((r) => !category || r.category === category);
+
+  function handleToggleStatus(row) {
+    setAggregateRows((rows) =>
+      rows.map((r) => (r.id === row.id ? { ...r, status: r.status === 'published' ? 'draft' : 'published' } : r))
+    );
+  }
+
+  async function handleDelete(row) {
+    if (!(await confirm(`"${row.title}" мэдээг устгах уу?`))) return;
+    setAggregateRows((rows) => rows.filter((r) => r.id !== row.id));
+  }
+
+  // TODO: backend (Supabase `news` хvснэгэл) хараахан vvсээгvй тул
+  // Ноорог хадгалах/Нийтлэх зvвхvн ЛОКАЛ state-ийг шинэчилнэ.
+  function handleSaveDraft(form) {
+    upsertRow(form, 'draft');
+    setEditingNews(null);
+    setCreating(false);
+  }
+
+  function handlePublish(form) {
+    upsertRow(form, 'published');
+    setEditingNews(null);
+    setCreating(false);
+  }
+
+  function upsertRow(form, status) {
+    if (editingNews) {
+      setAggregateRows((rows) =>
+        rows.map((r) => (r.id === editingNews.id ? { ...r, ...form, status } : r))
+      );
+    } else {
+      setAggregateRows((rows) => [
+        { id: Date.now(), datetime: new Date().toISOString(), ...form, status },
+        ...rows,
+      ]);
+    }
+  }
 
   return (
     <>
       <NewsToolbar
         category={category}
         onCategoryChange={setCategory}
-        onCreateClick={tab === 'aggregate' ? () => {} : undefined}
+        onCreateClick={tab === 'aggregate' ? () => setCreating(true) : undefined}
       />
 
       <div className="flex gap-2">
@@ -127,11 +171,23 @@ export default function NewsPage() {
 
       {tab === 'aggregate' && (
         <NewsAggregateTable
-          rows={aggregateRows}
-          onEdit={() => {}}
-          onDelete={() => {}}
+          rows={filteredAggregateRows}
+          onRowClick={setEditingNews}
+          onEdit={setEditingNews}
+          onDelete={handleDelete}
+          onToggleStatus={handleToggleStatus}
         />
       )}
+
+      <NewsFormModal
+        open={creating || !!editingNews}
+        onClose={() => { setCreating(false); setEditingNews(null); }}
+        news={editingNews}
+        onSaveDraft={handleSaveDraft}
+        onPublish={handlePublish}
+      />
+
+      <ConfirmDialog />
     </>
   );
 }

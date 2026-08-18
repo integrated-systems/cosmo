@@ -5,6 +5,25 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // менежерийн таблиц. Owners.jsx-ийн .ds-table загварыг дахин ашигласан
 // (Rule of two) — 2026-08-19 хэрэглэгчийн screenshot-оор өгсөн баганын
 // бvтэц: ОГНОО/АНГИЛАЛ/ГАРЧИГ/ТӨЛӨВ/ОНЦЛОХ/ШУУРХАЙ/ПАБЛИК/ҮЙЛДЭЛ.
+// ТӨЛӨВ багана: 2026-08-19 хэрэглэгчийн заасны дагуу НЭГ товчоор
+// Нуух/Нийтлэх сэлгэнэ (дарангуут Нуух болж, ахиад дарангуут Нийтлэх
+// болно) — өмнөх статик текст+badge-ийг сольсон.
+function StatusToggle({ status, onToggle }) {
+  const isPublished = status === 'published';
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+      className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
+        isPublished
+          ? 'border-customGreen text-customGreen hover:bg-customGreen/10'
+          : 'border-bordercol text-mutedtext hover:border-customBlue hover:text-customBlue'
+      }`}
+    >
+      {isPublished ? 'Нуух' : 'Нийтлэх'}
+    </button>
+  );
+}
+
 function YesNoCell({ value }) {
   return value ? (
     <span className="text-customBlue font-medium">Тийм</span>
@@ -13,14 +32,7 @@ function YesNoCell({ value }) {
   );
 }
 
-function StatusCell({ status }) {
-  if (status === 'published') {
-    return <span className="text-customGreen">✓ Нийтлэгдсэн</span>;
-  }
-  return <span className="text-mutedtext">Ноорог</span>;
-}
-
-export default function NewsAggregateTable({ rows, loading, onEdit, onDelete }) {
+export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, onDelete, onToggleStatus }) {
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto">
@@ -45,15 +57,17 @@ export default function NewsAggregateTable({ rows, loading, onEdit, onDelete }) 
               <tr><td colSpan={8} className="py-8 text-center text-darktext">Мэдээлэл олдсонгvй</td></tr>
             )}
             {!loading && rows.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
                 <td className="py-2.5 px-3 whitespace-nowrap">{formatDateTime(r.datetime)}</td>
                 <td className="py-2.5 px-3">{r.category}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.title}</td>
-                <td className="py-2.5 px-3"><StatusCell status={r.status} /></td>
+                <td className="py-2.5 px-3">
+                  <StatusToggle status={r.status} onToggle={() => onToggleStatus(r)} />
+                </td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.featured} /></td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.urgent} /></td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.isPublic} /></td>
-                <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
                     <EditIcon />
                   </button>
