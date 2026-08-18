@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatNewsDateTime, formatViewCount } from '../lib/newsFormat';
 
 // "news" нэртэй дахин ашиглагдах мэдээний карт component — 2026-08-19
@@ -80,11 +80,27 @@ function NewsMedia({ media }) {
   return null;
 }
 
-const BODY_EXPAND_THRESHOLD = 220;
-
 export default function News({ badges, datetime, category, viewCount, title, bodyText, media }) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = (bodyText?.length || 0) > BODY_EXPAND_THRESHOLD;
+  // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
+  // тоогоор тааварлахгvй) — screen/container өргөнөөс хамааран мврийн
+  // тоо өөрчлөгддөг тул scrollHeight vs clientHeight-ийг харьцуулна.
+  // Зvвхvн collapsed (line-clamp-4) vед хэмжинэ, expanded vед clientHeight
+  // өөрөө өсдөг тул хуучин vр дvнгээ хадгална.
+  const [isTruncated, setIsTruncated] = useState(false);
+  const textRef = useRef(null);
+
+  useEffect(() => {
+    if (expanded) return;
+    const el = textRef.current;
+    if (!el) return;
+    function measure() {
+      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [bodyText, expanded]);
 
   return (
     <div className="ds-card p-2.5 flex flex-col gap-2">
@@ -99,10 +115,13 @@ export default function News({ badges, datetime, category, viewCount, title, bod
 
       {bodyText && (
         <div>
-          <p className={`text-xs text-mutedtext whitespace-pre-line ${expanded ? '' : 'line-clamp-4'}`}>
+          <p
+            ref={textRef}
+            className={`text-xs text-mutedtext whitespace-pre-line ${expanded ? '' : 'line-clamp-4'}`}
+          >
             {bodyText}
           </p>
-          {isLong && (
+          {isTruncated && (
             <button
               onClick={() => setExpanded((v) => !v)}
               className="text-xs text-customBlue hover:underline mt-1"
