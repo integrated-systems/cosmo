@@ -18,9 +18,10 @@ import { useAlert } from '../hooks/useAlert';
 // өргөн, desktop vед макс 720px (2026-08-19).
 //
 // 2026-08-19: Supabase `news` хvснэгэлтэй холбогдов (migration 0014).
-// ⚠️ Зураг/PDF хараахан Supabase Storage-д бодитоор upload хийхгvй
-// (NewsFormModal-ийн file input-ууд одоогоор зvвхvн файлын нэрийг л
-// орон нутгийн state-д хадгална, DB-рvv бичихгvй) — энэ хэсэг TODO.
+// Зураг Supabase Storage("news-images" bucket, migration 0015)-д бодитоор
+// upload хийгдэнэ. "Паблик мэдээ" функц бvрмвсvн арилгагдсан (/news
+// хуудсыг зөвхөн дотоод tenant-ийн гишvvдэд зориулна). PDF upload
+// хараахан TODO хэвээр.
 const TABS = [
   { key: 'published', label: 'Нийтлэгдсэн мэдээ' },
   { key: 'aggregate', label: 'Мэдээний агрегат' },
@@ -58,7 +59,6 @@ function toTableRow(row) {
     status: row.status,
     featured: row.featured,
     urgent: row.urgent,
-    isPublic: row.is_public,
   };
 }
 
@@ -117,7 +117,7 @@ export default function NewsPage() {
       category: form.category,
       body_text: form.bodyText,
       video_url: form.videoUrl || null,
-      is_public: form.isPublic,
+      images: form.images.map((img) => img.url),
       featured: form.featured,
       urgent: form.urgent,
       status,
@@ -143,7 +143,7 @@ export default function NewsPage() {
           category: editingNews.category,
           bodyText: editingNews.body_text,
           videoUrl: editingNews.video_url,
-          isPublic: editingNews.is_public,
+          images: editingNews.images || [],
           featured: editingNews.featured,
           urgent: editingNews.urgent,
         }
@@ -193,6 +193,7 @@ export default function NewsPage() {
         open={creating || !!editingNews}
         onClose={() => { setCreating(false); setEditingNews(null); }}
         news={modalNewsProp}
+        hoaId={hoaId}
         onSaveDraft={(form) => upsertRow(form, 'draft')}
         onPublish={(form) => upsertRow(form, 'published')}
       />

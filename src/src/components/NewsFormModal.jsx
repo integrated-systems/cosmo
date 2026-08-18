@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
 import { NEWS_CATEGORIES } from '../data/newsCategories';
+import { supabase } from '../lib/supabaseClient';
 
 // "Мэдээ, мэдээлэл" — Мэдээний агрегат таблицын мвр дээр дарахад,
 // "Засах" товч дарахад, "+ Шинэ мэдээ vvсгэх" товч дарахад бvгд ЯГ ЭНЭ
 // НЭГ модалиар нээгдэнэ (2026-08-19 хэрэглэгчийн тодорхой заасан
 // архитектур — 3 тvvврийн зорилго ялгаатай ч дизайн/бvтэц ижил).
+//
+// 2026-08-19 (2-р засвар): "Паблик мэдээ" функц бvрмвсvн арилгав (/news
+// хуудсыг зөвхөн дотоод tenant-ийн гишvvдэд зориулна гэдгийг хэрэглэгч
+// тодорхой заав). Зураг одоо Supabase Storage("news-images" bucket,
+// migration 0015)-д БОДИТООР upload хийгдэнэ (PDF хараахан TODO хэвээр).
 //
 // Агуулгын toolbar-ийн 7 дугуй (B/I-ийн ард): default(цэвэрлэх)+6 tailwind
 // custom өнгв(customBlue/Green/Orange/Red/Purple/Pink) — screenshot-оор
@@ -23,10 +29,9 @@ const COLOR_SWATCHES = [
 // Markdown-төстэй хвнгвн тэмдэглэгээ ашиглана (**bold**, _italic_,
 // {{color:x}}...{{/color}}, [текст](холбоос)) — жинхэнэ WYSIWYG contentEditable
 // биш, учир нь одоогоор харуулах тал (News.jsx) ийм тэмдэглэгээг
-// уншиж форматлах логикгvй (backend/`news` хvснэгэл хараахан vvсээгvй,
-// TODO). Энгийн `<textarea>` дээр vндэслэсэн тул Enter-ийн үед параграф
-// бvрийг автоматаар 1 space-ээр эхлvvлэх зан төлөвийг найдвартай
-// хэрэгжvvлж болно.
+// уншиж форматлах логикгvй (TODO). Энгийн `<textarea>` дээр vндэслэсэн
+// тул Enter-ийн үед параграф бvрийг автоматаар 1 space-ээр эхлvvлэх зан
+// төлөвийг найдвартай хэрэгжvvлж болно.
 function wrapSelection(textareaRef, before, after = before) {
   const el = textareaRef.current;
   if (!el) return;
@@ -87,15 +92,15 @@ const EMPTY_FORM = {
   category: NEWS_CATEGORIES[0],
   bodyText: '',
   videoUrl: '',
-  imageNames: [],
+  images: [], // [{ name, url }]
   pdfName: '',
-  isPublic: false,
   featured: false,
   urgent: false,
 };
 
-export default function NewsFormModal({ open, onClose, news, onSaveDraft, onPublish }) {
+export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft, onPublish }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [uploading, setUploading] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -107,9 +112,8 @@ export default function NewsFormModal({ open, onClose, news, onSaveDraft, onPubl
             category: news.category || NEWS_CATEGORIES[0],
             bodyText: news.bodyText || '',
             videoUrl: news.videoUrl || '',
-            imageNames: news.imageNames || [],
+            images: (news.images || []).map((url) => ({ name: url.split('/').pop(), url })),
             pdfName: news.pdfName || '',
-            isPublic: news.isPublic || false,
             featured: news.featured || false,
             urgent: news.urgent || false,
           }
@@ -136,6 +140,34 @@ export default function NewsFormModal({ open, onClose, news, onSaveDraft, onPubl
     const cursor = selectionStart + insertion.length;
     el.setSelectionRange(cursor, cursor);
     set('bodyText', newValue);
+  }
+
+  // Сонгосон зурагнуудыг "news-images" bucket-д {tenant_id}/{зам} доор
+  // upload хийж, олон нийтэд нээлттэй URL-ыг form.images-д нэмнэ
+  // (migration 0015-ийн RLS policy зөвхөн тухайн tenant-ийн гишvvнд
+  // upload зөвшөөрдөг).
+  async function handleImageSelect(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    setUploading(true);
+    const uploaded = [];
+    for (const file of files) {
+      const path = `${hoaId}/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from('news-images').upload(path, file);
+      if (error) {
+        window.alert(`"${file.name}" файл upload хийхэд алдаа гарлаа: ${error.message}`);
+        continue;
+      }
+      const { data } = supabase.storage.from('news-images').getPublicUrl(path);
+      uploaded.push({ name: file.name, url: data.publicUrl });
+    }
+    setForm((f) => ({ ...f, images: [...f.images, ...uploaded] }));
+    setUploading(false);
+  }
+
+  function removeImage(url) {
+    setForm((f) => ({ ...f, images: f.images.filter((img) => img.url !== url) }));
   }
 
   return (
@@ -188,11 +220,23 @@ export default function NewsFormModal({ open, onClose, news, onSaveDraft, onPubl
             type="file"
             accept="image/*"
             multiple
+            disabled={uploading}
             className="ds-input w-full"
-            onChange={(e) => set('imageNames', Array.from(e.target.files || []).map((f) => f.name))}
+            onChange={handleImageSelect}
           />
           <div className="text-[11px] text-mutedtext mt-1">
-            {form.imageNames.length ? form.imageNames.join(', ') : 'Зураг алга'}
+            {uploading && 'Зураг upload хийж байна...'}
+            {!uploading && !form.images.length && 'Зураг алга'}
+            {!uploading && form.images.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {form.images.map((img) => (
+                  <span key={img.url} className="inline-flex items-center gap-1 bg-slate-100 dark:bg-appbg rounded px-2 py-0.5">
+                    {img.name}
+                    <button type="button" className="text-customRed" onClick={() => removeImage(img.url)}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -208,10 +252,6 @@ export default function NewsFormModal({ open, onClose, news, onSaveDraft, onPubl
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-[13px]">
-            <input type="checkbox" className="accent-customBlue" checked={form.isPublic} onChange={(e) => set('isPublic', e.target.checked)} />
-            Паблик мэдээ (нэвтрэлтгvй гадны хэрэглэгчид ч харагдана)
-          </label>
           <label className="flex items-center gap-2 text-[13px]">
             <input type="checkbox" className="accent-customBlue" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} />
             Онцлох мэдээ болгох
