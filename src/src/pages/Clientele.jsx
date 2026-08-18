@@ -7,6 +7,7 @@ import ClienteleTable from '../components/ClienteleTable';
 import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useConfirm } from '../hooks/useConfirm';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудас — Owners.jsx-ийн бүтэц/
 // компонент задаргааны загварыг яг дахин ашигласан (Rule of two). Supabase
@@ -25,11 +26,9 @@ export default function Clientele() {
   async function loadClientele() {
     setLoading(true);
     setLoadError('');
-    const { data, error } = await supabase
-      .from('clientele')
-      .select('*')
-      .eq('tenant_id', hoaId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await fetchAllRows(() =>
+      supabase.from('clientele').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false })
+    );
     if (error) {
       setLoadError(error.message);
     } else {

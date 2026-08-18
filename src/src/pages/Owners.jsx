@@ -35,7 +35,7 @@ export default function Owners() {
     setLoading(true);
     setLoadError('');
     const [ownersRes, layoutsRes] = await Promise.all([
-      supabase.from('owners').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false }),
+      fetchAllRows(() => supabase.from('owners').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false })),
       fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId)),
     ]);
     if (ownersRes.error) {

@@ -55,8 +55,8 @@ export default function Property() {
   async function loadAll() {
     setLoading(true);
     const [ownersRes, clienteleRes, layoutsRes] = await Promise.all([
-      supabase.from('owners').select('*').eq('tenant_id', hoaId),
-      supabase.from('clientele').select('*').eq('tenant_id', hoaId),
+      fetchAllRows(() => supabase.from('owners').select('*').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('clientele').select('*').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false)),
     ]);
     setOwners(ownersRes.data ?? []);
