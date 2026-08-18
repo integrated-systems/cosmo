@@ -205,7 +205,7 @@ export default function Property() {
     <>
       <PropertyToolbar search={search} onSearchChange={setSearch} />
 
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2">
         {TABS.map((t) => (
           <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
