@@ -2,6 +2,7 @@ import { useState } from 'react';
 import NewsToolbar from '../components/NewsToolbar';
 import TabButton from '../components/TabButton';
 import News from '../components/News';
+import NewsAggregateTable from '../components/NewsAggregateTable';
 
 // "Мэдээ, мэдээлэл" (/news) — 2 таб: Нийтлэгдсэн мэдээ / Мэдээний
 // агрегат. Сууц вмчлвгч гар утасны аппаараа vзэх тул responsive
@@ -82,15 +83,31 @@ const EXAMPLE_DATA = [
   },
 ];
 
+// "Мэдээний агрегат" (2-р таб) таблицын жишээ мвр — TODO: backend
+// (Supabase `news` хvснэгэл) хараахан vvсээгvй тул зvвхvн дизайны жишээ.
+const EXAMPLE_AGGREGATE_ROWS = [
+  { id: 1, datetime: '2026-08-10T20:38:39', category: 'Мэдээ', title: 'Гал тогооны тоног твхввргvvмж шинэчлэгдлээ', status: 'published', featured: false, urgent: false, isPublic: false },
+  { id: 2, datetime: '2026-07-26T12:11:08', category: 'Мэдээ', title: 'Гэрээт байгууллагуудын vйлчилгээний хугацаа сунгагдлаа', status: 'published', featured: true, urgent: true, isPublic: false },
+  { id: 3, datetime: '2026-07-29T03:34:09', category: 'Мэдээ', title: 'Тайлбар бичлэг', status: 'published', featured: false, urgent: false, isPublic: false },
+  { id: 4, datetime: '2026-07-01T12:01:11', category: 'Явцын тайлан', title: 'СвХ-ны 6-р сарын мвнгвн хврвнгийн гvйцэтгэлийн тайлан', status: 'published', featured: true, urgent: false, isPublic: true },
+  { id: 5, datetime: '2026-06-15T09:12:00', category: 'Мэдээ', title: 'Дулааны улирлын шилжилтийн ажлын тайлан', status: 'published', featured: false, urgent: false, isPublic: false },
+  { id: 6, datetime: '2026-06-29T03:35:32', category: 'Ажлын зар', title: 'Сонгон шалгаруулалтад урьж байна', status: 'draft', featured: false, urgent: true, isPublic: false },
+];
+
 export default function NewsPage() {
   const [tab, setTab] = useState('published');
   const [category, setCategory] = useState('');
 
   const items = EXAMPLE_DATA.filter((n) => !category || n.category === category);
+  const aggregateRows = EXAMPLE_AGGREGATE_ROWS.filter((r) => !category || r.category === category);
 
   return (
     <>
-      <NewsToolbar category={category} onCategoryChange={setCategory} />
+      <NewsToolbar
+        category={category}
+        onCategoryChange={setCategory}
+        onCreateClick={tab === 'aggregate' ? () => {} : undefined}
+      />
 
       <div className="flex gap-2">
         {TABS.map((t) => (
@@ -109,7 +126,11 @@ export default function NewsPage() {
       )}
 
       {tab === 'aggregate' && (
-        <div className="ds-card p-8 text-center text-mutedtext text-sm">Тун удахгvй...</div>
+        <NewsAggregateTable
+          rows={aggregateRows}
+          onEdit={() => {}}
+          onDelete={() => {}}
+        />
       )}
     </>
   );

@@ -2,8 +2,9 @@ import { NEWS_CATEGORIES } from '../data/newsCategories';
 
 // "Мэдээ, мэдээлэл" (/news) хуудасны түүлбэр — 2026-08-19 screenshot-оор
 // өгсөн ганцхан "Бүгдийг харах" ангилалын dropdown (PropertyToolbar шиг
-// хайлт биш, категориор шvvнэ).
-export default function NewsToolbar({ category, onCategoryChange }) {
+// хайлт биш, категориор шvvнэ). onCreateClick заасан vед (Мэдээний
+// агрегат таб идэвхтэй vед) баруун талд "+ Шинэ мэдээ vvсгэх" товч нэмнэ.
+export default function NewsToolbar({ category, onCategoryChange, onCreateClick }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
@@ -18,6 +19,9 @@ export default function NewsToolbar({ category, onCategoryChange }) {
           ))}
         </select>
       </div>
+      {onCreateClick && (
+        <button className="ds-btn-primary" onClick={onCreateClick}>+ Шинэ мэдээ vvсгэх</button>
+      )}
     </div>
   );
 }
