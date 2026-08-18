@@ -5,7 +5,7 @@ export default function TabButton({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium rounded border transition-colors ${
+      className={`h-8 px-4 flex items-center text-sm font-medium rounded border transition-colors ${
         active
           ? 'border-customBlue text-slate-900 dark:text-white'
           : 'border-bordercol text-mutedtext hover:border-customBlue hover:text-slate-900 dark:hover:text-white'
