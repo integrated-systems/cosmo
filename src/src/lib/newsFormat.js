@@ -17,3 +17,11 @@ export function formatNewsDateTime(date) {
 export function formatViewCount(count) {
   return String(count ?? 0).padStart(3, '0');
 }
+
+// videoUrl талбарт хэрэглэгч бvтэн YouTube холбоос (embed эсвэл ердийн
+// watch/youtu.be) оруулж болох тул videoId-г задлана.
+export function extractYoutubeId(url) {
+  if (!url) return null;
+  const m = url.match(/(?:embed\/|v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  return m ? m[1] : null;
+}
