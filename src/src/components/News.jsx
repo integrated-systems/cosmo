@@ -132,13 +132,13 @@ export default function News({ badges, datetime, category, viewCount, title, bod
           {expanded ? (
             <div ref={textRef}>
               {bodyText.split(/\n\n+/).map((para, i) => (
-                <p key={i} className="text-xs text-mutedtext text-justify indent-0 mb-2 last:mb-0">
+                <p key={i} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] mb-2 last:mb-0">
                   {stripInvisible(para)}
                 </p>
               ))}
             </div>
           ) : (
-            <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 line-clamp-4">
+            <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] line-clamp-4">
               {stripInvisible(bodyText.replace(/\n+/g, ' '))}
             </p>
           )}
