@@ -30,10 +30,10 @@ const TABS = [
   { key: 'storage', label: 'Агуулах' },
 ];
 
-function formatCode(buildingNo, spacer, floor, doorNo) {
+function formatCode(buildingNo, floor, doorNo) {
   const f = String(floor ?? 0).padStart(2, '0');
   const d = String(doorNo ?? 0).padStart(2, '0');
-  return `${buildingNo}${spacer || ''}${f}${d}`;
+  return `${buildingNo}${f}${d}`;
 }
 
 export default function Property() {
@@ -151,7 +151,7 @@ export default function Property() {
       id: row.id,
       buildingNo: row.building_no,
       floor: row.floor,
-      code: formatCode(row.building_no, row.spacer, row.floor, row.door_no),
+      code: formatCode(row.building_no, row.floor, row.door_no),
       area: row.sqm,
       exampleIdx: idx,
       vacant: !owner,

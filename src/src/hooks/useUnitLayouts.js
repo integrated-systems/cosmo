@@ -27,7 +27,6 @@ export function useUnitLayouts(hoaId) {
   const buildingNos = [...new Set(rows.map((r) => r.building_no))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
   const buildings = buildingNos.map((buildingNo) => {
     const buildingRows = rows.filter((r) => r.building_no === buildingNo);
-    const spacer = buildingRows[0]?.spacer || '';
     const units = buildingRows
       .slice()
       .sort((a, b) => (b.floor - a.floor) || (a.door_no - b.door_no))
@@ -35,9 +34,9 @@ export function useUnitLayouts(hoaId) {
         floor: r.floor,
         doorNo: r.door_no,
         sqm: r.sqm,
-        code: `${buildingNo}${spacer}${String(r.floor).padStart(2, '0')}${String(r.door_no).padStart(2, '0')}`,
+        code: `${buildingNo}${String(r.floor).padStart(2, '0')}${String(r.door_no).padStart(2, '0')}`,
       }));
-    return { buildingNo, spacer, units };
+    return { buildingNo, units };
   });
 
   return { buildings, loading };
