@@ -107,20 +107,34 @@ export default function News({ badges, datetime, category, viewCount, title, bod
       <div className="flex flex-col gap-1">
         <NewsBadges badges={badges} />
         <div className="text-[11px] text-mutedtext">
-          {formatNewsDateTime(datetime)} | {category} | vзсэн: {formatViewCount(viewCount)}
+          {formatNewsDateTime(datetime)} | {category} | Vзсэн: {formatViewCount(viewCount)}
         </div>
       </div>
 
-      <div className="font-semibold text-sm text-slate-900 dark:text-white">{title}</div>
+      <div className="font-semibold text-sm text-slate-900 dark:text-white uppercase">{title}</div>
 
       {bodyText && (
         <div>
-          <p
-            ref={textRef}
-            className={`text-xs text-mutedtext whitespace-pre-line ${expanded ? '' : 'line-clamp-4'}`}
-          >
-            {bodyText}
-          </p>
+          {/* Collapsed vед бvх параграфыг НЭГ урсгал текст болгож нийлvvлж
+              line-clamp-4-ээр таслана (line-clamp олон <p> хvvхэд элемент
+              дээр зввгvй ажилладаг тул). Expanded vед '\n\n'-ээр тусдаа
+              параграф болгож задалж, тус бvрийг justify (хоёр талдаа
+              тэгширсэн), шинэ мврний ЭХЭНД зай/догол авахгvй байдлаар
+              харуулна (догол мвр биш, ердийн параграф хоорондын зайгаар
+              ялгана). */}
+          {expanded ? (
+            <div ref={textRef}>
+              {bodyText.split(/\n\n+/).map((para, i) => (
+                <p key={i} className="text-xs text-mutedtext text-justify mb-2 last:mb-0">
+                  {para.trim()}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p ref={textRef} className="text-xs text-mutedtext text-justify line-clamp-4">
+              {bodyText.replace(/\n+/g, ' ').trim()}
+            </p>
+          )}
           {isTruncated && (
             <button
               onClick={() => setExpanded((v) => !v)}
