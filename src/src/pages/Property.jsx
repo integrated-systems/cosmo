@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import PropertyToolbar from '../components/PropertyToolbar';
+import TabButton from '../components/TabButton';
 import UnitGridCard from '../components/UnitGridCard';
 import SpotTable from '../components/SpotTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
@@ -204,19 +205,11 @@ export default function Property() {
     <>
       <PropertyToolbar search={search} onSearchChange={setSearch} />
 
-      <div className="flex gap-1 mb-3 border-b border-bordercol">
+      <div className="flex gap-2 mb-3">
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.key
-                ? 'border-blue-500 text-slate-900 dark:text-white'
-                : 'border-transparent text-mutedtext hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
+          <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
-          </button>
+          </TabButton>
         ))}
       </div>
 
