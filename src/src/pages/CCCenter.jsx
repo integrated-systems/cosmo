@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDoubleIcon } from '../components/icons/Icons';
+import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDoubleIcon, PinIcon, BellOffIcon, AlertTriangleIcon } from '../components/icons/Icons';
 
-// "CC center" (/cccenter) — 2026-08-19 хэрэглэгчийн заасны дагуу Viber
-// дизайн/логиктой (түүний онцлог bubble хэлбэр — илгээсэн мессежийн
-// баруун дээд булан 4px, авсан мессежийн зүүн доод булан 4px, бусад
-// булангууд 16px), Cosmo стайлтай (tailwind.config.js-ийн өнгвний
-// tokens) чат-маягийн харилцагчийн үйлчилгээний хуудас. Эхлээд
-// single-HTML mockup-аар зохион, дараа нь энэ бодит React хуудас
-// болгож хэрэгжүүлэв.
+// "CC center" (/cccenter) — Viber дизайн/логиктой, Cosmo стайлтай
+// чат-маягийн харилцагчийн үйлчилгээний хуудас.
+//
+// 2026-08-19 (3-р засвар): таб мврийг Англи нэртэй (All/Unread/Muted/
+// Urgent) болгов; илгээсэн мессежийн цагийн мврийн зүүн талд ХЭН
+// ажилтан хариулсаныг ("agent") харуулна; толгойд Pin/Mute/Urgent
+// toggle товч нэмэв (Дуудлага/Мэдээлэл товчны зүүн тал, ижил дизайн).
 //
 // TODO: backend (Supabase харилцан яриа/мессежийн хүснэгэл) хараахан
 // үүсээгүй тул одоогоор зүгээр EXAMPLE_CONVERSATIONS локал жишээ дата
@@ -23,32 +23,32 @@ function colorFor(id) {
 
 const EXAMPLE_CONVERSATIONS = [
   {
-    id: 0, name: 'Батаа Дорж', unit: '101 2101', unread: 2, online: true,
+    id: 0, name: 'Батаа Дорж', unit: '101 2101', unread: 2, online: true, muted: false, urgent: false, pinned: true,
     messages: [
       { dir: 'in', text: 'Сайн байна уу, манай гэрийн халаалт муу байна', t: '09:14' },
       { dir: 'in', text: 'Хэзээ үзүүлж болох вэ?', t: '09:14' },
-      { dir: 'out', text: 'Сайн байна уу. Мэдээллийг хүлээж авлаа, инженерийг өнөөдөр 14:00 цагт илгээе.', t: '09:20', read: true },
+      { dir: 'out', text: 'Сайн байна уу. Мэдээллийг хүлээж авлаа, инженерийг өнөөдөр 14:00 цагт илгээе.', t: '09:20', read: true, agent: 'Б.Ганцэцэг' },
       { dir: 'in', text: 'Баярлалаа', t: '09:21' },
     ],
   },
   {
-    id: 1, name: 'Сарантуяа Бат', unit: '102 0405', unread: 0, online: true,
+    id: 1, name: 'Сарантуяа Бат', unit: '102 0405', unread: 0, online: true, muted: false, urgent: false, pinned: false,
     messages: [
       { dir: 'in', text: 'Зогсоолын карт идэвхжүүлэх боломжтой юу?', t: 'Өчигдөр' },
-      { dir: 'out', text: 'Тийм ээ, CC center-т ирж бүрдүүлэлт үзүүлэхэд л болно.', t: 'Өчигдөр', read: true },
+      { dir: 'out', text: 'Тийм ээ, CC center-т ирж бүрдүүлэлт үзүүлэхэд л болно.', t: 'Өчигдөр', read: true, agent: 'Н.Ариунаа' },
       { dir: 'in', text: 'Ойлголоо, маргааш очно', t: 'Өчигдөр' },
-      { dir: 'out', text: 'Хүлээж байна 🙂', t: 'Өчигдөр', read: true },
+      { dir: 'out', text: 'Хүлээж байна 🙂', t: 'Өчигдөр', read: true, agent: 'Н.Ариунаа' },
     ],
   },
   {
-    id: 2, name: 'Ганбат Эрдэнэ', unit: '103 1502', unread: 0, online: false,
+    id: 2, name: 'Ганбат Эрдэнэ', unit: '103 1502', unread: 0, online: false, muted: true, urgent: false, pinned: false,
     messages: [
       { dir: 'in', text: 'Төлбөрийн баримт авах боломжтой юу?', t: '10 сарын 8' },
-      { dir: 'out', text: 'Мэйлээр илгээе, имэйл хаягаа бичнэ үү', t: '10 сарын 8', read: true },
+      { dir: 'out', text: 'Мэйлээр илгээе, имэйл хаягаа бичнэ үү', t: '10 сарын 8', read: true, agent: 'Б.Ганцэцэг' },
     ],
   },
   {
-    id: 3, name: 'Оюунчимэг Пүрэв', unit: '105 0803', unread: 5, online: true,
+    id: 3, name: 'Оюунчимэг Пүрэв', unit: '105 0803', unread: 5, online: true, muted: false, urgent: true, pinned: false,
     messages: [
       { dir: 'in', text: 'Лифт удаан хугацаагаар засварт байна', t: '08:40' },
       { dir: 'in', text: 'Хэдэн хоног үргэлжлэх вэ?', t: '08:41' },
@@ -58,14 +58,14 @@ const EXAMPLE_CONVERSATIONS = [
     ],
   },
   {
-    id: 4, name: 'Мөнхжаргал Т.', unit: '108 1204', unread: 0, online: false,
+    id: 4, name: 'Мөнхжаргал Т.', unit: '108 1204', unread: 0, online: false, muted: false, urgent: false, pinned: false,
     messages: [
-      { dir: 'out', text: 'Төлбөрийн сануулга: 8-р сарын 25-нд төлбөр төлөгдөх ёстой.', t: '2 хоногийн өмнө', read: true },
+      { dir: 'out', text: 'Төлбөрийн сануулга: 8-р сарын 25-нд төлбөр төлөгдөх ёстой.', t: '2 хоногийн өмнө', read: true, agent: 'Д.Батжаргал' },
       { dir: 'in', text: 'Ойлголоо, баярлалаа', t: '2 хоногийн өмнө' },
     ],
   },
   {
-    id: 5, name: 'Нарантуяа Ж.', unit: '112 1901', unread: 1, online: true,
+    id: 5, name: 'Нарантуяа Ж.', unit: '112 1901', unread: 1, online: true, muted: false, urgent: false, pinned: false,
     messages: [
       { dir: 'in', text: 'Агуулах захиалах хүсэлт явуулсан, хүлээгдэж байна', t: '11:02' },
     ],
@@ -73,9 +73,10 @@ const EXAMPLE_CONVERSATIONS = [
 ];
 
 const TABS = [
-  { key: 'all', label: 'Бүгд' },
-  { key: 'unread', label: 'Уншаагүй' },
-  { key: 'open', label: 'Нээлттэй хүсэлт' },
+  { key: 'all', label: 'All' },
+  { key: 'unread', label: 'Unread' },
+  { key: 'muted', label: 'Muted' },
+  { key: 'urgent', label: 'Urgent' },
 ];
 
 function Bubble({ msg }) {
@@ -90,12 +91,31 @@ function Bubble({ msg }) {
         }`}
       >
         {msg.text}
-        <div className="flex items-center gap-1 justify-end mt-[3px]">
-          <span className="text-[10px] opacity-70">{msg.t}</span>
-          {isOut && <CheckDoubleIcon width={13} height={13} className="opacity-85" />}
+        <div className={`flex items-center gap-1.5 mt-[3px] ${isOut && msg.agent ? 'justify-between' : 'justify-end'}`}>
+          {isOut && msg.agent && <span className="text-[10px] opacity-70 font-medium">{msg.agent}</span>}
+          <span className="flex items-center gap-1 shrink-0">
+            <span className="text-[10px] opacity-70">{msg.t}</span>
+            {isOut && <CheckDoubleIcon width={13} height={13} className="opacity-85" />}
+          </span>
         </div>
       </div>
     </div>
+  );
+}
+
+function ToggleIconButton({ active, onClick, title, activeColorClass, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+        active
+          ? `${activeColorClass} bg-opacity-10`
+          : 'border-bordercol bg-inputbg text-mutedtext hover:text-white hover:border-customBlue'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -117,18 +137,27 @@ export default function CCCenter() {
     setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
   }
 
+  function toggleFlag(field) {
+    setConversations((cs) => cs.map((c) => (c.id === activeId ? { ...c, [field]: !c[field] } : c)));
+  }
+
   function sendMessage() {
     const text = draft.trim();
     if (!text) return;
     const now = new Date();
     const t = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setConversations((cs) => cs.map((c) => (
-      c.id === activeId ? { ...c, messages: [...c.messages, { dir: 'out', text, t, read: false }] } : c
+      c.id === activeId ? { ...c, messages: [...c.messages, { dir: 'out', text, t, read: false, agent: 'Та' }] } : c
     )));
     setDraft('');
   }
 
-  const visibleConversations = conversations.filter((c) => tab !== 'unread' || c.unread > 0);
+  const visibleConversations = conversations.filter((c) => {
+    if (tab === 'unread') return c.unread > 0;
+    if (tab === 'muted') return c.muted;
+    if (tab === 'urgent') return c.urgent;
+    return true;
+  });
 
   return (
     <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 130px)' }}>
@@ -181,7 +210,10 @@ export default function CCCenter() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-white truncate">{c.name}</span>
+                    <span className="text-[13px] font-semibold text-white truncate flex items-center gap-1">
+                      {c.pinned && <PinIcon width={11} height={11} className="text-customOrange shrink-0" />}
+                      {c.name}
+                    </span>
                     <span className="text-[10.5px] text-darktext shrink-0">{last.t}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -217,6 +249,15 @@ export default function CCCenter() {
             </div>
           </div>
           <div className="flex gap-1.5">
+            <ToggleIconButton active={active.pinned} onClick={() => toggleFlag('pinned')} title="Pin" activeColorClass="border-customOrange text-customOrange">
+              <PinIcon />
+            </ToggleIconButton>
+            <ToggleIconButton active={active.muted} onClick={() => toggleFlag('muted')} title="Mute" activeColorClass="border-mutedtext text-mutedtext">
+              <BellOffIcon />
+            </ToggleIconButton>
+            <ToggleIconButton active={active.urgent} onClick={() => toggleFlag('urgent')} title="Urgent" activeColorClass="border-customRed text-customRed">
+              <AlertTriangleIcon />
+            </ToggleIconButton>
             <button className="w-8 h-8 rounded-lg border border-bordercol bg-inputbg flex items-center justify-center text-mutedtext hover:text-white hover:border-customBlue" title="Дуудлага">
               <PhoneCallIcon />
             </button>
@@ -247,8 +288,8 @@ export default function CCCenter() {
               placeholder="Мессеж бичих..."
               className="flex-1 bg-transparent border-none outline-none resize-none text-text text-[13px] leading-[1.4] max-h-[90px]"
             />
-            {/* 2026-08-19: хавчаарны icon мессеж бичих талбарын ДОТОР баруун
-                талд, 65%(жиш 14px*0.65≈9px) жижигрүүлсэн хэмжээтэй. */}
+            {/* Хавчаарны icon мессеж бичих талбарын ДОТОР баруун талд, 65%
+                (жиш 14px*0.65≈9px) жижигрүүлсэн хэмжээтэй. */}
             <button className="text-mutedtext hover:text-customBlue shrink-0" title="Хавсралт хавсаргах">
               <ClipIcon width={9} height={9} />
             </button>

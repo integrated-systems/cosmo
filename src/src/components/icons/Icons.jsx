@@ -138,3 +138,36 @@ export function CheckDoubleIcon({ width = 13, height = 13, ...props }) {
     </svg>
   );
 }
+
+// 2026-08-19: "CC center" харилцан яриа толгойн Pin/Mute/Urgent toggle
+// товчинд зориулав.
+export function PinIcon({ width = 15, height = 15, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a1 1 0 000-2H8a1 1 0 000 2h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24z" />
+    </svg>
+  );
+}
+
+export function BellOffIcon({ width = 15, height = 15, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M13.73 21a2 2 0 01-3.46 0" />
+      <path d="M18.63 13A17.89 17.89 0 0118 8" />
+      <path d="M6.26 6.26A5.86 5.86 0 006 8c0 7-3 9-3 9h14" />
+      <path d="M18 8a6 6 0 00-9.33-5" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+export function AlertTriangleIcon({ width = 15, height = 15, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
