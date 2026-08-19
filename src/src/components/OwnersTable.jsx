@@ -1,5 +1,5 @@
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles, formatDoorNo } from '../lib/ownersFormat';
+import { summarizeSpots, summarizeVehicles, formatDoorNo, formatStructureValue } from '../lib/ownersFormat';
 import PaymentBadges, { EXAMPLE_PAID_THROUGH } from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
@@ -62,16 +62,16 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
             {!loading && !loadError && rows.map((r, idx) => {
               const layoutRow = findLayoutRow(unitLayouts, r);
               const structureVal = layoutRow?.structure_type === 'entrance'
-                ? (layoutRow.entrance_no ?? '—')
-                : (r.floor ?? '—');
+                ? layoutRow.entrance_no
+                : r.floor;
               return (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">
                   {idx + 1}
                 </td>
                 <td className="py-2.5 px-3 text-slate-900 dark:text-white font-medium">{r.building_no ?? '—'}</td>
-                <td className="py-2.5 px-3">{structureVal}</td>
-                <td className="py-2.5 px-3">{formatDoorNo(r.door_no)}</td>
+                <td className="py-2.5 px-3">{formatStructureValue(structureVal)}</td>
+                <td className="py-2.5 px-3">{formatDoorNo(r.door_no, layoutRow?.structure_type)}</td>
                 <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.property_no || '—'}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>

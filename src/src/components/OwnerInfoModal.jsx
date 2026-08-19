@@ -1,10 +1,19 @@
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles } from '../lib/ownersFormat';
+import { summarizeSpots, summarizeVehicles, formatUnitCode } from '../lib/ownersFormat';
 import Modal from './Modal';
 
 // Owners.jsx-ийн мөр дарахад гарах Инфо модаль — 2026-08-15 хэрэглэгчийн
 // заасны дагуу тусдаа компонент болгов (Rule of two).
-export default function OwnerInfoModal({ owner, onClose, onEdit }) {
+// 2026-08-19: "Байр / Тоот" мврийг EditOwnerModal-ийн Тоот dropdown-той
+// ЯГ ИЖИЛ форматтай (formatUnitCode, структур-мэдрэмтгий) болгож
+// зассан — өмнө нь давхар vгvй, падинг vгvй буруу формат байсан.
+export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdit }) {
+  const layoutRow = owner && unitLayouts.find(
+    (u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no
+  );
+  const unitCode = owner
+    ? formatUnitCode(owner.building_no, layoutRow?.structure_type, owner.floor, layoutRow?.entrance_no, owner.door_no)
+    : '';
   return (
     <Modal
       open={!!owner}
@@ -24,7 +33,7 @@ export default function OwnerInfoModal({ owner, onClose, onEdit }) {
     >
       {owner && (
         <div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Байр / Тоот</span><span className="ds-detail-value">{owner.building_no ?? '—'} / {owner.door_no ?? '—'}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Байр / Тоот</span><span className="ds-detail-value">{unitCode || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{owner.sqm ?? '—'} м²</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Өмчийн Улсын бүртгэлийн дугаар</span><span className="ds-detail-value">{owner.property_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Утас</span><span className="ds-detail-value">{owner.phones?.join(', ') || '—'}</span></div>

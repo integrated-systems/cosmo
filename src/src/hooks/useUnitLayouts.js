@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { formatUnitCode } from '../lib/ownersFormat';
 
 // AddressConfig.jsx-д зохион байгуулсан `unit_layouts`-ыг байраар
 // бүлэглэж, EditOwnerModal.jsx-ийн "Байр"+"Тоот" линкэд dropdown-д
@@ -32,7 +33,7 @@ export function useUnitLayouts(hoaId) {
         floor: r.floor,
         doorNo: r.door_no,
         sqm: r.sqm,
-        code: `${buildingNo}${String(r.floor).padStart(2, '0')}${String(r.door_no).padStart(2, '0')}`,
+        code: formatUnitCode(buildingNo, r.structure_type, r.floor, r.entrance_no, r.door_no),
       }));
     return { buildingNo, units };
   });

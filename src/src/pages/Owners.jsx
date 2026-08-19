@@ -123,6 +123,7 @@ export default function Owners() {
 
       <OwnerInfoModal
         owner={selected}
+        unitLayouts={unitLayouts}
         onClose={() => setSelected(null)}
         onEdit={(owner) => { setEditing(owner); setSelected(null); }}
       />

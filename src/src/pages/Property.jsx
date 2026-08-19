@@ -12,6 +12,7 @@ import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { formatUnitCode } from '../lib/ownersFormat';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
 // зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
@@ -31,12 +32,6 @@ const TABS = [
   { key: 'parking', label: 'Зогсоол' },
   { key: 'storage', label: 'Агуулах' },
 ];
-
-function formatCode(buildingNo, floor, doorNo) {
-  const f = String(floor ?? 0).padStart(2, '0');
-  const d = String(doorNo ?? 0).padStart(2, '0');
-  return `${buildingNo}${f}${d}`;
-}
 
 export default function Property() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
@@ -153,7 +148,7 @@ export default function Property() {
       id: row.id,
       buildingNo: row.building_no,
       floor: row.floor,
-      code: formatCode(row.building_no, row.floor, row.door_no),
+      code: formatUnitCode(row.building_no, row.structure_type, row.floor, row.entrance_no, row.door_no),
       area: row.sqm,
       exampleIdx: idx,
       vacant: !owner,
@@ -227,6 +222,7 @@ export default function Property() {
 
       <OwnerInfoModal
         owner={selectedOwner}
+        unitLayouts={unitLayouts}
         onClose={() => setSelectedOwner(null)}
         onEdit={(owner) => { setEditingOwner(owner); setSelectedOwner(null); }}
       />
