@@ -207,7 +207,18 @@ export default function CCCenter() {
     <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 130px)' }}>
       {/* ===== Зүүн тал: харилцан яриа жагсаалт ===== */}
       <div className="w-[300px] shrink-0 bg-sidebg border-r border-bordercol flex flex-col">
-        <div className="flex gap-1 px-3 pt-3 pb-2 border-b border-bordercol">
+        <div className="px-4 pt-3 pb-2 border-b border-bordercol">
+          <div className="relative">
+            <SearchIcon className="w-3.5 h-3.5 text-darktext absolute left-2.5 top-2.5" />
+            <input
+              type="text"
+              placeholder="Хайх (нэр, тоот)..."
+              className="ds-input w-full pl-8 text-[13px]"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-1 px-3 pt-2.5 pb-2">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -221,17 +232,6 @@ export default function CCCenter() {
               {t.label}
             </button>
           ))}
-        </div>
-
-        <div className="px-4 pt-3 pb-2">
-          <div className="relative">
-            <SearchIcon className="w-3.5 h-3.5 text-darktext absolute left-2.5 top-2.5" />
-            <input
-              type="text"
-              placeholder="Хайх (нэр, тоот)..."
-              className="ds-input w-full pl-8 text-[13px]"
-            />
-          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto py-1.5">
