@@ -1,8 +1,9 @@
 import { NavLink, useParams } from 'react-router-dom';
-import { MENU_SECTIONS, SIDEBAR_STATS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
+import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import HoaSwitcher from './HoaSwitcher';
 import { useAuth } from '../lib/AuthContext';
 import { useTenants } from '../hooks/useTenants';
+import { useTenantStats } from '../hooks/useTenantStats';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
@@ -21,6 +22,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { signOut, user, roles } = useAuth();
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { stats } = useTenantStats(hoaId);
   const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
   const currentTenantName = tenants.find((t) => t.id === hoaId)?.name;
 
@@ -138,9 +140,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       {/* Доод карт хэсэг — 2026-08-16 хэрэглэгчийн заасны дагуу нэр/role
           хэсгийг hardcode "SUPERSYSADMIN"/"Админ" placeholder-ээс бодит
           нэвтэрсэн хэрэглэгчийн (email+role) динамик утга болгов.
-          SIDEBAR_STATS доторх тоо баримт (16 байр·18 орц гэх мэт) ХЭВЭЭР
-          жишээ дата — ирээдүйд tenant тус бүрийн бодит summarized
-          мэдээллээр солих ажил (энэ session-д ХАМРАГДААГҮЙ, тусад нь). */}
+          2026-08-19: доорхи тоо баримт (16 байр·18 орц гэх мэт) ХЭВЭЭР
+          жишээ дата байсныг useTenantStats hook-оор бодит Supabase
+          (owners/clientele/unit_layouts) дата руу шилжүүлэв. */}
       <div className="p-2 border-t border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg">
         <div className="bg-white dark:bg-appbg border border-slate-200 dark:border-bordercol rounded-lg p-3">
           <div className="flex items-center justify-between mb-2">
@@ -162,12 +164,21 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
             </button>
           </div>
           <div className="text-[11px] text-slate-600 dark:text-mutedtext leading-[1.2] space-y-[3px]">
-            {SIDEBAR_STATS.map((s) => (
-              <div key={s.label} className="flex justify-between py-[1px]">
-                <span>{s.label}</span>
-                {s.value != null && <span>{s.value}</span>}
-              </div>
-            ))}
+            <div className="flex justify-between py-[1px]">
+              <span>{stats ? `${stats.buildingCount} байр · ${stats.entranceCount} орц` : 'Ачаалж байна...'}</span>
+            </div>
+            {stats && (
+              <>
+                <div className="flex justify-between py-[1px]"><span>Оршин суугч</span><span>{stats.residentCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Хүүхэд 0-5 нас</span><span>{stats.child05}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Хүүхэд 6-18 нас</span><span>{stats.child618}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Агуулах</span><span>{stats.storageCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Зогсоол</span><span>{stats.parkingCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Бүртгэлтэй машин</span><span>{stats.vehicleCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Талбай өмчлөгч</span><span>{stats.talbaiOwnerCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Харилцагч байгууллага</span><span>{stats.harilzagchCount}</span></div>
+              </>
+            )}
           </div>
           <div className="mt-2 text-[9px] text-darktext">Version 3.11.260814</div>
         </div>

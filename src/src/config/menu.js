@@ -111,15 +111,3 @@ export const SUPERSYSADMIN_TENANT_ITEMS = [
   { key: 'contract', label: 'Contract', path: '/contract' },
   { key: 'support', label: 'Support', path: '/support' },
 ];
-
-export const SIDEBAR_STATS = [
-  { label: '16 байр · 18 орц', value: null },
-  { label: 'Оршин суугч', value: 65 },
-  { label: 'Хүүхэд 0-5 нас', value: 13 },
-  { label: 'Хүүхэд 6-18 нас', value: 16 },
-  { label: 'Агуулах', value: 7 },
-  { label: 'Зогсоол', value: 9 },
-  { label: 'Бүртгэлтэй машин', value: 4 },
-  { label: 'Талбай өмчлөгч', value: 38 },
-  { label: 'Харилцагч байгууллага', value: 24 },
-];

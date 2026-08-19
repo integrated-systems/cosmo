@@ -3,6 +3,7 @@ import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
 import { deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
+import { useTenantStats } from '../hooks/useTenantStats';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
 // хувийн өөрчлөлт тооцно — Dashboard-ийн дээд утга/сумны индикатор энэ
@@ -44,6 +45,7 @@ function StatCard({ label, value, valueColor, detail }) {
 export default function Dashboard() {
   const { hoaId } = useParams();
   const { rows, loading } = useMarketRows(hoaId);
+  const { stats: tenantStats } = useTenantStats(hoaId);
   const marketSeries = deriveMarketSeries(rows);
   const last12Rows = rows.slice(-12);
   const marketSeries12 = deriveMarketSeries(last12Rows);
@@ -59,8 +61,8 @@ export default function Dashboard() {
           detail={['Сууц өмчлөгч - 0/18', 'Талбай өмчлөгч - 0/36']} />
         <StatCard label="НИЙТ ӨР АВЛАГА" value={`${formatMoney(28770000)}₮`} valueColor="text-customRed"
           detail={['Сууц өмчлөгч - 18/18', 'Талбай өмчлөгч - 36/36']} />
-        <StatCard label="НИЙТ ОРШИН СУУГЧ" value="65" valueColor="text-slate-900 dark:text-text"
-          detail={['0-6 насны хүүхэд - 13', '6-18 насны хүүхэд - 16']} />
+        <StatCard label="НИЙТ ОРШИН СУУГЧ" value={tenantStats ? String(tenantStats.residentCount) : '—'} valueColor="text-slate-900 dark:text-text"
+          detail={tenantStats ? [`0-6 насны хүүхэд - ${tenantStats.child05}`, `6-18 насны хүүхэд - ${tenantStats.child618}`] : []} />
       </div>
 
       {/* 2. Орлого/Зарлага график + Төлбөрийн явц */}
