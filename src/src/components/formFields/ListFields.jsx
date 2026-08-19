@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+
 // EditOwnerModal.jsx-д анх бүтээгдсэн давтагдах жагсаалт талбарууд
 // (утас/имэйл/зогсоол/агуулах/машин) — 2026-08-16 EditClientModal.jsx-д ч
 // дахин хэрэгтэй болсон тул тусдаа файл болгов (Rule of two).
@@ -30,9 +32,59 @@ export function SimpleListField({ label, items, onChange, placeholder }) {
   );
 }
 
+// 2026-08-19: 1000+ spot-той vед энгийн <select> хэрэглэхэд бологvй
+// тул хайлттай combobox (текст бичихэд шvvж жагсаана, дээд тал нь 50
+// vр дvн л render хийнэ) болгож сольсон.
+function SpotCombobox({ value, onSelect, spots, takenIds, loading }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = value?.code ? `${value.floorLevel} ${value.code}` : '';
+  const q = query.trim().toLowerCase();
+  const pool = spots.filter((s) => !takenIds.has(s.id) || s.id === value?.id);
+  const matches = (q ? pool.filter((s) => `${s.floorLevel} ${s.code}`.toLowerCase().includes(q)) : pool).slice(0, 50);
+
+  return (
+    <div className="relative flex-1" ref={containerRef}>
+      <input
+        className="ds-input w-full"
+        placeholder={loading ? 'Ачаалж байна...' : 'Хайх (давхар, бүс, дугаар)...'}
+        value={open ? query : selectedLabel}
+        onFocus={() => { setOpen(true); setQuery(''); }}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-60 overflow-auto ds-card p-1 shadow-lg">
+          {matches.length === 0 && (
+            <div className="text-[12px] text-mutedtext px-2 py-1.5">Илэрц олдсонгүй</div>
+          )}
+          {matches.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { onSelect(s); setOpen(false); setQuery(''); }}
+              className="block w-full text-left px-2 py-1.5 text-[12px] rounded hover:bg-slate-100 dark:hover:bg-appbg"
+            >
+              {s.floorLevel} {s.code}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading }) {
-  function update(i, spotId) {
-    const spot = spots.find((s) => s.id === spotId);
+  function updateItem(i, spot) {
     const next = [...items];
     next[i] = spot ? { id: spot.id, floorLevel: spot.floorLevel, code: spot.code } : { id: '', floorLevel: '', code: '' };
     onChange(next);
@@ -51,20 +103,12 @@ export function SpotSelectField({ label, checked, onToggle, items, onChange, add
       </label>
       {checked && (
         <>
-          {items.map((it, i) => {
-            const options = spots.filter((s) => !takenIds.has(s.id) || s.id === it.id);
-            return (
-              <div key={i} className="flex items-center gap-2 mb-1.5">
-                <select className="ds-select flex-1" value={it.id || ''} onChange={(e) => update(i, e.target.value)}>
-                  <option value="">{loading ? 'Ачаалж байна...' : 'Сонгоно уу'}</option>
-                  {options.map((s) => (
-                    <option key={s.id} value={s.id}>{s.floorLevel} {s.code}</option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
-              </div>
-            );
-          })}
+          {items.map((it, i) => (
+            <div key={i} className="flex items-center gap-2 mb-1.5">
+              <SpotCombobox value={it} onSelect={(s) => updateItem(i, s)} spots={spots} takenIds={takenIds} loading={loading} />
+              <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
+            </div>
+          ))}
           <button type="button" onClick={add} className="ds-btn-secondary w-full">{addLabel}</button>
         </>
       )}
