@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
+import ParkingZoneDesigner from '../components/ParkingZoneDesigner';
 import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
@@ -406,7 +407,14 @@ const ADDRESSING_TABS = [
 // Зогсоол/Агуулах — дугаарлалтын дүрэм суулгах ирээдvйн ажил (одоогоор
 // зvгээр placeholder, grid шаардлагагvй гэдгийг хэрэглэгч тодорхой
 // заасан).
+// "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
+// дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
+// UnitLayoutDesigner (өмнөх бvрэн бvтээгдсэн grid хуудас, хвндөгдөөгvй).
+// "Зогсоол" таб = ParkingZoneDesigner (grid БИШ, давхар→бvс жагсаалт,
+// tenant даяар нэг нийтлэг сан — 2026-08-19 хэрэглэгч тодорхой заасан).
+// "Агуулах" — дугаарлалтын дvрэм суулгах ирээдvйн ажил (placeholder).
 export default function AddressConfig() {
+  const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('unit');
 
   return (
@@ -420,9 +428,7 @@ export default function AddressConfig() {
       </div>
 
       {tab === 'unit' && <UnitLayoutDesigner />}
-      {tab === 'parking' && (
-        <div className="ds-card p-8 text-center text-darktext text-sm">Зогсоолын дугаарлалтын дүрэм — тун удахгүй</div>
-      )}
+      {tab === 'parking' && <ParkingZoneDesigner hoaId={hoaId} />}
       {tab === 'storage' && (
         <div className="ds-card p-8 text-center text-darktext text-sm">Агуулахын дугаарлалтын дүрэм — тун удахгүй</div>
       )}
