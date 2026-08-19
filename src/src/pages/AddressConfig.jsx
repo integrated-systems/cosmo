@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
 import ParkingZoneDesigner from '../components/ParkingZoneDesigner';
+import StorageZoneDesigner from '../components/StorageZoneDesigner';
 import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
@@ -429,9 +430,7 @@ export default function AddressConfig() {
 
       {tab === 'unit' && <UnitLayoutDesigner />}
       {tab === 'parking' && <ParkingZoneDesigner hoaId={hoaId} />}
-      {tab === 'storage' && (
-        <div className="ds-card p-8 text-center text-darktext text-sm">Агуулахын дугаарлалтын дүрэм — тун удахгүй</div>
-      )}
+      {tab === 'storage' && <StorageZoneDesigner hoaId={hoaId} />}
     </>
   );
 }
