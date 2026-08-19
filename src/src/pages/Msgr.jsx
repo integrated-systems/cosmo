@@ -211,8 +211,15 @@ export default function Msgr() {
     );
   }
 
+  // 2026-08-19: зүвхүн ЭНЭ хуудсанд зориулсан тусгайлсан засвар — footer
+  // (App.jsx) огт хвндвгдввгүй, зүгээр картын үндрийг container-ийн
+  // бодит хэмжээст (Topbar 50px + p-2.5 10px+10px) яг тааруулж
+  // нарийвчлан тооцоолов. Үр дүнд картын доод ирмэг container-ийн
+  // доод padding (10px)-тэй яг давхцаж, footer доод "fold"-ын цаана
+  // (scroll хийж үзэх боломжтой хэвээрээ) үлдэнэ — жижиг дэлгэц дээр
+  // footer их зай эзэлж байгаа мэдрэмжийг арилгав.
   return (
-    <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 130px)' }}>
+    <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 70px)' }}>
       {/* ===== Зүүн тал: харилцан яриа жагсаалт ===== */}
       <div className="w-[300px] shrink-0 bg-sidebg border-r border-bordercol flex flex-col">
         <div className="px-4 pt-3 pb-2">
