@@ -93,3 +93,48 @@ export function ChevronRightIcon({ width = 14, height = 14, ...props }) {
     </svg>
   );
 }
+
+// 2026-08-19: "CC center" (/cccenter) хуудасны Viber-маягийн мессенжер
+// UI-д зориулж нэмэв — товч/талбарын доторх жижиг icon-ууд тул
+// width/height="14" анхдагч (бусад icon-ынхаас арай жижиг).
+export function ClipIcon({ width = 14, height = 14, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+export function PhoneCallIcon({ width = 15, height = 15, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+    </svg>
+  );
+}
+
+export function InfoCircleIcon({ width = 15, height = 15, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+export function SendIcon({ width = 16, height = 16, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+    </svg>
+  );
+}
+
+export function CheckDoubleIcon({ width = 13, height = 13, ...props }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
