@@ -31,13 +31,6 @@ function toCardProps(row) {
   const badges = [];
   if (row.featured) badges.push('онцлох');
   if (row.urgent) badges.push('шуурхай');
-  const videoId = extractYoutubeId(row.video_url);
-  let media = null;
-  if (videoId) {
-    media = { type: 'youtube', videoId };
-  } else if (row.images?.length) {
-    media = { type: 'album', images: row.images.slice(0, 2), extraCount: Math.max(0, row.images.length - 2) };
-  }
   return {
     id: row.id,
     badges,
@@ -46,7 +39,8 @@ function toCardProps(row) {
     viewCount: row.view_count,
     title: row.title,
     bodyText: row.body_text,
-    media,
+    videoId: extractYoutubeId(row.video_url),
+    images: row.images || [],
   };
 }
 

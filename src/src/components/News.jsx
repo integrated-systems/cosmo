@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatNewsDateTime, formatViewCount } from '../lib/newsFormat';
+import Lightbox from './Lightbox';
 
 // "news" нэртэй дахин ашиглагдах мэдээний карт component — 2026-08-19
 // хэрэглэгчийн screenshot-оор vзvvлсэн хэмжээс/элементvvдийг нарийн
@@ -10,8 +11,14 @@ import { formatNewsDateTime, formatViewCount } from '../lib/newsFormat';
 // - badges: ['онцлох' | 'шуурхай', ...] — динамик мврний ДЭЭД талд
 // - datetime: ISO string/Date, category: string, viewCount: number
 // - title: string, bodyText: string (сонголттой)
-// - media: { type:'youtube', videoId } | { type:'album', images:[url,...], extraCount } | null
-
+// - videoId: string | null — YouTube (сонголттой)
+// - images: string[] — зургийн URL-vvдийн БҮРЭН жагсаалт (сонголттой)
+//
+// 2026-08-19 (2-р засвар): videoId болон images ХАМТ ирж болно (нэг
+// мэдээнд видео+зураг зэрэг байж болохоор) — хуучин "media: {type}"
+// нэг төрлийн бvтцийг задалж, 2 бие даасан prop болгов. Зураг дээр
+// дарахад Lightbox-оор томруулж vзvvлнэ (зvvн/баруун сум, swipe, Х/
+// backdrop дарж хаах).
 const BADGE_STYLE = {
   онцлох: 'bg-customBlue text-white',
   шуурхай: 'bg-customRed text-white',
@@ -33,51 +40,50 @@ function NewsBadges({ badges }) {
   );
 }
 
-function NewsMedia({ media }) {
-  if (!media) return null;
+function NewsVideo({ videoId }) {
+  if (!videoId) return null;
+  return (
+    <div className="aspect-[4/3] rounded overflow-hidden bg-black">
+      <iframe
+        className="w-full h-full"
+        src={`https://www.youtube.com/embed/${videoId}`}
+        title="YouTube video"
+        allowFullScreen
+      />
+    </div>
+  );
+}
 
-  if (media.type === 'youtube') {
+function NewsImages({ images, onOpen }) {
+  if (!images?.length) return null;
+  const preview = images.slice(0, 2);
+  const extraCount = Math.max(0, images.length - preview.length);
+
+  if (preview.length === 1) {
     return (
-      <div className="aspect-[4/3] rounded overflow-hidden bg-black">
-        <iframe
-          className="w-full h-full"
-          src={`https://www.youtube.com/embed/${media.videoId}`}
-          title="YouTube video"
-          allowFullScreen
-        />
-      </div>
+      <button className="block w-full aspect-[4/3] rounded overflow-hidden" onClick={() => onOpen(0)}>
+        <img src={preview[0]} alt="" className="w-full h-full object-cover" />
+      </button>
     );
   }
 
-  if (media.type === 'album') {
-    const images = media.images.slice(0, 2);
-    if (images.length === 1) {
-      return (
-        <div className="aspect-[4/3] rounded overflow-hidden">
-          <img src={images[0]} alt="" className="w-full h-full object-cover" />
-        </div>
-      );
-    }
-    return (
-      <div className="grid grid-cols-2 gap-2">
-        {images.map((src, i) => {
-          const isLast = i === images.length - 1;
-          return (
-            <div key={src} className="relative aspect-[4/3] rounded overflow-hidden">
-              <img src={src} alt="" className="w-full h-full object-cover" />
-              {isLast && media.extraCount > 0 && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-lg font-bold">
-                  +{media.extraCount}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {preview.map((src, i) => {
+        const isLast = i === preview.length - 1;
+        return (
+          <button key={src} className="relative aspect-[4/3] rounded overflow-hidden" onClick={() => onOpen(i)}>
+            <img src={src} alt="" className="w-full h-full object-cover" />
+            {isLast && extraCount > 0 && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-lg font-bold">
+                +{extraCount}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // Параграфын эхэнд санамсаргvй орсон space/NBSP/zero-width зэрэг
@@ -87,8 +93,9 @@ function stripInvisible(s) {
   return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
 }
 
-export default function News({ badges, datetime, category, viewCount, title, bodyText, media }) {
+export default function News({ badges, datetime, category, viewCount, title, bodyText, videoId, images }) {
   const [expanded, setExpanded] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
   // тоогоор тааварлахгvй) — screen/container өргөнөөс хамааран мврийн
   // тоо өөрчлөгддөг тул scrollHeight vs clientHeight-ийг харьцуулна.
@@ -153,7 +160,12 @@ export default function News({ badges, datetime, category, viewCount, title, bod
         </div>
       )}
 
-      <NewsMedia media={media} />
+      <NewsVideo videoId={videoId} />
+      <NewsImages images={images} onOpen={setLightboxIndex} />
+
+      {lightboxIndex !== null && (
+        <Lightbox images={images} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
+      )}
     </div>
   );
 }
