@@ -15,9 +15,12 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // "B1"/"F2" гэх мэт) → тус бvрд нь Бvс(тэмдэглэл+холбогч тэмдэг+
 // дугаарын хvрээ). ЯГ ИЖИЛ бvс+дугаар өөр өөр давхарт ДАВТАГДАЖ болно.
 //
+// 2026-08-19 (2-р засвар): "Тусгай дугаартай зогсоол" (suffix талбартай,
+// "G186а" маягийн) хэсгийг Агуулахад ч мвн адил нэмэв.
+//
 // Агуулах tenant (хотхон) даяар НЭГ нийтлэг сан — байртай холбоогvй.
 const SEPARATORS = [
-  { value: '', label: 'vгvй' },
+  { value: '', label: 'үгүй' },
   { value: '-', label: '-' },
   { value: '/', label: '/' },
   { value: ' ', label: 'зай' },
@@ -29,12 +32,15 @@ function genId() { return nextId++; }
 function makeZone() {
   return { id: genId(), zoneLabel: '', separator: '', startNo: 1, endNo: 50 };
 }
+function makeExtra() {
+  return { id: genId(), zoneLabel: '', separator: '', spotNo: 1, suffix: '' };
+}
 function makeFloor() {
-  return { id: genId(), floorLevel: '', zones: [makeZone()] };
+  return { id: genId(), floorLevel: '', zones: [makeZone()], extras: [] };
 }
 
-function formatSpotCode(zoneLabel, separator, spotNo) {
-  return `${zoneLabel}${separator}${spotNo}`;
+function formatSpotCode(zoneLabel, separator, spotNo, suffix = '') {
+  return `${zoneLabel}${separator}${spotNo}${suffix}`;
 }
 
 export default function StorageZoneDesigner({ hoaId }) {
@@ -56,9 +62,15 @@ export default function StorageZoneDesigner({ hoaId }) {
     }
     const byFloor = new Map();
     for (const row of data) {
-      if (!byFloor.has(row.floor_level)) byFloor.set(row.floor_level, new Map());
+      if (!byFloor.has(row.floor_level)) byFloor.set(row.floor_level, { zones: new Map(), extras: [] });
+      const floorEntry = byFloor.get(row.floor_level);
+      if (row.suffix) {
+        // Тусгай (suffix-тэй) мвр — хvрээнд оруулахгvй, тусдаа extras жагсаалтад.
+        floorEntry.extras.push({ id: genId(), zoneLabel: row.zone_label, separator: row.separator, spotNo: row.spot_no, suffix: row.suffix });
+        continue;
+      }
       const zoneKey = `${row.zone_label}\u0000${row.separator}`;
-      const zones = byFloor.get(row.floor_level);
+      const zones = floorEntry.zones;
       if (!zones.has(zoneKey)) {
         zones.set(zoneKey, { id: genId(), zoneLabel: row.zone_label, separator: row.separator, startNo: row.spot_no, endNo: row.spot_no });
       } else {
@@ -67,10 +79,11 @@ export default function StorageZoneDesigner({ hoaId }) {
         z.endNo = Math.max(z.endNo, row.spot_no);
       }
     }
-    const loadedFloors = [...byFloor.entries()].map(([floorLevel, zones]) => ({
+    const loadedFloors = [...byFloor.entries()].map(([floorLevel, entry]) => ({
       id: genId(),
       floorLevel,
-      zones: [...zones.values()],
+      zones: [...entry.zones.values()],
+      extras: entry.extras,
     }));
     setFloors(loadedFloors);
     setLoading(false);
@@ -85,7 +98,7 @@ export default function StorageZoneDesigner({ hoaId }) {
     setFloors((fs) => [...fs, makeFloor()]);
   }
   async function removeFloor(floorId) {
-    if (!(await confirm('Энэ давхрыг vvнд байгаа бvх бvстэй нь устгах уу?'))) return;
+    if (!(await confirm('Энэ давхрыг үүнд байгаа бүх бvстэй нь устгах уу?'))) return;
     setFloors((fs) => fs.filter((f) => f.id !== floorId));
   }
   function setFloorLevel(floorId, value) {
@@ -102,13 +115,28 @@ export default function StorageZoneDesigner({ hoaId }) {
       f.id !== floorId ? f : { ...f, zones: f.zones.map((z) => (z.id === zoneId ? { ...z, [field]: value } : z)) }
     )));
   }
+  function addExtra(floorId) {
+    setFloors((fs) => fs.map((f) => (f.id === floorId ? { ...f, extras: [...f.extras, makeExtra()] } : f)));
+  }
+  function removeExtra(floorId, extraId) {
+    setFloors((fs) => fs.map((f) => (f.id === floorId ? { ...f, extras: f.extras.filter((x) => x.id !== extraId) } : f)));
+  }
+  function setExtraField(floorId, extraId, field, value) {
+    setFloors((fs) => fs.map((f) => (
+      f.id !== floorId ? f : { ...f, extras: f.extras.map((x) => (x.id === extraId ? { ...x, [field]: value } : x)) }
+    )));
+  }
 
   async function handleSaveAll() {
     for (const f of floors) {
-      if (!f.floorLevel.trim()) { alert('Бvх давхрын нэрийг бөглөнө vv.'); return; }
+      if (!f.floorLevel.trim()) { alert('Бүх давхрын нэрийг бөглөнө үү.'); return; }
       for (const z of f.zones) {
-        if (!z.zoneLabel.trim()) { alert('Бvх бvсийн тэмдэглэлийг бөглөнө vv.'); return; }
+        if (!z.zoneLabel.trim()) { alert('Бүх бүсийн тэмдэглэлийг бөглөнө үү.'); return; }
         if (Number(z.endNo) < Number(z.startNo)) { alert(`"${f.floorLevel}" давхрын "${z.zoneLabel}" бvсэд төгсгөл эхлэлээс бага байна.`); return; }
+      }
+      for (const x of f.extras) {
+        if (!x.zoneLabel.trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугааруудын бvсийн тэмдэглэлийг бөглөнө vv.`); return; }
+        if (!String(x.suffix).trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугаарт дагавар (жиш "а") бөглөнө vv — vгvй бол энгийн бvс vvсгээрэй.`); return; }
       }
     }
 
@@ -123,8 +151,19 @@ export default function StorageZoneDesigner({ hoaId }) {
             zone_label: z.zoneLabel.trim(),
             separator: z.separator,
             spot_no: n,
+            suffix: null,
           });
         }
+      }
+      for (const x of f.extras) {
+        rows.push({
+          tenant_id: hoaId,
+          floor_level: f.floorLevel.trim(),
+          zone_label: x.zoneLabel.trim(),
+          separator: x.separator,
+          spot_no: Number(x.spotNo),
+          suffix: String(x.suffix).trim(),
+        });
       }
     }
 
@@ -144,7 +183,7 @@ export default function StorageZoneDesigner({ hoaId }) {
   return (
     <div className="ds-card p-4">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулахын бvсчлэл</div>
+        <div className="text-sm font-semibold text-slate-900 dark:text-white">Агуулахын бүсчлэл</div>
         <button className="ds-btn-primary" onClick={handleSaveAll} disabled={saving || loading}>
           {saving ? 'Хадгалж байна...' : 'Хадгалах'}
         </button>
@@ -211,7 +250,7 @@ export default function StorageZoneDesigner({ hoaId }) {
                     </span>
                     <button
                       onClick={() => removeZone(f.id, z.id)}
-                      title="Бvс устгах"
+                      title="Бүс устгах"
                       style={{ height: '28px', width: '28px' }}
                       className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
                     >
@@ -223,8 +262,67 @@ export default function StorageZoneDesigner({ hoaId }) {
                   onClick={() => addZone(f.id)}
                   className="ds-btn-secondary self-start"
                 >
-                  + Бvс нэмэх
+                  + Бүс нэмэх
                 </button>
+              </div>
+
+              {/* 2026-08-19: "G186а" маягийн ганц тусгай дугаар (хvрээнд
+                  багтахгvй, vсэг дагавартай) нэмэх хэсэг — бvсийн хvрээнээс
+                  тусдаа. */}
+              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol">
+                <div className="text-[11px] text-mutedtext mb-2">Тусгай дугаартай зогсоол (жиш: G186а)</div>
+                <div className="flex flex-col gap-2">
+                  {f.extras.map((x) => (
+                    <div key={x.id} className="flex items-center gap-2 flex-wrap">
+                      <input
+                        className="ds-input w-20"
+                        value={x.zoneLabel}
+                        onChange={(e) => setExtraField(f.id, x.id, 'zoneLabel', e.target.value)}
+                        placeholder="жиш: G"
+                      />
+                      <select
+                        className="ds-select w-24"
+                        value={x.separator}
+                        onChange={(e) => setExtraField(f.id, x.id, 'separator', e.target.value)}
+                      >
+                        {SEPARATORS.map((s) => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                      <span className="text-[11px] text-mutedtext">Дугаар:</span>
+                      <input
+                        type="number"
+                        className="ds-input w-20"
+                        value={x.spotNo}
+                        onChange={(e) => setExtraField(f.id, x.id, 'spotNo', e.target.value)}
+                      />
+                      <span className="text-[11px] text-mutedtext">Дагавар:</span>
+                      <input
+                        className="ds-input w-16"
+                        value={x.suffix}
+                        onChange={(e) => setExtraField(f.id, x.id, 'suffix', e.target.value)}
+                        placeholder="а"
+                      />
+                      <span className="text-[11px] text-mutedtext">
+                        → {formatSpotCode(x.zoneLabel || '?', x.separator, x.spotNo, x.suffix || '?')}
+                      </span>
+                      <button
+                        onClick={() => removeExtra(f.id, x.id)}
+                        title="Тусгай дугаар устгах"
+                        style={{ height: '28px', width: '28px' }}
+                        className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
+                      >
+                        −
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addExtra(f.id)}
+                    className="ds-btn-secondary self-start"
+                  >
+                    + Тусгай дугаар нэмэх
+                  </button>
+                </div>
               </div>
             </div>
           ))}
