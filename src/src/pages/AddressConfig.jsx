@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
+import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -45,7 +46,11 @@ function formatCode(buildingNo, floor, doorNo) {
   return `${buildingNo}${f}${d}`;
 }
 
-export default function AddressConfig() {
+// 2026-08-19: "Хаягжилт тохиргоо" хуудсыг 3 таб (Тоот/Зогсоол/Агуулах)
+// болгож задлахад энэ бvхэл grid designer-ыг ЭНД ГЭМТЭЭЛГvй, ЯГ ХЭВЭЭР
+// нь "Тоот" табын доторх компонент болгов (доор AddressConfig() wrapper
+// л шинээр нэмэгдсэн — доторх логик/UI бvгд хвндөгдөөгvй).
+function UnitLayoutDesigner() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { confirm, ConfirmDialog } = useConfirm();
   const { alert, AlertDialog } = useAlert();
@@ -386,5 +391,41 @@ export default function AddressConfig() {
       <ConfirmDialog />
       <AlertDialog />
     </div>
+  );
+}
+
+const ADDRESSING_TABS = [
+  { key: 'unit', label: 'Тоот' },
+  { key: 'parking', label: 'Зогсоол' },
+  { key: 'storage', label: 'Агуулах' },
+];
+
+// "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
+// дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
+// UnitLayoutDesigner (өмнөх бvрэн бvтээгдсэн grid хуудас, хвндөгдөөгvй).
+// Зогсоол/Агуулах — дугаарлалтын дүрэм суулгах ирээдvйн ажил (одоогоор
+// зvгээр placeholder, grid шаардлагагvй гэдгийг хэрэглэгч тодорхой
+// заасан).
+export default function AddressConfig() {
+  const [tab, setTab] = useState('unit');
+
+  return (
+    <>
+      <div className="flex gap-2">
+        {ADDRESSING_TABS.map((t) => (
+          <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
+            {t.label}
+          </TabButton>
+        ))}
+      </div>
+
+      {tab === 'unit' && <UnitLayoutDesigner />}
+      {tab === 'parking' && (
+        <div className="ds-card p-8 text-center text-darktext text-sm">Зогсоолын дугаарлалтын дүрэм — тун удахгүй</div>
+      )}
+      {tab === 'storage' && (
+        <div className="ds-card p-8 text-center text-darktext text-sm">Агуулахын дугаарлалтын дүрэм — тун удахгүй</div>
+      )}
+    </>
   );
 }
