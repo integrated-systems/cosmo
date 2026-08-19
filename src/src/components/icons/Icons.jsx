@@ -94,7 +94,7 @@ export function ChevronRightIcon({ width = 14, height = 14, ...props }) {
   );
 }
 
-// 2026-08-19: "CC center" (/cccenter) хуудасны Viber-маягийн мессенжер
+// 2026-08-19: "Мессенжер" (/msgr) хуудасны Viber-маягийн мессенжер
 // UI-д зориулж нэмэв — товч/талбарын доторх жижиг icon-ууд тул
 // width/height="14" анхдагч (бусад icon-ынхаас арай жижиг).
 export function ClipIcon({ width = 14, height = 14, ...props }) {
@@ -139,7 +139,7 @@ export function CheckDoubleIcon({ width = 13, height = 13, ...props }) {
   );
 }
 
-// 2026-08-19: "CC center" харилцан яриа толгойн Pin/Mute/Urgent toggle
+// 2026-08-19: "Мессенжер" харилцан яриа толгойн Pin/Mute/Urgent toggle
 // товчинд зориулав.
 export function PinIcon({ width = 15, height = 15, ...props }) {
   return (

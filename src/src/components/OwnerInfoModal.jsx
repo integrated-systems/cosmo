@@ -22,7 +22,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary">CC center</button>
+          <button className="ds-btn-secondary">Мессенжер</button>
           <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
           <button className="ds-btn-secondary">Мэдэгдэл</button>

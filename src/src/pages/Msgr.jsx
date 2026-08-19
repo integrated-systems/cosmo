@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDoubleIcon, PinIcon, BellOffIcon, AlertTriangleIcon } from '../components/icons/Icons';
 
-// "CC center" (/cccenter) — Viber дизайн/логиктой, Cosmo стайлтай
+// "Мессенжер" (/msgr) — Viber дизайн/логиктой, Cosmo стайлтай
 // чат-маягийн харилцагчийн үйлчилгээний хуудас.
 //
 // 2026-08-19 (3-р засвар): таб мврийг Англи нэртэй (All/Unread/Muted/
@@ -11,7 +11,9 @@ import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDou
 //
 // TODO: backend (Supabase харилцан яриа/мессежийн хүснэгэл) хараахан
 // үүсээгүй тул одоогоор зүгээр EXAMPLE_CONVERSATIONS локал жишээ дата
-// (техникийн баримт бичгийн дүрэм 6).
+// (техникийн баримт бичгийн дүрэм 6). Үүсгэх үед хүснэгэл/файл нэрийг
+// "msgr_" угтвартай нэрлэнэ (жиш: msgr_conversations, msgr_messages) —
+// 2026-08-19 хэрэглэгч тодорхой заасан.
 const AVATAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef5555', '#0a428f'];
 
 function initials(name) {
@@ -35,7 +37,7 @@ const EXAMPLE_CONVERSATIONS = [
     id: 1, name: 'Сарантуяа Бат', unit: '102 0405', unread: 0, online: true, muted: false, urgent: false, pinned: false,
     messages: [
       { dir: 'in', text: 'Зогсоолын карт идэвхжүүлэх боломжтой юу?', t: 'Өчигдөр' },
-      { dir: 'out', text: 'Тийм ээ, CC center-т ирж бүрдүүлэлт үзүүлэхэд л болно.', t: 'Өчигдөр', read: true, agent: 'Н.Ариунаа' },
+      { dir: 'out', text: 'Тийм ээ, Мессенжерээр ирж бүрдүүлэлт үзүүлэхэд л болно.', t: 'Өчигдөр', read: true, agent: 'Н.Ариунаа' },
       { dir: 'in', text: 'Ойлголоо, маргааш очно', t: 'Өчигдөр' },
       { dir: 'out', text: 'Хүлээж байна 🙂', t: 'Өчигдөр', read: true, agent: 'Н.Ариунаа' },
     ],
@@ -119,7 +121,7 @@ function ToggleIconButton({ active, onClick, title, activeColorClass, children }
   );
 }
 
-export default function CCCenter() {
+export default function Msgr() {
   const [conversations, setConversations] = useState(EXAMPLE_CONVERSATIONS);
   const [activeId, setActiveId] = useState(0);
   const [tab, setTab] = useState('all');

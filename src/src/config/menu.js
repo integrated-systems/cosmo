@@ -19,7 +19,7 @@ export const MENU_SECTIONS = [
       { key: 'news', label: 'Мэдээ, мэдээлэл', path: '/news' },
       { key: 'payments', label: 'Төлбөр төлөлт', path: '/payments' },
       { key: 'anndunn', label: 'Мэдэгдэл', path: '/anndunn' },
-      { key: 'cccenter', label: 'CC center', path: '/cccenter' },
+      { key: 'msgr', label: 'Мессенжер', path: '/msgr' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
       { key: 'vat', label: 'ИБаримт', path: '/vat' },
     ],
