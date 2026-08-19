@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
@@ -64,6 +64,7 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true);
   const [editingNews, setEditingNews] = useState(null);
   const [creating, setCreating] = useState(false);
+  const viewedIds = useRef(new Set());
   const { confirm, ConfirmDialog } = useConfirm();
   const { alert, AlertDialog } = useAlert();
 
@@ -84,6 +85,18 @@ export default function NewsPage() {
   const publishedRows = rows.filter((r) => r.status === 'published');
   const items = publishedRows.filter((r) => !category || r.category === category).map(toCardProps);
   const aggregateRows = rows.filter((r) => !category || r.category === category).map(toTableRow);
+
+  // Мэдээ анх дэлгэцэнд гарахад (News card mount) нэг удаа дуудагдана —
+  // session доторх ID бvрийг зөвхөн НЭГ л удаа тоолно (дахин render/tab
+  // сэлгэхэд давхар нэмэгдэхгvй). Атом server-side increment (race
+  // condition-оос сэргийлнэ) — migration 0016.
+  async function handleView(id) {
+    if (viewedIds.current.has(id)) return;
+    viewedIds.current.add(id);
+    const { error } = await supabase.rpc('increment_news_view', { p_id: id });
+    if (error) return; // тоолуурын алдааг чимээгvй vл хайхарна — хэрэглэгчийн туршлагад саад болохгvй
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, view_count: r.view_count + 1 } : r)));
+  }
 
   async function handleToggleStatus(tableRow) {
     const newStatus = tableRow.status === 'published' ? 'draft' : 'published';
@@ -167,7 +180,7 @@ export default function NewsPage() {
             <div className="ds-card p-8 text-center text-darktext text-sm">Нийтлэгдсэн мэдээ алга</div>
           )}
           {items.map((n) => (
-            <News key={n.id} {...n} />
+            <News key={n.id} {...n} onView={handleView} />
           ))}
         </div>
       )}

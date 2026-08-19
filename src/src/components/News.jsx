@@ -93,7 +93,7 @@ function stripInvisible(s) {
   return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
 }
 
-export default function News({ badges, datetime, category, viewCount, title, bodyText, videoId, images }) {
+export default function News({ id, badges, datetime, category, viewCount, title, bodyText, videoId, images, onView }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
@@ -115,6 +115,15 @@ export default function News({ badges, datetime, category, viewCount, title, bod
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, [bodyText, expanded]);
+
+  // Карт анх дэлгэцэнд гарахад (mount) нэг удаа "Vзсэн" тоолуурыг
+  // нэмэгдvvлнэ — 2026-08-19 хэрэглэгч заасны дагуу; давхар тоологдохоос
+  // сэргийлэх (session доторх ID бvрийг зөвхөн 1 удаа) логик эцэг
+  // компонент (pages/News.jsx)-д байрлана.
+  useEffect(() => {
+    onView?.(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="ds-card p-2.5 flex flex-col gap-2">

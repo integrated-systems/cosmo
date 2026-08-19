@@ -37,9 +37,11 @@ export default function Lightbox({ images, initialIndex = 0, onClose }) {
     const dx = t.clientX - touchStart.current.x;
     const dy = t.clientY - touchStart.current.y;
     touchStart.current = null;
-    if (Math.abs(dy) > Math.abs(dx) && dy > SWIPE_THRESHOLD) {
-      // Доош чирэхэд (dy эерэг = хуруу доош хөдөлсөн) хаагдана — Instagram/
-      // Photos апп-уудын нийтлэг "pull to dismiss" загвар.
+    if (Math.abs(dy) > Math.abs(dx) && dy < -SWIPE_THRESHOLD) {
+      // Доороос ДЭЭШ чирэхэд (dy сөрөг = хуруу дээш хөдөлсөн) хаагдана —
+      // хэрэглэгчийн анхны спецификацид заасан чиглэл ("доороос дээш
+      // чирж... горимоос гардаг"), Instagram-ийн "pull down to dismiss"
+      // ЭСРЭГ чиглэл гэдгийг анхаар — 2026-08-19 хэрэглэгч засуулсан.
       onClose();
       return;
     }

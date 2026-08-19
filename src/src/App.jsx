@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -17,6 +17,7 @@ import NewsPage from './pages/News';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from './config/menu';
 import { DEFAULT_TENANT_ID } from './config/tenant';
@@ -31,6 +32,8 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 // хоосон буцааж байсан алдааг олж, nested-route+<Outlet/> загварт шилжүүлсэн.
 function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   const { isSuperSysAdmin } = useAuth();
+  const scrollRef = useRef(null);
+  const { pullDistance, refreshing, threshold } = usePullToRefresh(scrollRef);
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
       <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} isSuperSysAdmin={isSuperSysAdmin} />
@@ -41,7 +44,16 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
       >
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
 
-        <div className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
+        {pullDistance > 0 && (
+          <div
+            className="flex items-center justify-center text-[11px] text-darktext overflow-hidden transition-[height]"
+            style={{ height: pullDistance }}
+          >
+            {refreshing ? 'Сэргээж байна...' : pullDistance >= threshold ? '↑ Суллаж сэргээх' : '↓ Доош чирж сэргээх'}
+          </div>
+        )}
+
+        <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
           <Outlet />
           <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Cosmo Integrated Systems</div>
         </div>
