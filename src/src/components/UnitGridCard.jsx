@@ -48,8 +48,8 @@ export default function UnitGridCard({ cells, hint }) {
                               style={{ width: '58px', height: '44px' }}
                               className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${colorClass}`}
                             >
-                              <div className="text-[11px] font-semibold leading-tight">{it.code}</div>
-                              {it.area && <div className="text-[9px] opacity-80 leading-tight">{it.area}м²</div>}
+                              <div className="text-[10px] font-semibold leading-tight">{it.code}</div>
+                              {it.area && <div className="text-[8px] opacity-80 leading-tight">{it.area}м²</div>}
                             </button>
                           );
                         })}
