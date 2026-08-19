@@ -47,7 +47,7 @@ export default function StorageZoneDesigner({ hoaId }) {
   async function loadAll() {
     setLoading(true);
     const { data } = await fetchAllRows(() =>
-      supabase.from('storage_units').select('*').eq('tenant_id', hoaId).eq('hidden', false)
+      supabase.from('unit_storage').select('*').eq('tenant_id', hoaId).eq('hidden', false)
     );
     if (!data || data.length === 0) {
       setFloors([makeFloor()]);
@@ -128,11 +128,11 @@ export default function StorageZoneDesigner({ hoaId }) {
       }
     }
 
-    const { error: delError } = await supabase.from('storage_units').delete().eq('tenant_id', hoaId);
+    const { error: delError } = await supabase.from('unit_storage').delete().eq('tenant_id', hoaId);
     if (delError) { alert(delError.message); setSaving(false); return; }
 
     for (let i = 0; i < rows.length; i += 500) {
-      const { error } = await supabase.from('storage_units').insert(rows.slice(i, i + 500));
+      const { error } = await supabase.from('unit_storage').insert(rows.slice(i, i + 500));
       if (error) { alert(error.message); setSaving(false); return; }
     }
 

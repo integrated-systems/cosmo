@@ -26,7 +26,7 @@ export function formatOwnedRatio(owned, total) {
 //   дахин нэмдэггvй)
 // - toot/parking/storage: {owned, total} обьект — total нь "Хаягжилт
 //   тохиргоо" хуудсаар vvссэн НИЙТ грид/бvсчлэлийн тоо (unit_layouts/
-//   parking_spots/storage_units), owned нь эзэмшигчтэй тоо (owners
+//   unit_parking/unit_storage), owned нь эзэмшигчтэй тоо (owners
 //   бvгд+clientele-ийн parkings/storages массив). Sidebar-т "owned/total"
 //   индикатор хэлбэрээр (100% дvvрмэгц зvгээр "total") vзvvлнэ — менежерт
 //   бvртгэл хэр гvйцэд байгааг харуулна (2026-08-19 хэрэглэгч тодорхой
@@ -52,8 +52,8 @@ export function useTenantStats(hoaId) {
       fetchAllRows(() => supabase.from('owners').select('people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('clientele').select('reg_no,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
-      fetchAllRows(() => supabase.from('parking_spots').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
-      fetchAllRows(() => supabase.from('storage_units').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
+      fetchAllRows(() => supabase.from('unit_parking').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
+      fetchAllRows(() => supabase.from('unit_storage').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
     ]).then(([ownersRes, clienteleRes, unitsRes, parkingRes, storageRes]) => {
       if (cancelled) return;
       const owners = ownersRes.data ?? [];

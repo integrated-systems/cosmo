@@ -46,7 +46,7 @@ export default function ParkingZoneDesigner({ hoaId }) {
   async function loadAll() {
     setLoading(true);
     const { data } = await fetchAllRows(() =>
-      supabase.from('parking_spots').select('*').eq('tenant_id', hoaId).eq('hidden', false)
+      supabase.from('unit_parking').select('*').eq('tenant_id', hoaId).eq('hidden', false)
     );
     if (!data || data.length === 0) {
       setFloors([makeFloor()]);
@@ -127,11 +127,11 @@ export default function ParkingZoneDesigner({ hoaId }) {
       }
     }
 
-    const { error: delError } = await supabase.from('parking_spots').delete().eq('tenant_id', hoaId);
+    const { error: delError } = await supabase.from('unit_parking').delete().eq('tenant_id', hoaId);
     if (delError) { alert(delError.message); setSaving(false); return; }
 
     for (let i = 0; i < rows.length; i += 500) {
-      const { error } = await supabase.from('parking_spots').insert(rows.slice(i, i + 500));
+      const { error } = await supabase.from('unit_parking').insert(rows.slice(i, i + 500));
       if (error) { alert(error.message); setSaving(false); return; }
     }
 
