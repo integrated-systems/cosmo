@@ -30,17 +30,18 @@ export function SimpleListField({ label, items, onChange, placeholder }) {
   );
 }
 
-export function SpotListField({ label, checked, onToggle, items, onChange, addLabel }) {
-  function update(i, field, val) {
+export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading }) {
+  function update(i, spotId) {
+    const spot = spots.find((s) => s.id === spotId);
     const next = [...items];
-    next[i] = { ...next[i], [field]: val };
+    next[i] = spot ? { id: spot.id, floorLevel: spot.floorLevel, code: spot.code } : { id: '', floorLevel: '', code: '' };
     onChange(next);
   }
   function remove(i) {
     onChange(items.filter((_, idx) => idx !== i));
   }
   function add() {
-    onChange([...items, { floor: '', no: '' }]);
+    onChange([...items, { id: '', floorLevel: '', code: '' }]);
   }
   return (
     <div className="mb-4">
@@ -50,16 +51,20 @@ export function SpotListField({ label, checked, onToggle, items, onChange, addLa
       </label>
       {checked && (
         <>
-          {items.map((it, i) => (
-            <div key={i} className="flex items-center gap-2 mb-1.5">
-              <select className="ds-select w-28" value={it.floor} onChange={(e) => update(i, 'floor', e.target.value)}>
-                <option value="">Давхар</option>
-                {Array.from({ length: 5 }, (_, n) => n + 1).map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-              <input className="ds-input flex-1" placeholder="Дугаар" value={it.no} onChange={(e) => update(i, 'no', e.target.value)} />
-              <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
-            </div>
-          ))}
+          {items.map((it, i) => {
+            const options = spots.filter((s) => !takenIds.has(s.id) || s.id === it.id);
+            return (
+              <div key={i} className="flex items-center gap-2 mb-1.5">
+                <select className="ds-select flex-1" value={it.id || ''} onChange={(e) => update(i, e.target.value)}>
+                  <option value="">{loading ? 'Ачаалж байна...' : 'Сонгоно уу'}</option>
+                  {options.map((s) => (
+                    <option key={s.id} value={s.id}>{s.floorLevel} {s.code}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
+              </div>
+            );
+          })}
           <button type="button" onClick={add} className="ds-btn-secondary w-full">{addLabel}</button>
         </>
       )}

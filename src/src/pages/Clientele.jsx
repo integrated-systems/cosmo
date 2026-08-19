@@ -119,6 +119,7 @@ export default function Clientele() {
         onClose={() => setEditing(null)}
         client={editing}
         onSave={handleSave}
+        hoaId={hoaId}
       />
 
       <EditClientModal
@@ -126,6 +127,7 @@ export default function Clientele() {
         onClose={() => setAdding(false)}
         client={null}
         onSave={handleSave}
+        hoaId={hoaId}
       />
 
       <ConfirmDialog />

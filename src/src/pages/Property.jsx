@@ -162,13 +162,16 @@ export default function Property() {
   }).filter((c) => !q || c.code.toLowerCase().includes(q));
 
   // Зогсоол/Агуулах — Owners БОЛОН Clientele (ААН) хоёулангийн
-  // parkings/storages jsonb-ээс НИЙЛГЭЖ мөр үүсгэнэ.
+  // parkings/storages jsonb-ээс НИЙЛГЭЖ мвр vvсгэнэ. 2026-08-19: спот
+  // бvр {id,floorLevel,code} snapshot бvтэцтэй (unit_parking/unit_storage-
+  // аас сонгосон).
   function spotRows(field) {
     const rows = [];
     owners.forEach((o) => {
       (o[field] || []).forEach((sp, i) => {
+        if (!sp.code) return;
         const ownerName = `${o.firstname || ''} ${o.lastname || ''}`.trim();
-        const location = `${sp.floor}-${sp.no}`;
+        const location = `${sp.floorLevel} ${sp.code}`;
         if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
         rows.push({
           id: `o-${o.id}-${field}-${i}`,
@@ -182,8 +185,9 @@ export default function Property() {
     });
     clientele.forEach((c) => {
       (c[field] || []).forEach((sp, i) => {
+        if (!sp.code) return;
         const ownerName = c.legal_entity_name || '';
-        const location = `${sp.floor}-${sp.no}`;
+        const location = `${sp.floorLevel} ${sp.code}`;
         if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
         rows.push({
           id: `c-${c.id}-${field}-${i}`,
@@ -260,6 +264,7 @@ export default function Property() {
         onClose={() => setEditingClient(null)}
         client={editingClient}
         onSave={handleSaveClient}
+        hoaId={hoaId}
       />
 
       <AlertDialog />

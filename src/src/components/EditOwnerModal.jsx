@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
-import { SimpleListField, SpotListField, VehicleListField } from './formFields/ListFields';
+import { SimpleListField, SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useUnitLayouts } from '../hooks/useUnitLayouts';
+import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
 // 2026-08-13 хэрэглэгчийн өгсөн 2 screenshot-той тулгаж бүтээв. Хэдэн ч
@@ -26,6 +27,16 @@ function SectionTitle({ children }) {
 
 export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit }) {
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
+  const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
+  const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
+  const [takenParkingIds, setTakenParkingIds] = useState(new Set());
+  const [takenStorageIds, setTakenStorageIds] = useState(new Set());
+
+  useEffect(() => {
+    if (!open || !hoaId) return;
+    fetchTakenSpotIds(hoaId, 'parkings', owner?.id, null).then(setTakenParkingIds);
+    fetchTakenSpotIds(hoaId, 'storages', owner?.id, null).then(setTakenStorageIds);
+  }, [open, hoaId, owner?.id]);
 
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
   // — өмнө mock EXAMPLE_OWNERS-ийн бүтэц (building/phone/email г.м)
@@ -184,15 +195,17 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         </div>
       </div>
 
-      <SpotListField
+      <SpotSelectField
         label="Зогсоол" checked={form.hasParking}
-        onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ floor: '', no: '' }] : f.parkings }))}
+        onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.parkings }))}
         items={form.parkings} onChange={(v) => set('parkings', v)} addLabel="+ Зогсоол нэмэх"
+        spots={parkingSpots} takenIds={takenParkingIds} loading={parkingLoading}
       />
-      <SpotListField
+      <SpotSelectField
         label="Агуулах" checked={form.hasStorage}
-        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ floor: '', no: '' }] : f.storages }))}
+        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.storages }))}
         items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
+        spots={storageSpots} takenIds={takenStorageIds} loading={storageLoading}
       />
       <VehicleListField
         checked={form.hasVehicle}
