@@ -31,7 +31,9 @@ export default function UnitGridCard({ cells, hint }) {
               <div className="text-xs font-semibold text-slate-900 dark:text-white mb-1.5">{b}</div>
               <div className="flex flex-col gap-1">
                 {floors.map((f) => {
-                  const items = buildingCells.filter((c) => c.floor === f);
+                  const items = buildingCells
+                    .filter((c) => c.floor === f)
+                    .sort((a, b2) => (a.position ?? 0) - (b2.position ?? 0));
                   return (
                     <div key={f} className="flex items-start gap-2">
                       <div className="w-7 shrink-0 text-[11px] text-mutedtext pt-1.5">{f}F</div>

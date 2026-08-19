@@ -53,7 +53,7 @@ export default function Property() {
     const [ownersRes, clienteleRes, layoutsRes] = await Promise.all([
       fetchAllRows(() => supabase.from('owners').select('*').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('clientele').select('*').eq('tenant_id', hoaId)),
-      fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false)),
+      fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).eq('hidden', false).order('building_no').order('floor').order('position')),
     ]);
     setOwners(ownersRes.data ?? []);
     setClientele(clienteleRes.data ?? []);
@@ -148,6 +148,8 @@ export default function Property() {
       id: row.id,
       buildingNo: row.building_no,
       floor: row.floor,
+      doorNo: row.door_no,
+      position: row.position,
       code: formatUnitCode(row.building_no, row.structure_type, row.floor, row.entrance_no, row.door_no),
       area: row.sqm,
       exampleIdx: idx,

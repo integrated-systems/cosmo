@@ -63,7 +63,7 @@ function UnitLayoutDesigner() {
 
   async function loadAllBuildings() {
     setLoading(true);
-    const { data } = await fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId));
+    const { data } = await fetchAllRows(() => supabase.from('unit_layouts').select('*').eq('tenant_id', hoaId).order('building_no').order('floor').order('position'));
     if (!data || data.length === 0) {
       setBuildings([]);
       setLoading(false);
@@ -87,7 +87,7 @@ function UnitLayoutDesigner() {
             id: genId(),
             floorNo,
             units: floorsObj[floorNo]
-              .sort((a, c) => a.door_no - c.door_no)
+              .sort((a, c) => a.position - c.position)
               .map((row) => ({ id: genId(), doorNo: row.door_no, sqm: row.sqm, hidden: row.hidden })),
           }));
           return { id: genId(), entranceNo: entNo, floors };
@@ -133,13 +133,14 @@ function UnitLayoutDesigner() {
       if (!bNo || !bNo.trim()) return;
       bld.entrances.forEach((e) => {
         e.floors.forEach((f) => {
-          f.units.forEach((u) => {
+          f.units.forEach((u, unitIdx) => {
             rows.push({
               tenant_id: hoaId,
               building_no: bNo,
               entrance_no: e.entranceNo,
               floor: f.floorNo,
               door_no: u.doorNo,
+              position: unitIdx,
               sqm: u.sqm,
               hidden: u.hidden,
               structure_type: bld.structureType,
