@@ -9,11 +9,11 @@ import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDou
 // ажилтан хариулсаныг ("agent") харуулна; толгойд Pin/Mute/Urgent
 // toggle товч нэмэв (Дуудлага/Мэдээлэл товчны зүүн тал, ижил дизайн).
 //
-// TODO: backend (Supabase харилцан яриа/мессежийн хүснэгэл) хараахан
-// үүсээгүй тул одоогоор зүгээр EXAMPLE_CONVERSATIONS локал жишээ дата
-// (техникийн баримт бичгийн дүрэм 6). Үүсгэх үед хүснэгэл/файл нэрийг
-// "msgr_" угтвартай нэрлэнэ (жиш: msgr_conversations, msgr_messages) —
-// 2026-08-19 хэрэглэгч тодорхой заасан.
+// TODO: backend (Supabase хүснэгэл) хараахан үүсээгүй тул одоогоор
+// зүгээр EXAMPLE_CONVERSATIONS локал жишээ дата (техникийн баримт
+// бичгийн дүрэм 6). Үүсгэх үед 2 хүснэгэл хэрэгтэй (2026-08-19
+// хэрэглэгч тодорхой заасан нэрс): "msgr" (харилцагч тус бүрийн
+// төлөв — pinned/muted/urgent) + "msgr_messages" (мессеж бүр).
 const AVATAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef5555', '#0a428f'];
 
 function initials(name) {
@@ -160,10 +160,10 @@ export default function Msgr() {
     if (tab === 'urgent') return c.urgent;
     return true;
   });
-  // Pin хийсэн харилцан яриаг жагсаалтын ЭХЭНД тусдаа бvлэг болгож,
+  // Pin хийсэн харилцан яриаг жагсаалтын ЭХЭНД тусдаа бүлэг болгож,
   // доогуур нь 1px customBlue нарийхан зураасаар ердийн жагсаалтаас
   // тусгаарлана (стандарт UI загвар — жагсаалт доторх icon шошгоор
-  // биш, бvлэглэлээр ялгана — 2026-08-19 хэрэглэгч тодорхой заасан).
+  // биш, бүлэглэлээр ялгана — 2026-08-19 хэрэглэгч тодорхой заасан).
   const pinnedConversations = visibleConversations.filter((c) => c.pinned);
   const restConversations = visibleConversations.filter((c) => !c.pinned);
 
