@@ -55,7 +55,7 @@ export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, 
               <tr><td colSpan={7} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={7} className="py-8 text-center text-darktext">Мэдээлэл олдсонгvй</td></tr>
+              <tr><td colSpan={7} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && rows.map((r) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">

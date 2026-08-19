@@ -163,7 +163,7 @@ export default function News({ id, badges, datetime, category, viewCount, title,
               onClick={() => setExpanded((v) => !v)}
               className="text-xs text-customBlue hover:underline mt-1"
             >
-              {expanded ? 'Хураах' : 'Дэлгэрэнгvй'}
+              {expanded ? 'Хураах' : 'Дэлгэрэнгүй'}
             </button>
           )}
         </div>

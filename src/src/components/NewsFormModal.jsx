@@ -171,7 +171,7 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={news ? 'Мэдээ засах' : 'Шинэ мэдээ vvсгэх'} size="lg" footer={
+    <Modal open={open} onClose={onClose} title={news ? 'Мэдээ засах' : 'Шинэ мэдээ үүсгэх'} size="lg" footer={
       <>
         <button className="ds-btn-secondary" onClick={() => onSaveDraft?.(form)}>Ноорог хадгалах</button>
         <button className="ds-btn-primary" onClick={() => onPublish?.(form)}>Нийтлэх</button>

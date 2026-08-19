@@ -2,7 +2,7 @@
 // байрлах динамик мвр — [YYYY.MM.DD][Гарагийн нэр],[HH:MM:SS] — 2026-08-19
 // screenshot-оор vзvvлсэн формат (lib/format.js-ийн глобал YYYY/MM/DD-ээс
 // ЗОРИУДААР ялгаатай, зvвхvн энэ мэдээний карт дээр ашиглагдана).
-const WEEKDAYS_MN = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пvрэв', 'Баасан', 'Бямба'];
+const WEEKDAYS_MN = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
 
 export function formatNewsDateTime(date) {
   const d = date instanceof Date ? date : new Date(date);
