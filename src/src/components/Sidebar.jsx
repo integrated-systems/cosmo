@@ -3,7 +3,7 @@ import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../con
 import HoaSwitcher from './HoaSwitcher';
 import { useAuth } from '../lib/AuthContext';
 import { useTenants } from '../hooks/useTenants';
-import { useTenantStats } from '../hooks/useTenantStats';
+import { useTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
@@ -172,9 +172,9 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
                 <div className="flex justify-between py-[1px]"><span>Оршин суугч</span><span>{stats.residentCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Хүүхэд 0-5 нас</span><span>{stats.child05}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Хүүхэд 6-18 нас</span><span>{stats.child618}</span></div>
-                <div className="flex justify-between py-[1px]"><span>Тоот</span><span>{stats.tootCount}</span></div>
-                <div className="flex justify-between py-[1px]"><span>Зогсоол</span><span>{stats.parkingCount}</span></div>
-                <div className="flex justify-between py-[1px]"><span>Агуулах</span><span>{stats.storageCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Тоот</span><span>{formatOwnedRatio(stats.toot.owned, stats.toot.total)}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Зогсоол</span><span>{formatOwnedRatio(stats.parking.owned, stats.parking.total)}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Агуулах</span><span>{formatOwnedRatio(stats.storage.owned, stats.storage.total)}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Бүртгэлтэй машин</span><span>{stats.vehicleCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Талбай өмчлөгч</span><span>{stats.talbaiOwnerCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Харилцагч байгууллага</span><span>{stats.harilzagchCount}</span></div>

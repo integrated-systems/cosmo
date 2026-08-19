@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
+// "owned/total" индикатор форматлагч — 100% дvvрмэгц ("owned"="total")
+// зvгээр НИЙТ тоог л vзvvлнэ (дvvрэн vед харагдах "мэдээлэл"-ийг
+// хялбарчилна), дутуу vед "owned/total" (жиш "10/100") — уншихад амар
+// боловч бvртгэл дутуу/устсаныг индикатор мэт нvдэнд шууд тусгана.
+export function formatOwnedRatio(owned, total) {
+  if (total === 0) return '0';
+  if (owned >= total) return String(total);
+  return `${owned}/${total}`;
+}
+
 // Sidebar-ийн доод инфо карт БОЛОН Dashboard-ийн "Нийт оршин суугч"
 // карт хоёулаа энэ НЭГ hook-оос уншина (Rule of two) — 2026-08-19
 // хэрэглэгчийн хvсэлтээр статик жишээ тооноос бодит Supabase дата руу
@@ -13,11 +23,17 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 //   vед байр бvр 1 орцтой гэж vзнэ)
 // - residentCount/child05/child618: owners.people_count-ийн НИЙЛБЭР л
 //   (child_0_5/child_6_18 нь тэр НИЙТ дотор аль хэдийн ОРСОН дэд бvлэг —
-//   2026-08-19 хэрэглэгч тодорхой заасны дагуу дахин нэмдэггvй)
-// - tootCount: owners мврийн тоо (бvртгэгдсэн сууц өмчлөгчийн тоот)
-// - storageCount/parkingCount/vehicleCount: owners БОЛОН clientele-ийн
-//   storages/parkings/vehicles jsonb массивын нийт урт (хоёулангийнх
-//   нийлvvлж)
+//   дахин нэмдэггvй)
+// - toot/parking/storage: {owned, total} обьект — total нь "Хаягжилт
+//   тохиргоо" хуудсаар vvссэн НИЙТ грид/бvсчлэлийн тоо (unit_layouts/
+//   parking_spots/storage_units), owned нь эзэмшигчтэй тоо (owners
+//   бvгд+clientele-ийн parkings/storages массив). Sidebar-т "owned/total"
+//   индикатор хэлбэрээр (100% дvvрмэгц зvгээр "total") vзvvлнэ — менежерт
+//   бvртгэл хэр гvйцэд байгааг харуулна (2026-08-19 хэрэглэгч тодорхой
+//   заасан).
+// - vehicleCount: owners БОЛОН clientele-ийн vehicles jsonb массивын
+//   нийт урт (энэ бол мвн адил "нийт" vзvvлэлт vгvй, зvвхvн бодитоор
+//   бvртгэгдсэн машины тоо тул хэвээр vлдэв)
 // - talbaiOwnerCount: clientele мврийн тоо ("Талбай өмчлөгч")
 // - harilzagchCount: clientele-ийн ДАВХАРДААГvй байгууллагын тоо
 //   (reg_no-оор ялгана, "Харилцагч байгууллага" — нэг байгууллага
@@ -36,25 +52,29 @@ export function useTenantStats(hoaId) {
       fetchAllRows(() => supabase.from('owners').select('people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('clientele').select('reg_no,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
-    ]).then(([ownersRes, clienteleRes, unitsRes]) => {
+      fetchAllRows(() => supabase.from('parking_spots').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
+      fetchAllRows(() => supabase.from('storage_units').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
+    ]).then(([ownersRes, clienteleRes, unitsRes, parkingRes, storageRes]) => {
       if (cancelled) return;
       const owners = ownersRes.data ?? [];
       const clientele = clienteleRes.data ?? [];
       const units = unitsRes.data ?? [];
+      const parkingSpots = parkingRes.data ?? [];
+      const storageUnits = storageRes.data ?? [];
 
       const arrLen = (v) => (Array.isArray(v) ? v.length : 0);
 
       const residentCount = owners.reduce((s, o) => s + (o.people_count || 0), 0);
       const child05 = owners.reduce((s, o) => s + (o.child_0_5 || 0), 0);
       const child618 = owners.reduce((s, o) => s + (o.child_6_18 || 0), 0);
-      const tootCount = owners.length;
 
-      const storageCount = owners.reduce((s, o) => s + arrLen(o.storages), 0)
-        + clientele.reduce((s, c) => s + arrLen(c.storages), 0);
-      const parkingCount = owners.reduce((s, o) => s + arrLen(o.parkings), 0)
-        + clientele.reduce((s, c) => s + arrLen(c.parkings), 0);
       const vehicleCount = owners.reduce((s, o) => s + arrLen(o.vehicles), 0)
         + clientele.reduce((s, c) => s + arrLen(c.vehicles), 0);
+
+      const storagesOwned = owners.reduce((s, o) => s + arrLen(o.storages), 0)
+        + clientele.reduce((s, c) => s + arrLen(c.storages), 0);
+      const parkingsOwned = owners.reduce((s, o) => s + arrLen(o.parkings), 0)
+        + clientele.reduce((s, c) => s + arrLen(c.parkings), 0);
 
       const buildingNos = [...new Set(units.map((u) => u.building_no))];
       let entranceCount = 0;
@@ -73,9 +93,9 @@ export function useTenantStats(hoaId) {
         residentCount,
         child05,
         child618,
-        tootCount,
-        storageCount,
-        parkingCount,
+        toot: { owned: owners.length, total: units.length },
+        parking: { owned: parkingsOwned, total: parkingSpots.length },
+        storage: { owned: storagesOwned, total: storageUnits.length },
         vehicleCount,
         talbaiOwnerCount: clientele.length,
         harilzagchCount: new Set(clientele.map((c) => c.reg_no).filter(Boolean)).size,
