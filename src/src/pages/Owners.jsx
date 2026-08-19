@@ -25,6 +25,7 @@ export default function Owners() {
   const [rows, setRows] = useState([]);
   const [unitLayouts, setUnitLayouts] = useState([]);
   const [search, setSearch] = useState('');
+  const [buildingFilter, setBuildingFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selected, setSelected] = useState(null);
@@ -51,9 +52,14 @@ export default function Owners() {
     loadOwners();
   }, [hoaId]);
 
+  const buildingOptions = [...new Set(unitLayouts.map((u) => u.building_no?.trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
   // Хайлтын талбар: тоот, нэр (нэр+овог), утас, имэйл-ээр НЭГЭН ЗЭРЭГ хайна
   const q = search.trim().toLowerCase();
-  const filteredRows = !q ? rows : rows.filter((r) => {
+  const filteredRows = rows.filter((r) => {
+    if (buildingFilter && r.building_no?.trim() !== buildingFilter) return false;
+    if (!q) return true;
     const doorNo = formatDoorNo(r.door_no).toLowerCase();
     const fullname = `${r.firstname || ''} ${r.lastname || ''}`.toLowerCase();
     const phones = (r.phones || []).join(' ').toLowerCase();
@@ -109,7 +115,10 @@ export default function Owners() {
 
   return (
     <>
-      <OwnersToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} />
+      <OwnersToolbar
+        search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)}
+        buildingOptions={buildingOptions} buildingFilter={buildingFilter} onBuildingFilterChange={setBuildingFilter}
+      />
 
       <OwnersTable
         rows={filteredRows}

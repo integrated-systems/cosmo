@@ -10,7 +10,7 @@ export default function PropertyToolbar({ search, onSearchChange }) {
         <div className="relative min-w-[240px]">
           <input
             type="text"
-            placeholder="Хайх (тоот, нэр)..."
+            placeholder="Хайх (тоотоор)..."
             className="ds-input w-full pl-8"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
