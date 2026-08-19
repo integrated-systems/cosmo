@@ -207,7 +207,7 @@ export default function CCCenter() {
     <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 130px)' }}>
       {/* ===== Зүүн тал: харилцан яриа жагсаалт ===== */}
       <div className="w-[300px] shrink-0 bg-sidebg border-r border-bordercol flex flex-col">
-        <div className="px-4 pt-3 pb-2 border-b border-bordercol">
+        <div className="px-4 pt-3 pb-2">
           <div className="relative">
             <SearchIcon className="w-3.5 h-3.5 text-darktext absolute left-2.5 top-2.5" />
             <input
@@ -238,7 +238,7 @@ export default function CCCenter() {
           {pinnedConversations.length > 0 && (
             <>
               {pinnedConversations.map((c) => renderConvItem(c))}
-              <div className="h-px bg-customBlue mx-4 my-1.5" />
+              <div className="h-px bg-customBlue ml-[18px] mr-4 my-1.5" />
             </>
           )}
           {restConversations.map((c) => renderConvItem(c))}
