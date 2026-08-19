@@ -33,7 +33,7 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   const { isSuperSysAdmin } = useAuth();
   const scrollRef = useRef(null);
-  const { pullDistance, refreshing, threshold } = usePullToRefresh(scrollRef);
+  usePullToRefresh(scrollRef);
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
       <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} isSuperSysAdmin={isSuperSysAdmin} />
@@ -43,15 +43,6 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
         style={{ marginLeft: !isMobile && isOpen ? 208 : 0 }}
       >
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
-
-        {pullDistance > 0 && (
-          <div
-            className="flex items-center justify-center text-[11px] text-darktext overflow-hidden transition-[height]"
-            style={{ height: pullDistance }}
-          >
-            {refreshing ? 'Сэргээж байна...' : pullDistance >= threshold ? '↑ Суллаж сэргээх' : '↓ Доош чирж сэргээх'}
-          </div>
-        )}
 
         <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
           <Outlet />

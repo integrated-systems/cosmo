@@ -1,17 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
-// Аль ч хуудасны content-body-г (App.jsx-ийн Layout доtorh scroll хийдэг
+// Аль ч хуудасны content-body-г (App.jsx-ийн Layout доторх scroll хийдэг
 // <div>) дээрээс доош чирэхэд refresh хийдэг ГЛОБАЛ дvрэм — 2026-08-19
 // хэрэглэгчийн заасны дагуу (гар утас/таблет, зөвхөн touch — desktop
-// хулганад vйлчлэхгvй, учир нь mouse дээр pull-to-refresh хvлээгдэхгvй).
-// Зөвхөн content-body scrollTop=0 vед (аль хэдийн дээд ирмэгтээ байхад)
-// эхэлдэг тул ердийн доош scroll хийхтэй холилдохгvй.
+// хулганад vйлчлэхгvй). Зөвхөн content-body scrollTop=0 vед (аль хэдийн
+// дээд ирмэгтээ байхад) эхэлдэг тул ердийн доош scroll хийхтэй холилдохгvй.
+//
+// 2026-08-19 (2-р засвар): ямар ч визуал индикатор (сум/текст) ХАРУУЛАХГVЙ
+// — өмнөх хувилбарт индикаторын vvсгэсэн нэмэлт div-ийн вндвр Topbar-ыг
+// шахаж (flex-shrink) байрлалаас нь хвдвлгвдвг байсныг олж, индикаторыг
+// бvрмвсvн арилгав. Одоо энэ hook зvвхvн ЗАН ТвЛвВ (side effect) — DOM-д
+// ямар ч элемент нэмдэггvй тул navbar/layout огт хвдлвхгvй.
 const THRESHOLD = 80;
 
 export function usePullToRefresh(scrollRef) {
-  const [pullDistance, setPullDistance] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
   const startY = useRef(null);
+  const pullDistance = useRef(0);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -20,23 +24,19 @@ export function usePullToRefresh(scrollRef) {
     function handleTouchStart(e) {
       if (el.scrollTop <= 0) startY.current = e.touches[0].clientY;
       else startY.current = null;
+      pullDistance.current = 0;
     }
 
     function handleTouchMove(e) {
       if (startY.current === null) return;
-      const dy = e.touches[0].clientY - startY.current;
-      if (dy > 0) setPullDistance(Math.min(dy, THRESHOLD * 1.5));
+      pullDistance.current = e.touches[0].clientY - startY.current;
     }
 
     function handleTouchEnd() {
       if (startY.current === null) return;
-      if (pullDistance >= THRESHOLD) {
-        setRefreshing(true);
-        window.location.reload();
-      } else {
-        setPullDistance(0);
-      }
+      if (pullDistance.current >= THRESHOLD) window.location.reload();
       startY.current = null;
+      pullDistance.current = 0;
     }
 
     el.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -47,8 +47,5 @@ export function usePullToRefresh(scrollRef) {
       el.removeEventListener('touchmove', handleTouchMove);
       el.removeEventListener('touchend', handleTouchEnd);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollRef, pullDistance]);
-
-  return { pullDistance, refreshing, threshold: THRESHOLD };
+  }, [scrollRef]);
 }
