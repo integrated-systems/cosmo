@@ -158,6 +158,50 @@ export default function CCCenter() {
     if (tab === 'urgent') return c.urgent;
     return true;
   });
+  // Pin хийсэн харилцан яриаг жагсаалтын ЭХЭНД тусдаа бvлэг болгож,
+  // доогуур нь 1px customBlue нарийхан зураасаар ердийн жагсаалтаас
+  // тусгаарлана (стандарт UI загвар — жагсаалт доторх icon шошгоор
+  // биш, бvлэглэлээр ялгана — 2026-08-19 хэрэглэгч тодорхой заасан).
+  const pinnedConversations = visibleConversations.filter((c) => c.pinned);
+  const restConversations = visibleConversations.filter((c) => !c.pinned);
+
+  function renderConvItem(c) {
+    const last = c.messages[c.messages.length - 1];
+    const isActive = c.id === activeId;
+    return (
+      <div
+        key={c.id}
+        onClick={() => selectConversation(c.id)}
+        className={`flex items-center gap-2.5 px-4 py-2.5 cursor-pointer border-l-2 ${
+          isActive ? 'bg-customBlue/10 border-l-customBlue' : 'border-l-transparent hover:bg-white/[0.03]'
+        }`}
+      >
+        <div className="relative w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0" style={{ background: colorFor(c.id) }}>
+          {initials(c.name)}
+          {c.online && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-customGreen" style={{ border: `2px solid ${isActive ? 'rgba(59,130,246,0.08)' : '#070d1d'}` }} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[13px] font-semibold text-white truncate">{c.name}</span>
+            <span className="text-[10.5px] text-darktext shrink-0">{last.t}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <span className="text-[12px] text-mutedtext truncate">
+              {last.dir === 'out' && <span className="text-darktext">Та: </span>}
+              {last.text}
+            </span>
+            {c.unread > 0 ? (
+              <span className="min-w-[18px] h-[18px] rounded-full bg-customBlue text-white text-[10.5px] font-bold flex items-center justify-center px-1 shrink-0">{c.unread}</span>
+            ) : (
+              <span className="text-[10px] text-mutedtext bg-inputbg border border-bordercol rounded px-1.5 py-px shrink-0">{c.unit}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ds-card p-0 flex overflow-hidden" style={{ height: 'calc(100vh - 130px)' }}>
@@ -191,46 +235,13 @@ export default function CCCenter() {
         </div>
 
         <div className="flex-1 overflow-y-auto py-1.5">
-          {visibleConversations.map((c) => {
-            const last = c.messages[c.messages.length - 1];
-            const isActive = c.id === activeId;
-            return (
-              <div
-                key={c.id}
-                onClick={() => selectConversation(c.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 cursor-pointer border-l-2 ${
-                  isActive ? 'bg-customBlue/10 border-l-customBlue' : 'border-l-transparent hover:bg-white/[0.03]'
-                }`}
-              >
-                <div className="relative w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0" style={{ background: colorFor(c.id) }}>
-                  {initials(c.name)}
-                  {c.online && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-customGreen" style={{ border: `2px solid ${isActive ? 'rgba(59,130,246,0.08)' : '#070d1d'}` }} />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-white truncate flex items-center gap-1">
-                      {c.pinned && <PinIcon width={11} height={11} className="text-customOrange shrink-0" />}
-                      {c.name}
-                    </span>
-                    <span className="text-[10.5px] text-darktext shrink-0">{last.t}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <span className="text-[12px] text-mutedtext truncate">
-                      {last.dir === 'out' && <span className="text-darktext">Та: </span>}
-                      {last.text}
-                    </span>
-                    {c.unread > 0 ? (
-                      <span className="min-w-[18px] h-[18px] rounded-full bg-customBlue text-white text-[10.5px] font-bold flex items-center justify-center px-1 shrink-0">{c.unread}</span>
-                    ) : (
-                      <span className="text-[10px] text-mutedtext bg-inputbg border border-bordercol rounded px-1.5 py-px shrink-0">{c.unit}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {pinnedConversations.length > 0 && (
+            <>
+              {pinnedConversations.map((c) => renderConvItem(c))}
+              <div className="h-px bg-customBlue mx-4 my-1.5" />
+            </>
+          )}
+          {restConversations.map((c) => renderConvItem(c))}
         </div>
       </div>
 
@@ -249,7 +260,7 @@ export default function CCCenter() {
             </div>
           </div>
           <div className="flex gap-1.5">
-            <ToggleIconButton active={active.pinned} onClick={() => toggleFlag('pinned')} title="Pin" activeColorClass="border-customOrange text-customOrange">
+            <ToggleIconButton active={active.pinned} onClick={() => toggleFlag('pinned')} title="Pin" activeColorClass="border-mutedtext text-mutedtext">
               <PinIcon />
             </ToggleIconButton>
             <ToggleIconButton active={active.muted} onClick={() => toggleFlag('muted')} title="Mute" activeColorClass="border-mutedtext text-mutedtext">
