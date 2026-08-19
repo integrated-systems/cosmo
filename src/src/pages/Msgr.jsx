@@ -107,6 +107,19 @@ export default function Msgr() {
         .order('updated_at', { ascending: false })
     );
     if (error) { window.alert(error.message); setLoading(false); return; }
+
+    // Жагсаалт дахь харилцан яриа бүрийн СүүЛИЙН мессежийн товч агуулгыг
+    // (жагсаалтын мвр доторх preview текст) харуулахын тулд tenant-ийн
+    // бүх мессежийг үүсгэсэн цагаар нь эрэмбэлж татаад, list_id тус
+    // бүрийн ХАМГИЙН СүүЛчийн мессежийг барьж авна (өсөх дараалалтай
+    // тул сүүлд ирсэн нь map-д "ялна").
+    const { data: allMsgs, error: msgsError } = await fetchAllRows(() =>
+      supabase.from('msgr_messages').select('list_id,dir,body,agent,created_at').eq('tenant_id', hoaId).order('created_at', { ascending: true })
+    );
+    if (msgsError) window.alert(msgsError.message);
+    const lastMsgByList = new Map();
+    (allMsgs ?? []).forEach((m) => lastMsgByList.set(m.list_id, m));
+
     const mapped = (data ?? []).map((row) => {
       const o = row.owners;
       const name = o ? `${o.firstname || ''} ${o.lastname || ''}`.trim() : 'Тодорхойгүй';
@@ -114,6 +127,7 @@ export default function Msgr() {
       return {
         id: row.id, ownerId: row.owner_id, name, unit,
         pinned: row.pinned, muted: row.muted, urgent: row.urgent, unread: row.unread_count,
+        lastMessage: lastMsgByList.get(row.id) || null,
       };
     });
     setConversations(mapped);
@@ -185,6 +199,9 @@ export default function Msgr() {
 
   function renderConvItem(c) {
     const isActive = c.id === activeId;
+    const preview = c.lastMessage
+      ? `${c.lastMessage.dir === 'out' ? 'Та: ' : ''}${c.lastMessage.body}`
+      : '';
     return (
       <div
         key={c.id}
@@ -199,11 +216,14 @@ export default function Msgr() {
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[13px] font-semibold text-white truncate">{c.name}</span>
+            {c.lastMessage && <span className="text-[10.5px] text-darktext shrink-0">{formatTime(c.lastMessage.created_at)}</span>}
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
-            <span className="text-[10px] text-mutedtext bg-inputbg border border-bordercol rounded px-1.5 py-px shrink-0">{c.unit}</span>
-            {c.unread > 0 && (
+            <span className="text-[12px] text-mutedtext truncate">{preview || c.unit}</span>
+            {c.unread > 0 ? (
               <span className="min-w-[18px] h-[18px] rounded-full bg-customBlue text-white text-[10.5px] font-bold flex items-center justify-center px-1 shrink-0">{c.unread}</span>
+            ) : (
+              <span className="text-[10px] text-mutedtext bg-inputbg border border-bordercol rounded px-1.5 py-px shrink-0">{c.unit}</span>
             )}
           </div>
         </div>
