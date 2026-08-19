@@ -11,8 +11,10 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // - buildingCount/entranceCount: unit_layouts-аас (structure_type=
 //   'entrance' vед орцны тоог entrance_no-оор ялгаж тоолно, 'floor'
 //   vед байр бvр 1 орцтой гэж vзнэ)
-// - residentCount/child05/child618: owners.people_count/child_0_5/
-//   child_6_18-ийн нийлбэр
+// - residentCount/child05/child618: owners.people_count-ийн НИЙЛБЭР л
+//   (child_0_5/child_6_18 нь тэр НИЙТ дотор аль хэдийн ОРСОН дэд бvлэг —
+//   2026-08-19 хэрэглэгч тодорхой заасны дагуу дахин нэмдэггvй)
+// - tootCount: owners мврийн тоо (бvртгэгдсэн сууц өмчлөгчийн тоот)
 // - storageCount/parkingCount/vehicleCount: owners БОЛОН clientele-ийн
 //   storages/parkings/vehicles jsonb массивын нийт урт (хоёулангийнх
 //   нийлvvлж)
@@ -45,6 +47,7 @@ export function useTenantStats(hoaId) {
       const residentCount = owners.reduce((s, o) => s + (o.people_count || 0), 0);
       const child05 = owners.reduce((s, o) => s + (o.child_0_5 || 0), 0);
       const child618 = owners.reduce((s, o) => s + (o.child_6_18 || 0), 0);
+      const tootCount = owners.length;
 
       const storageCount = owners.reduce((s, o) => s + arrLen(o.storages), 0)
         + clientele.reduce((s, c) => s + arrLen(c.storages), 0);
@@ -70,6 +73,7 @@ export function useTenantStats(hoaId) {
         residentCount,
         child05,
         child618,
+        tootCount,
         storageCount,
         parkingCount,
         vehicleCount,
