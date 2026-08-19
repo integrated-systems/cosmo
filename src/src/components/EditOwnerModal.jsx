@@ -130,8 +130,15 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         </div>
       </div>
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²)</label>
-        <input type="number" step="0.01" className="ds-input w-full" value={form.sqm} onChange={(e) => set('sqm', e.target.value)} />
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²) — тоотоос автоматаар</label>
+        <input
+          type="text"
+          readOnly
+          disabled
+          className="ds-input w-full bg-slate-100 dark:bg-appbg text-darktext cursor-not-allowed"
+          value={form.sqm}
+          title="Барилгын тоотын талбай үл хувьсагч — Хаягжилт тохиргоо (AddressConfig) хуудаснаас СИСАДМИН л засна"
+        />
       </div>
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
