@@ -8,83 +8,56 @@ import { supabase } from '../lib/supabaseClient';
 // НЭГ модалиар нээгдэнэ (2026-08-19 хэрэглэгчийн тодорхой заасан
 // архитектур — 3 түүврийн зорилго ялгаатай ч дизайн/бүтэц ижил).
 //
-// 2026-08-19 (2-р засвар): "Паблик мэдээ" функц бүрмвсүн арилгав (/news
-// хуудсыг зөвхөн дотоод tenant-ийн гишүүдэд зориулна гэдгийг хэрэглэгч
-// тодорхой заав). Зураг одоо Supabase Storage("news-images" bucket,
-// migration 0015)-д БОДИТООР upload хийгдэнэ (PDF хараахан TODO хэвээр).
-//
-// Агуулгын toolbar-ийн 7 дугуй (B/I-ийн ард): default(цэвэрлэх)+6 tailwind
-// custom өнгв(customBlue/Green/Orange/Red/Purple/Pink) — screenshot-оор
-// заасан "tailwind.config-ийн custom өнгвнүүдийг ашигла" гэсэн шаардлага.
-const COLOR_SWATCHES = [
-  { key: 'default', className: 'bg-white border border-slate-300' },
-  { key: 'blue', className: 'bg-customBlue' },
-  { key: 'green', className: 'bg-customGreen' },
-  { key: 'orange', className: 'bg-customOrange' },
-  { key: 'red', className: 'bg-customRed' },
-  { key: 'purple', className: 'bg-customPurple' },
-  { key: 'pink', className: 'bg-customPink' },
+// 2026-08-19 (3-р засвар): Агуулгын засварлагчийг markdown-твстэй raw
+// тэмдэглэгээ (**bold**, {{color:x}}...{{/color}}) systemees ҮНДСЭЭР
+// нь ЖИНХЭНЭ WYSIWYG (contentEditable) руу шилжүүлэв. Хэрэглэгчийн
+// тодорхой заасан дүрэм: "зүгээр юу харагдана түүнийг нийтэлнэ" —
+// markdown raw тэмдэглэгээ бүтэн харагдах, Tab автоматаар алдагдах
+// зэрэг олон будлиан үүсгэж байсныг үндсээр нь үвчилсэн (contentEditable
+// үед хэрэглэгч ЯГ ТЭР ЧИГЭЭРЭЭ л харна, тусдаа тэмдэглэгээний давхарга
+// үгүй). B/I товч+вnгв товч бүгд document.execCommand ашиглана — жижиг
+// хэмжээний, найдвартай, гуравдагч сангүй шийдэл.
+const COLORS = [
+  { key: 'default', hex: null, className: 'bg-white border border-slate-300' },
+  { key: 'blue', hex: '#3b82f6', className: 'bg-customBlue' },
+  { key: 'green', hex: '#10b981', className: 'bg-customGreen' },
+  { key: 'orange', hex: '#f59e0b', className: 'bg-customOrange' },
+  { key: 'red', hex: '#ef5555', className: 'bg-customRed' },
+  { key: 'purple', hex: '#8b5cf6', className: 'bg-customPurple' },
+  { key: 'pink', hex: '#ec4899', className: 'bg-customPink' },
 ];
 
-// Markdown-твстэй хвнгвн тэмдэглэгээ ашиглана (**bold**, _italic_,
-// {{color:x}}...{{/color}}, [текст](холбоос)) — жинхэнэ WYSIWYG contentEditable
-// биш. Харуулах тал (News.jsx-ийн parseNewsBody()) ЭНЭ яг ижил
-// тэмдэглэгээг уншиж React элемент болгож задалдаг (2026-08-19
-// хэрэглэгч олсон алдааг зассан — үмнв нь ийм логик огт байгаагүй
-// тул мэдээ нийтлэгдсэний дараа raw тэмдэглэгээ бүхий гүйцэлдсэн
-// текст харагддаг байсан). Энгийн `<textarea>` дээр үндэслэсэн тул
-// Enter-ийн үед параграф бүрийг автоматаар 1 Tab-аар эхлүүлэх зан
-// твлввийг найдвартай хэрэгжүүлж болно.
-
-function wrapSelection(textareaRef, before, after = before) {
-  const el = textareaRef.current;
-  if (!el) return;
-  const { selectionStart, selectionEnd, value } = el;
-  const selected = value.slice(selectionStart, selectionEnd);
-  const newValue = value.slice(0, selectionStart) + before + selected + after + value.slice(selectionEnd);
-  el.value = newValue;
-  el.focus();
-  el.setSelectionRange(selectionStart + before.length, selectionStart + before.length + selected.length);
-  return newValue;
-}
-
-function EditorToolbar({ textareaRef, onChange }) {
-  function applyWrap(before, after) {
-    const newValue = wrapSelection(textareaRef, before, after);
-    if (newValue !== undefined) onChange(newValue);
+function EditorToolbar({ editorRef, onChange }) {
+  // Товч дарахад contentEditable-ийн focus/сонголт алдагдахаас
+  // сэргийлж, onMouseDown дээр preventDefault хийнэ (стандарт арга).
+  function preventBlur(e) {
+    e.preventDefault();
+  }
+  function exec(cmd, value = null) {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, value);
+    onChange(editorRef.current?.innerHTML || '');
   }
   function handleLink() {
     const url = window.prompt('Холбоосын хаяг (URL):');
     if (!url) return;
-    const el = textareaRef.current;
-    const hasSelection = el.selectionStart !== el.selectionEnd;
-    if (hasSelection) {
-      applyWrap('[', `](${url})`);
-    } else {
-      const { selectionStart, value } = el;
-      const insertion = `[холбоос](${url})`;
-      const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionStart);
-      el.value = newValue;
-      const cursor = selectionStart + insertion.length;
-      el.focus();
-      el.setSelectionRange(cursor, cursor);
-      onChange(newValue);
-    }
+    exec('createLink', url);
   }
   return (
-    <div className="flex items-center gap-1 mb-2">
-      <button type="button" className="ds-btn-secondary font-bold w-7 h-7 p-0 flex items-center justify-center" onClick={() => applyWrap('**')}>B</button>
-      <button type="button" className="ds-btn-secondary italic w-7 h-7 p-0 flex items-center justify-center" onClick={() => applyWrap('_')}>I</button>
-      {COLOR_SWATCHES.map((c) => (
+    <div className="flex items-center gap-1 mb-2 flex-wrap">
+      <button type="button" onMouseDown={preventBlur} className="ds-btn-secondary font-bold w-7 h-7 p-0 flex items-center justify-center" onClick={() => exec('bold')}>B</button>
+      <button type="button" onMouseDown={preventBlur} className="ds-btn-secondary italic w-7 h-7 p-0 flex items-center justify-center" onClick={() => exec('italic')}>I</button>
+      {COLORS.map((c) => (
         <button
           key={c.key}
           type="button"
           title={c.key}
+          onMouseDown={preventBlur}
           className={`w-6 h-6 rounded-full ${c.className}`}
-          onClick={() => (c.key === 'default' ? null : applyWrap(`{{color:${c.key}}}`, '{{/color}}'))}
+          onClick={() => exec('foreColor', c.hex || '#0f172a')}
         />
       ))}
-      <button type="button" className="ds-btn-secondary flex items-center gap-1" onClick={handleLink}>
+      <button type="button" onMouseDown={preventBlur} className="ds-btn-secondary flex items-center gap-1" onClick={handleLink}>
         <span>∞</span> Линк
       </button>
     </div>
@@ -94,7 +67,7 @@ function EditorToolbar({ textareaRef, onChange }) {
 const EMPTY_FORM = {
   title: '',
   category: NEWS_CATEGORIES[0],
-  bodyText: '',
+  bodyHtml: '',
   videoUrl: '',
   images: [], // [{ name, url }]
   pdfName: '',
@@ -104,51 +77,61 @@ const EMPTY_FORM = {
   critical: false,
 };
 
+// Хуучин (markdown raw тэмдэглэгээтэй) мэдээг засварлахад editor-т
+// ЦЭВЭР анхны текст (тэмдэглэгээгүй) орж ирээд, менежер шинээр
+// WYSIWYG форматлаж болохоор — escape хийгээд мврүүдийг <p> болгоно.
+function plainTextToHtml(text) {
+  const esc = document.createElement('div');
+  esc.textContent = text;
+  const escaped = esc.innerHTML;
+  return escaped
+    .split(/\n\n+/)
+    .map((para) => `<p>${para.replace(/^[\s\t]+/, '').replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
 export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft, onPublish }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [uploading, setUploading] = useState(false);
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
-    setForm(
-      news
-        ? {
-            title: news.title || '',
-            category: news.category || NEWS_CATEGORIES[0],
-            bodyText: news.bodyText || '',
-            videoUrl: news.videoUrl || '',
-            images: (news.images || []).map((url) => ({ name: url.split('/').pop(), url })),
-            pdfName: news.pdfName || '',
-            featured: news.featured || false,
-            urgent: news.urgent || false,
-            warning: news.warning || false,
-            critical: news.critical || false,
-          }
-        : EMPTY_FORM
-    );
+    const initial = news
+      ? {
+          title: news.title || '',
+          category: news.category || NEWS_CATEGORIES[0],
+          bodyHtml: news.bodyHtml || (news.bodyText ? plainTextToHtml(news.bodyText) : ''),
+          videoUrl: news.videoUrl || '',
+          images: (news.images || []).map((url) => ({ name: url.split('/').pop(), url })),
+          pdfName: news.pdfName || '',
+          featured: news.featured || false,
+          urgent: news.urgent || false,
+          warning: news.warning || false,
+          critical: news.critical || false,
+        }
+      : EMPTY_FORM;
+    setForm(initial);
+    // contentEditable бол React-ийн "controlled" биш тул innerHTML-ийг
+    // ЗүүХVN нэг удаа (модаль нээгдэхэд) imperativ байдлаар тохируулна —
+    // үүнийг render дээр дахин бичихгүй (курсорын байрлал алдагдахгүй).
+    requestAnimationFrame(() => {
+      if (editorRef.current) editorRef.current.innerHTML = initial.bodyHtml || '';
+    });
   }, [open, news]);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  // Enter дарахад шинэ параграф(\n\n)+урд нь 1 Tab автоматаар үүсгэнэ
-  // (2026-08-19 хэрэглэгчийн тодорхой заасан "агуулга бичих талбарын"
-  // тохиргоо — анх Space гэж буруу хэлсэн байсныг Tab гэж засав).
-  // Shift+Enter бол ердийн зөөлвн мвр шилжилт (нэг параграф дотор),
-  // автомат Tab үгүй.
-  function handleContentKeyDown(e) {
-    if (e.key !== 'Enter' || e.shiftKey) return;
-    e.preventDefault();
-    const el = textareaRef.current;
-    const { selectionStart, selectionEnd, value } = el;
-    const insertion = '\n\n\t';
-    const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionEnd);
-    el.value = newValue;
-    const cursor = selectionStart + insertion.length;
-    el.setSelectionRange(cursor, cursor);
-    set('bodyText', newValue);
+  function handleEditorInput() {
+    set('bodyHtml', editorRef.current?.innerHTML || '');
+  }
+
+  function handleEditorFocus() {
+    // Enter товч дарахад цэвэрхэн <p> блок үүсгэдэг болгоно (анхдагч
+    // browser зан твлвв үе үе <div> эсвэл зүгээр <br> ашигладаг тул).
+    document.execCommand('defaultParagraphSeparator', false, 'p');
   }
 
   // Сонгосон зурагнуудыг "news-images" bucket-д {tenant_id}/{зам} доор
@@ -203,13 +186,15 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
 
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Агуулга</label>
-          <EditorToolbar textareaRef={textareaRef} onChange={(v) => set('bodyText', v)} />
-          <textarea
-            ref={textareaRef}
-            className="ds-input w-full min-h-[160px] resize-y"
-            value={form.bodyText}
-            onChange={(e) => set('bodyText', e.target.value)}
-            onKeyDown={handleContentKeyDown}
+          <EditorToolbar editorRef={editorRef} onChange={(html) => set('bodyHtml', html)} />
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={handleEditorInput}
+            onFocus={handleEditorFocus}
+            data-placeholder="Мэдээний агуулгаа энд бичнэ үү..."
+            className="news-editor ds-input w-full min-h-[160px] resize-y overflow-y-auto text-left"
           />
         </div>
 

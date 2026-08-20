@@ -39,6 +39,7 @@ function toCardProps(row) {
     viewCount: row.view_count,
     title: row.title,
     bodyText: row.body_text,
+    bodyHtml: row.body_html,
     videoId: extractYoutubeId(row.video_url),
     images: row.images || [],
   };
@@ -119,12 +120,23 @@ export default function NewsPage() {
     setEditingNews(fullRow || null);
   }
 
+  // form.bodyHtml (contentEditable-ийн innerHTML) хадгална — body_text-ийг
+  // хайлт/legacy зорилгоор HTML-ээс ТЕГШ үсэг рүү хувиргаж дахин тооцоолно
+  // (2026-08-19: markdown raw тэмдэглэгээний оронд жинхэнэ WYSIWYG руу
+  // шилжсэн — дэлгэрэнгүй: NewsFormModal.jsx-ийн толгой коммент).
+  function htmlToPlainText(html) {
+    const el = document.createElement('div');
+    el.innerHTML = html || '';
+    return el.textContent || '';
+  }
+
   async function upsertRow(form, status) {
     const payload = {
       tenant_id: hoaId,
       title: form.title,
       category: form.category,
-      body_text: form.bodyText,
+      body_html: form.bodyHtml,
+      body_text: htmlToPlainText(form.bodyHtml),
       video_url: form.videoUrl || null,
       images: form.images.map((img) => img.url),
       featured: form.featured,
@@ -153,6 +165,7 @@ export default function NewsPage() {
           title: editingNews.title,
           category: editingNews.category,
           bodyText: editingNews.body_text,
+          bodyHtml: editingNews.body_html,
           videoUrl: editingNews.video_url,
           images: editingNews.images || [],
           featured: editingNews.featured,

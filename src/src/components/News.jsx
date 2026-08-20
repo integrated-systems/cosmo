@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { formatNewsDateTime, formatViewCount } from '../lib/newsFormat';
 import Lightbox from './Lightbox';
 
@@ -93,12 +94,10 @@ function stripInvisible(s) {
   return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
 }
 
-// NewsFormModal.jsx-ийн EditorToolbar-аас бичигдсэн markdown-төстэй
-// тэмдэглэгээг (**bold**, _italic_, {{color:x}}...{{/color}}, [текст]
-// (холбоос)) бодит React элемент болгож задална — 2026-08-19 хэрэглэгч
-// олсон алдаа: энэ уншиж-форматлах логик ОГТ байгаагүй тул мэдээ
-// нийтлэгдсэний дараа бичих үеийн формат бүрмвсвн алдагдаж, зүгээр
-// л raw тэмдэглэгээ агуулсан гүйцэлдсэн текст харагддаг байсан.
+// NewsFormModal.jsx-ийн ХУЧИН markdown-төстэй тэмдэглэгээг (**bold**,
+// _italic_, {{color:x}}...{{/color}}, [текст](холбоос)) бодит React
+// элемент болгож задална — ЗүвхүН body_html үгүй хучин мэдээнд
+// хэрэглэгдэнэ (backward compat).
 const NEWS_COLOR_HEX = {
   blue: '#3b82f6', green: '#10b981', orange: '#f59e0b',
   red: '#ef5555', purple: '#8b5cf6', pink: '#ec4899',
@@ -124,6 +123,18 @@ function parseNewsBody(text) {
   }
   if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
   return nodes;
+}
+
+// 2026-08-19 (3-р засвар): Агуулгын засварлагч markdown raw тэмдэглэгээнээс
+// ЖИНХЭНЭ WYSIWYG (contentEditable, NewsFormModal.jsx) рүү шилжсэн
+// тул одоо bodyHtml (санитайз хийсэн HTML) шууд харуулна.
+const SANITIZE_OPTS = {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'a', 'span', 'div'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'style'],
+  ALLOWED_URI_REGEXP: /^(?:https?:)/i,
+};
+function sanitizeNewsHtml(html) {
+  return DOMPurify.sanitize(html || '', SANITIZE_OPTS);
 }
 
 export default function News({ id, badges, datetime, category, viewCount, title, bodyText, videoId, images, onView }) {
@@ -169,26 +180,32 @@ export default function News({ id, badges, datetime, category, viewCount, title,
 
       <div className="font-semibold text-sm text-slate-900 dark:text-white uppercase">{title}</div>
 
-      {bodyText && (
+      {(bodyHtml || bodyText) && (
         <div>
-          {/* Collapsed үед бүх параграфыг НЭГ урсгал текст болгож нийлүүлж
-              line-clamp-4-ээр таслана (line-clamp олон <p> хүүхэд элемент
-              дээр зввгүй ажилладаг тул). Expanded үед '\n\n'-ээр тусдаа
-              параграф болгож задалж, тус бүрийг justify (хоёр талдаа
-              тэгширсэн), шинэ мврний ЭХЭНД зай/догол авахгүй байдлаар
-              харуулна (догол мвр биш, ердийн параграф хоорондын зайгаар
-              ялгана). */}
+          {/* 2026-08-19 (3-р засвар): bodyHtml байвал вед sanitize хийсэн
+              HTML-ийг шууд харуулна. Алгаы (хуучин, body_html үгүй) мэдээнд
+              parseNewsBody-гаар задалж харуулна (backward compat). Collapsed вед
+              хоёр төрөүд адилхан body_text-ээр (маркдовн тэмдэглэгээгүй
+              агуулдаггүй) line-clamp-4-ээр таслана. */}
           {expanded ? (
-            <div ref={textRef}>
-              {bodyText.split(/\n\n+/).map((para, i) => (
-                <p key={i} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] mb-2 last:mb-0">
-                  {parseNewsBody(stripInvisible(para))}
-                </p>
-              ))}
-            </div>
+            bodyHtml ? (
+              <div
+                ref={textRef}
+                className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] [&_p]:mb-2 [&_p]:last:mb-0"
+                dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(bodyHtml) }}
+              />
+            ) : (
+              <div ref={textRef}>
+                {bodyText.split(/\n\n+/).map((para, i) => (
+                  <p key={i} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] mb-2 last:mb-0">
+                    {parseNewsBody(stripInvisible(para))}
+                  </p>
+                ))}
+              </div>
+            )
           ) : (
             <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] line-clamp-4">
-              {parseNewsBody(stripInvisible(bodyText.replace(/\n+/g, ' ')))}
+              {parseNewsBody(stripInvisible((bodyText || '').replace(/\n+/g, ' ')))}
             </p>
           )}
           {isTruncated && (
