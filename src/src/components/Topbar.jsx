@@ -16,7 +16,7 @@ export default function Topbar({ theme, onToggleTheme }) {
 
   return (
     <header className="h-[50px] bg-white dark:bg-appbg border-b border-slate-200 dark:border-bordercol
-      flex items-center px-5 sticky top-0 z-[900] justify-between">
+      flex items-center pl-5 pr-2.5 sticky top-0 z-[900] justify-between">
       <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{title}</span>
 
       <div className="flex items-center gap-2">
