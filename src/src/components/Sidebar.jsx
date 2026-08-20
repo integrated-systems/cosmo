@@ -1,10 +1,13 @@
 import { NavLink, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import HoaSwitcher from './HoaSwitcher';
 import { useAuth } from '../lib/AuthContext';
 import { useTenants } from '../hooks/useTenants';
 import { useTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
+import { supabase } from '../lib/supabaseClient';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
@@ -23,6 +26,20 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { stats } = useTenantStats(hoaId);
+  const [msgrUnread, setMsgrUnread] = useState(0);
+
+  // Sidebar цэсний "Мессенжер"-ийн хажууд уншаагүй мессежийн НИЙТ тоог
+  // badge маягаар харуулах — 2026-08-19 хэрэглэгч тодорхой заасан.
+  useEffect(() => {
+    if (!hoaId) return;
+    let cancelled = false;
+    fetchAllRows(() => supabase.from('msgr_list').select('unread_count').eq('tenant_id', hoaId)).then(({ data }) => {
+      if (cancelled) return;
+      const total = (data ?? []).reduce((s, r) => s + (r.unread_count || 0), 0);
+      setMsgrUnread(total);
+    });
+    return () => { cancelled = true; };
+  }, [hoaId]);
   const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
   const currentTenantName = tenants.find((t) => t.id === hoaId)?.name;
 
@@ -94,20 +111,23 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
             <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-semibold uppercase leading-[1.2]">
               {section.title}
             </div>
-            {section.items.filter((item) => item.key !== 'emails').map((item) => (
+            {section.items.filter((item) => item.key !== 'emails').map((item) => {
+              const badge = item.key === 'msgr' ? (msgrUnread > 0 ? msgrUnread : null) : item.badge;
+              return (
               <NavLink
                 key={item.key}
                 to={`/${hoaId}${item.path}`}
                 className={({ isActive }) => `${navItemBase} ${isActive ? navItemActive : navItemInactive}`}
               >
                 <span>{item.label}</span>
-                {item.badge != null && (
+                {badge != null && (
                   <span className="bg-customRed text-white text-[10px] px-1.5 py-0.5 rounded-[10px] font-semibold leading-none">
-                    {item.badge}
+                    {badge}
                   </span>
                 )}
               </NavLink>
-            ))}
+              );
+            })}
           </div>
         ))}
         {/* SUPERSYSADMIN — платформын дээд түвшний админ, 7 бүлгээс тусад нь.

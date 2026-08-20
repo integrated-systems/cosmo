@@ -1,19 +1,46 @@
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { formatDate } from '../lib/format';
 import { summarizeSpots, summarizeVehicles, formatUnitCode } from '../lib/ownersFormat';
+import { supabase } from '../lib/supabaseClient';
 import Modal from './Modal';
 
 // Owners.jsx-ийн мөр дарахад гарах Инфо модаль — 2026-08-15 хэрэглэгчийн
 // заасны дагуу тусдаа компонент болгов (Rule of two).
 // 2026-08-19: "Байр / Тоот" мврийг EditOwnerModal-ийн Тоот dropdown-той
 // ЯГ ИЖИЛ форматтай (formatUnitCode, структур-мэдрэмтгий) болгож
-// зассан — өмнө нь давхар vгvй, падинг vгvй буруу формат байсан.
+// зассан — өмнө нь давхар үгүй, падинг үгүй буруу формат байсан.
+// 2026-08-19 (2): "Мессенжер" товчийг ажилд оруулав — тухайн өмчлөгчид
+// msgr_list мвр байгаа эсэхийг шалгаж, байхгүй бол шинээр үүсгээд,
+// /msgr хуудас руу тэр харилцан ярианд шууд орсон байдлаар шилжүүлнэ.
 export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdit }) {
+  const { hoaId } = useParams();
+  const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
   const layoutRow = owner && unitLayouts.find(
     (u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no
   );
   const unitCode = owner
     ? formatUnitCode(owner.building_no, layoutRow?.structure_type, owner.floor, layoutRow?.entrance_no, owner.door_no)
     : '';
+
+  async function openMessenger() {
+    if (!owner || opening) return;
+    setOpening(true);
+    const { data: existing } = await supabase
+      .from('msgr_list').select('id').eq('tenant_id', hoaId).eq('owner_id', owner.id).maybeSingle();
+    let listId = existing?.id;
+    if (!listId) {
+      const { data: created, error } = await supabase
+        .from('msgr_list').insert({ tenant_id: hoaId, owner_id: owner.id }).select('id').single();
+      if (error) { window.alert(error.message); setOpening(false); return; }
+      listId = created.id;
+    }
+    setOpening(false);
+    onClose();
+    navigate(`/${hoaId}/msgr?list=${listId}`);
+  }
+
   return (
     <Modal
       open={!!owner}
@@ -22,7 +49,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary">Мессенжер</button>
+          <button className="ds-btn-secondary" onClick={openMessenger} disabled={opening}>Мессенжер</button>
           <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
           <button className="ds-btn-secondary">Мэдэгдэл</button>

@@ -13,14 +13,14 @@ import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
 
 // "Мэдээ, мэдээлэл" (/news) — 2 таб: Нийтлэгдсэн мэдээ / Мэдээний
-// агрегат. Сууц вмчлвгч гар утасны аппаараа vзэх тул responsive
-// (нэг багана, mobile/desktop ижил). Мэдээний жагсаалт mobile vед бvтэн
-// өргөн, desktop vед макс 720px (2026-08-19).
+// агрегат. Сууц вмчлвгч гар утасны аппаараа үзэх тул responsive
+// (нэг багана, mobile/desktop ижил). Мэдээний жагсаалт mobile үед бүтэн
+// өргөн, desktop үед макс 720px (2026-08-19).
 //
-// 2026-08-19: Supabase `news` хvснэгэлтэй холбогдов (migration 0014).
+// 2026-08-19: Supabase `news` хүснэгэлтэй холбогдов (migration 0014).
 // Зураг Supabase Storage("news-images" bucket, migration 0015)-д бодитоор
-// upload хийгдэнэ. "Паблик мэдээ" функц бvрмвсvн арилгагдсан (/news
-// хуудсыг зөвхөн дотоод tenant-ийн гишvvдэд зориулна). PDF upload
+// upload хийгдэнэ. "Паблик мэдээ" функц бүрмвсүн арилгагдсан (/news
+// хуудсыг зөвхөн дотоод tenant-ийн гишүүдэд зориулна). PDF upload
 // хараахан TODO хэвээр.
 const TABS = [
   { key: 'published', label: 'Нийтлэгдсэн мэдээ' },
@@ -53,6 +53,8 @@ function toTableRow(row) {
     status: row.status,
     featured: row.featured,
     urgent: row.urgent,
+    warning: row.warning,
+    critical: row.critical,
   };
 }
 
@@ -87,14 +89,14 @@ export default function NewsPage() {
   const aggregateRows = rows.filter((r) => !category || r.category === category).map(toTableRow);
 
   // Мэдээ анх дэлгэцэнд гарахад (News card mount) нэг удаа дуудагдана —
-  // session доторх ID бvрийг зөвхөн НЭГ л удаа тоолно (дахин render/tab
-  // сэлгэхэд давхар нэмэгдэхгvй). Атом server-side increment (race
+  // session доторх ID бүрийг зөвхөн НЭГ л удаа тоолно (дахин render/tab
+  // сэлгэхэд давхар нэмэгдэхгүй). Атом server-side increment (race
   // condition-оос сэргийлнэ) — migration 0016.
   async function handleView(id) {
     if (viewedIds.current.has(id)) return;
     viewedIds.current.add(id);
     const { error } = await supabase.rpc('increment_news_view', { p_id: id });
-    if (error) return; // тоолуурын алдааг чимээгvй vл хайхарна — хэрэглэгчийн туршлагад саад болохгvй
+    if (error) return; // тоолуурын алдааг чимээгүй үл хайхарна — хэрэглэгчийн туршлагад саад болохгүй
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, view_count: r.view_count + 1 } : r)));
   }
 
@@ -127,6 +129,8 @@ export default function NewsPage() {
       images: form.images.map((img) => img.url),
       featured: form.featured,
       urgent: form.urgent,
+      warning: form.warning,
+      critical: form.critical,
       status,
       updated_at: new Date().toISOString(),
     };
@@ -153,6 +157,8 @@ export default function NewsPage() {
           images: editingNews.images || [],
           featured: editingNews.featured,
           urgent: editingNews.urgent,
+          warning: editingNews.warning,
+          critical: editingNews.critical,
         }
       : null
   ), [editingNews]);

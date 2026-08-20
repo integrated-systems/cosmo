@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
-import { formatDoorNo } from '../lib/ownersFormat';
+import { formatDoorNo, formatUnitCode } from '../lib/ownersFormat';
 import EditOwnerModal from '../components/EditOwnerModal';
 import OwnersToolbar from '../components/OwnersToolbar';
 import OwnersTable from '../components/OwnersTable';
@@ -55,16 +55,21 @@ export default function Owners() {
   const buildingOptions = [...new Set(unitLayouts.map((u) => u.building_no?.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-  // Хайлтын талбар: тоот, нэр (нэр+овог), утас, имэйл-ээр НЭГЭН ЗЭРЭГ хайна
+  // Хайлтын талбар: бүтэн тоотын код (байр+давхар+тоот), зүгээр door_no,
+  // нэр (нэр+овог), утас, имэйл-ээр НЭГЭН ЗЭРЭГ хайна — 2026-08-19
+  // хэрэглэгч олсон bug: door_no-г ганцаар нь л шалгадаг байсан тул
+  // "101 1205" маягийн бүтэн код бичихэд огт олдохгүй байсныг зассан.
   const q = search.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
     if (buildingFilter && r.building_no?.trim() !== buildingFilter) return false;
     if (!q) return true;
     const doorNo = formatDoorNo(r.door_no).toLowerCase();
+    const unitCode = formatUnitCode(r.building_no, null, r.floor, null, r.door_no).toLowerCase();
     const fullname = `${r.firstname || ''} ${r.lastname || ''}`.toLowerCase();
     const phones = (r.phones || []).join(' ').toLowerCase();
     const emails = (r.emails || []).join(' ').toLowerCase();
-    return doorNo.includes(q) || fullname.includes(q) || phones.includes(q) || emails.includes(q);
+    return unitCode.includes(q) || unitCode.replace(/\s/g, '').includes(q.replace(/\s/g, ''))
+      || doorNo.includes(q) || fullname.includes(q) || phones.includes(q) || emails.includes(q);
   });
 
   async function handleSave(form) {

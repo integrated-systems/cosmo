@@ -4,18 +4,18 @@ import { NEWS_CATEGORIES } from '../data/newsCategories';
 import { supabase } from '../lib/supabaseClient';
 
 // "Мэдээ, мэдээлэл" — Мэдээний агрегат таблицын мвр дээр дарахад,
-// "Засах" товч дарахад, "+ Шинэ мэдээ vvсгэх" товч дарахад бvгд ЯГ ЭНЭ
+// "Засах" товч дарахад, "+ Шинэ мэдээ үүсгэх" товч дарахад бүгд ЯГ ЭНЭ
 // НЭГ модалиар нээгдэнэ (2026-08-19 хэрэглэгчийн тодорхой заасан
-// архитектур — 3 тvvврийн зорилго ялгаатай ч дизайн/бvтэц ижил).
+// архитектур — 3 түүврийн зорилго ялгаатай ч дизайн/бүтэц ижил).
 //
-// 2026-08-19 (2-р засвар): "Паблик мэдээ" функц бvрмвсvн арилгав (/news
-// хуудсыг зөвхөн дотоод tenant-ийн гишvvдэд зориулна гэдгийг хэрэглэгч
+// 2026-08-19 (2-р засвар): "Паблик мэдээ" функц бүрмвсүн арилгав (/news
+// хуудсыг зөвхөн дотоод tenant-ийн гишүүдэд зориулна гэдгийг хэрэглэгч
 // тодорхой заав). Зураг одоо Supabase Storage("news-images" bucket,
 // migration 0015)-д БОДИТООР upload хийгдэнэ (PDF хараахан TODO хэвээр).
 //
 // Агуулгын toolbar-ийн 7 дугуй (B/I-ийн ард): default(цэвэрлэх)+6 tailwind
 // custom өнгв(customBlue/Green/Orange/Red/Purple/Pink) — screenshot-оор
-// заасан "tailwind.config-ийн custom өнгвнvvдийг ашигла" гэсэн шаардлага.
+// заасан "tailwind.config-ийн custom өнгвнүүдийг ашигла" гэсэн шаардлага.
 const COLOR_SWATCHES = [
   { key: 'default', className: 'bg-white border border-slate-300' },
   { key: 'blue', className: 'bg-customBlue' },
@@ -29,9 +29,9 @@ const COLOR_SWATCHES = [
 // Markdown-төстэй хвнгвн тэмдэглэгээ ашиглана (**bold**, _italic_,
 // {{color:x}}...{{/color}}, [текст](холбоос)) — жинхэнэ WYSIWYG contentEditable
 // биш, учир нь одоогоор харуулах тал (News.jsx) ийм тэмдэглэгээг
-// уншиж форматлах логикгvй (TODO). Энгийн `<textarea>` дээр vндэслэсэн
-// тул Enter-ийн үед параграф бvрийг автоматаар 1 space-ээр эхлvvлэх зан
-// төлөвийг найдвартай хэрэгжvvлж болно.
+// уншиж форматлах логикгүй (TODO). Энгийн `<textarea>` дээр үндэслэсэн
+// тул Enter-ийн үед параграф бүрийг автоматаар 1 space-ээр эхлүүлэх зан
+// төлөвийг найдвартай хэрэгжүүлж болно.
 function wrapSelection(textareaRef, before, after = before) {
   const el = textareaRef.current;
   if (!el) return;
@@ -96,6 +96,8 @@ const EMPTY_FORM = {
   pdfName: '',
   featured: false,
   urgent: false,
+  warning: false,
+  critical: false,
 };
 
 export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft, onPublish }) {
@@ -116,6 +118,8 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
             pdfName: news.pdfName || '',
             featured: news.featured || false,
             urgent: news.urgent || false,
+            warning: news.warning || false,
+            critical: news.critical || false,
           }
         : EMPTY_FORM
     );
@@ -125,16 +129,17 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  // Enter дарахад шинэ параграф(\n\n)+урд нь 1 space автоматаар vvсгэнэ
+  // Enter дарахад шинэ параграф(\n\n)+урд нь 1 Tab автоматаар үүсгэнэ
   // (2026-08-19 хэрэглэгчийн тодорхой заасан "агуулга бичих талбарын"
-  // тохиргоо). Shift+Enter бол ердийн зөөлөн мвр шилжилт (нэг параграф
-  // дотор), автомат space vгvй.
+  // тохиргоо — анх Space гэж буруу хэлсэн байсныг Tab гэж засав).
+  // Shift+Enter бол ердийн зөөлвн мвр шилжилт (нэг параграф дотор),
+  // автомат Tab үгүй.
   function handleContentKeyDown(e) {
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     const el = textareaRef.current;
     const { selectionStart, selectionEnd, value } = el;
-    const insertion = '\n\n ';
+    const insertion = '\n\n\t';
     const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionEnd);
     el.value = newValue;
     const cursor = selectionStart + insertion.length;
@@ -144,7 +149,7 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
 
   // Сонгосон зурагнуудыг "news-images" bucket-д {tenant_id}/{зам} доор
   // upload хийж, олон нийтэд нээлттэй URL-ыг form.images-д нэмнэ
-  // (migration 0015-ийн RLS policy зөвхөн тухайн tenant-ийн гишvvнд
+  // (migration 0015-ийн RLS policy зөвхөн тухайн tenant-ийн гишүүнд
   // upload зөвшөөрдөг).
   async function handleImageSelect(e) {
     const files = Array.from(e.target.files || []);
@@ -259,6 +264,14 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
           <label className="flex items-center gap-2 text-[13px]">
             <input type="checkbox" className="accent-customBlue" checked={form.urgent} onChange={(e) => set('urgent', e.target.checked)} />
             Шуурхай мэдээ болгох
+          </label>
+          <label className="flex items-center gap-2 text-[13px]">
+            <input type="checkbox" className="accent-customOrange" checked={form.warning} onChange={(e) => set('warning', e.target.checked)} />
+            Сэрэмжлүүлэг мэдээ болгох
+          </label>
+          <label className="flex items-center gap-2 text-[13px]">
+            <input type="checkbox" className="accent-customRed" checked={form.critical} onChange={(e) => set('critical', e.target.checked)} />
+            Ноцтой мэдээ болгох
           </label>
         </div>
       </div>

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
-// "owned/total" индикатор форматлагч — 100% дvvрмэгц ("owned"="total")
-// зvгээр НИЙТ тоог л vзvvлнэ (дvvрэн vед харагдах "мэдээлэл"-ийг
-// хялбарчилна), дутуу vед "owned/total" (жиш "10/100") — уншихад амар
-// боловч бvртгэл дутуу/устсаныг индикатор мэт нvдэнд шууд тусгана.
+// "owned/total" индикатор форматлагч — 100% дүүрмэгц ("owned"="total")
+// зүгээр НИЙТ тоог л үзүүлнэ (дүүрэн үед харагдах "мэдээлэл"-ийг
+// хялбарчилна), дутуу үед "owned/total" (жиш "10/100") — уншихад амар
+// боловч бүртгэл дутуу/устсаныг индикатор мэт нүдэнд шууд тусгана.
 export function formatOwnedRatio(owned, total) {
   if (total === 0) return '0';
   if (owned >= total) return String(total);
@@ -14,31 +14,32 @@ export function formatOwnedRatio(owned, total) {
 
 // Sidebar-ийн доод инфо карт БОЛОН Dashboard-ийн "Нийт оршин суугч"
 // карт хоёулаа энэ НЭГ hook-оос уншина (Rule of two) — 2026-08-19
-// хэрэглэгчийн хvсэлтээр статик жишээ тооноос бодит Supabase дата руу
-// шилжvvлэв.
+// хэрэглэгчийн хүсэлтээр статик жишээ тооноос бодит Supabase дата руу
+// шилжүүлэв.
 //
 // Тооцоолол:
 // - buildingCount/entranceCount: unit_layouts-аас (structure_type=
-//   'entrance' vед орцны тоог entrance_no-оор ялгаж тоолно, 'floor'
-//   vед байр бvр 1 орцтой гэж vзнэ)
+//   'entrance' үед орцны тоог entrance_no-оор ялгаж тоолно, 'floor'
+//   үед байр бүр 1 орцтой гэж үзнэ)
 // - residentCount/child05/child618: owners.people_count-ийн НИЙЛБЭР л
-//   (child_0_5/child_6_18 нь тэр НИЙТ дотор аль хэдийн ОРСОН дэд бvлэг —
-//   дахин нэмдэггvй)
+//   (child_0_5/child_6_18 нь тэр НИЙТ дотор аль хэдийн ОРСОН дэд бүлэг —
+//   дахин нэмдэггүй)
 // - toot/parking/storage: {owned, total} обьект — total нь "Хаягжилт
-//   тохиргоо" хуудсаар vvссэн НИЙТ грид/бvсчлэлийн тоо (unit_layouts/
+//   тохиргоо" хуудсаар үүссэн НИЙТ грид/бүсчлэлийн тоо (unit_layouts/
 //   unit_parking/unit_storage), owned нь эзэмшигчтэй тоо (owners
-//   бvгд+clientele-ийн parkings/storages массив). Sidebar-т "owned/total"
-//   индикатор хэлбэрээр (100% дvvрмэгц зvгээр "total") vзvvлнэ — менежерт
-//   бvртгэл хэр гvйцэд байгааг харуулна (2026-08-19 хэрэглэгч тодорхой
+//   бүгд+clientele-ийн parkings/storages массив). Sidebar-т "owned/total"
+//   индикатор хэлбэрээр (100% дүүрмэгц зүгээр "total") үзүүлнэ — менежерт
+//   бүртгэл хэр гүйцэд байгааг харуулна (2026-08-19 хэрэглэгч тодорхой
 //   заасан).
 // - vehicleCount: owners БОЛОН clientele-ийн vehicles jsonb массивын
-//   нийт урт (энэ бол мвн адил "нийт" vзvvлэлт vгvй, зvвхvн бодитоор
-//   бvртгэгдсэн машины тоо тул хэвээр vлдэв)
+//   нийт урт (энэ бол мвн адил "нийт" үзүүлэлт үгүй, зүвхүн бодитоор
+//   бүртгэгдсэн машины тоо тул хэвээр үлдэв)
 // - talbaiOwnerCount: clientele мврийн тоо ("Талбай өмчлөгч")
-// - harilzagchCount: clientele-ийн ДАВХАРДААГvй байгууллагын тоо
-//   (reg_no-оор ялгана, "Харилцагч байгууллага" — нэг байгууллага
-//   хэд хэдэн талбай эзэмшиж болдог тул talbaiOwnerCount-оос бага
-//   эсвэл тэнцvv байна)
+// - harilzagchCount: 2026-08-19 хэрэглэгч олсон алдаа: өмнө нь
+//   clientele.reg_no-ийн ДАВХАРДААГүй тоог "Харилцагч байгууллага" гэж
+//   таамагласан байсан (Харилцагчийн бүртгэл /providers хуудас үүсэхээс
+//   ӨМНв бичигдсэн). Одоо жинхэнэ "providers" хүснэгэл (үйлчилгээ
+//   үзүүлэгч байгууллагууд) байгаа тул TvvНИЙ мврийн тоог шууд ашиглана.
 export function useTenantStats(hoaId) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,17 +51,19 @@ export function useTenantStats(hoaId) {
 
     Promise.all([
       fetchAllRows(() => supabase.from('owners').select('people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
-      fetchAllRows(() => supabase.from('clientele').select('reg_no,storages,parkings,vehicles').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('clientele').select('storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
       fetchAllRows(() => supabase.from('unit_parking').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
       fetchAllRows(() => supabase.from('unit_storage').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
-    ]).then(([ownersRes, clienteleRes, unitsRes, parkingRes, storageRes]) => {
+      fetchAllRows(() => supabase.from('providers').select('id').eq('tenant_id', hoaId)),
+    ]).then(([ownersRes, clienteleRes, unitsRes, parkingRes, storageRes, providersRes]) => {
       if (cancelled) return;
       const owners = ownersRes.data ?? [];
       const clientele = clienteleRes.data ?? [];
       const units = unitsRes.data ?? [];
       const parkingSpots = parkingRes.data ?? [];
       const storageUnits = storageRes.data ?? [];
+      const providers = providersRes.data ?? [];
 
       const arrLen = (v) => (Array.isArray(v) ? v.length : 0);
 
@@ -98,7 +101,7 @@ export function useTenantStats(hoaId) {
         storage: { owned: storagesOwned, total: storageUnits.length },
         vehicleCount,
         talbaiOwnerCount: clientele.length,
-        harilzagchCount: new Set(clientele.map((c) => c.reg_no).filter(Boolean)).size,
+        harilzagchCount: providers.length,
       });
       setLoading(false);
     });
