@@ -94,10 +94,11 @@ function stripInvisible(s) {
   return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
 }
 
-// NewsFormModal.jsx-ийн ХУЧИН markdown-төстэй тэмдэглэгээг (**bold**,
+// NewsFormModal.jsx-ийн ХУУЧИН markdown-төстөй тэмдэглэгээг (**bold**,
 // _italic_, {{color:x}}...{{/color}}, [текст](холбоос)) бодит React
-// элемент болгож задална — ЗүвхүН body_html үгүй хучин мэдээнд
+// элемент болгож задална — Зүүхэн body_html үгүй ХУУЧИН мэдээнд
 // хэрэглэгдэнэ (backward compat).
+
 const NEWS_COLOR_HEX = {
   blue: '#3b82f6', green: '#10b981', orange: '#f59e0b',
   red: '#ef5555', purple: '#8b5cf6', pink: '#ec4899',
@@ -137,7 +138,7 @@ function sanitizeNewsHtml(html) {
   return DOMPurify.sanitize(html || '', SANITIZE_OPTS);
 }
 
-export default function News({ id, badges, datetime, category, viewCount, title, bodyText, videoId, images, onView }) {
+export default function News({ id, badges, datetime, category, viewCount, title, bodyText, bodyHtml, videoId, images, onView }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
@@ -182,10 +183,10 @@ export default function News({ id, badges, datetime, category, viewCount, title,
 
       {(bodyHtml || bodyText) && (
         <div>
-          {/* 2026-08-19 (3-р засвар): bodyHtml байвал вед sanitize хийсэн
-              HTML-ийг шууд харуулна. Алгаы (хуучин, body_html үгүй) мэдээнд
-              parseNewsBody-гаар задалж харуулна (backward compat). Collapsed вед
-              хоёр төрөүд адилхан body_text-ээр (маркдовн тэмдэглэгээгүй
+          {/* 2026-08-19 (3-р засвар): bodyHtml байвал үед sanitize хийсэн
+              HTML-ийг шууд харуулна. Хуучин (body_html үгүй) мэдээнд
+              parseNewsBody-гаар задалж харуулна (backward compat). Collapsed үед
+              body_text-ээр (markdown тэмдэглэгээгүй
               агуулдаггүй) line-clamp-4-ээр таслана. */}
           {expanded ? (
             bodyHtml ? (
