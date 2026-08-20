@@ -3,21 +3,21 @@ import { formatNewsDateTime, formatViewCount } from '../lib/newsFormat';
 import Lightbox from './Lightbox';
 
 // "news" нэртэй дахин ашиглагдах мэдээний карт component — 2026-08-19
-// хэрэглэгчийн screenshot-оор vзvvлсэн хэмжээс/элементvvдийг нарийн
-// дvvриалгасан: 10px padding (бvх талдаа), карт radius 8px (.ds-card),
-// доторхи жижиг элементvvд (badge/зураг) radius 4px (rounded).
+// хэрэглэгчийн screenshot-оор үзүүлсэн хэмжээс/элементүүдийг нарийн
+// дүүриалгасан: 10px padding (бүх талдаа), карт radius 8px (.ds-card),
+// доторхи жижиг элементүүд (badge/зураг) radius 4px (rounded).
 //
 // Props:
 // - badges: ['онцлох' | 'шуурхай', ...] — динамик мврний ДЭЭД талд
 // - datetime: ISO string/Date, category: string, viewCount: number
 // - title: string, bodyText: string (сонголттой)
 // - videoId: string | null — YouTube (сонголттой)
-// - images: string[] — зургийн URL-vvдийн БҮРЭН жагсаалт (сонголттой)
+// - images: string[] — зургийн URL-үүдийн БҮРЭН жагсаалт (сонголттой)
 //
 // 2026-08-19 (2-р засвар): videoId болон images ХАМТ ирж болно (нэг
 // мэдээнд видео+зураг зэрэг байж болохоор) — хуучин "media: {type}"
-// нэг төрлийн бvтцийг задалж, 2 бие даасан prop болгов. Зураг дээр
-// дарахад Lightbox-оор томруулж vзvvлнэ (зvvн/баруун сум, swipe, Х/
+// нэг төрлийн бүтцийг задалж, 2 бие даасан prop болгов. Зураг дээр
+// дарахад Lightbox-оор томруулж үзүүлнэ (зүүн/баруун сум, swipe, Х/
 // backdrop дарж хаах).
 const BADGE_STYLE = {
   онцлох: 'bg-customBlue text-white',
@@ -86,21 +86,54 @@ function NewsImages({ images, onOpen }) {
   );
 }
 
-// Параграфын эхэнд санамсаргvй орсон space/NBSP/zero-width зэрэг
-// vзэгдэхгvй тэмдэгтvvдийг арилгана — 2026-08-19 хэрэглэгч screenshot-оор
-// зааж, параграф бvр урдаа 1 space зайтай харагдаж байгааг мэдэгдсэн.
+// Параграфын эхэнд санамсаргүй орсон space/NBSP/zero-width зэрэг
+// үзэгдэхгүй тэмдэгтүүдийг арилгана — 2026-08-19 хэрэглэгч screenshot-оор
+// зааж, параграф бүр урдаа 1 space зайтай харагдаж байгааг мэдэгдсэн.
 function stripInvisible(s) {
   return s.replace(/^[\s\u00A0\u200B\uFEFF]+|[\s\u00A0\u200B\uFEFF]+$/g, '');
+}
+
+// NewsFormModal.jsx-ийн EditorToolbar-аас бичигдсэн markdown-төстэй
+// тэмдэглэгээг (**bold**, _italic_, {{color:x}}...{{/color}}, [текст]
+// (холбоос)) бодит React элемент болгож задална — 2026-08-19 хэрэглэгч
+// олсон алдаа: энэ уншиж-форматлах логик ОГТ байгаагүй тул мэдээ
+// нийтлэгдсэний дараа бичих үеийн формат бүрмвсвн алдагдаж, зүгээр
+// л raw тэмдэглэгээ агуулсан гүйцэлдсэн текст харагддаг байсан.
+const NEWS_COLOR_HEX = {
+  blue: '#3b82f6', green: '#10b981', orange: '#f59e0b',
+  red: '#ef5555', purple: '#8b5cf6', pink: '#ec4899',
+};
+function parseNewsBody(text) {
+  const pattern = /\*\*(.+?)\*\*|_(.+?)_|\{\{color:(\w+)\}\}([\s\S]+?)\{\{\/color\}\}|\[(.+?)\]\((.+?)\)/g;
+  const nodes = [];
+  let lastIndex = 0;
+  let m;
+  let key = 0;
+  while ((m = pattern.exec(text))) {
+    if (m.index > lastIndex) nodes.push(text.slice(lastIndex, m.index));
+    if (m[1] !== undefined) {
+      nodes.push(<strong key={key++}>{m[1]}</strong>);
+    } else if (m[2] !== undefined) {
+      nodes.push(<em key={key++}>{m[2]}</em>);
+    } else if (m[3] !== undefined) {
+      nodes.push(<span key={key++} style={{ color: NEWS_COLOR_HEX[m[3]] }}>{m[4]}</span>);
+    } else if (m[5] !== undefined) {
+      nodes.push(<a key={key++} href={m[6]} target="_blank" rel="noreferrer" className="text-customBlue underline">{m[5]}</a>);
+    }
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
 }
 
 export default function News({ id, badges, datetime, category, viewCount, title, bodyText, videoId, images, onView }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
-  // тоогоор тааварлахгvй) — screen/container өргөнөөс хамааран мврийн
+  // тоогоор тааварлахгүй) — screen/container өргөнөөс хамааран мврийн
   // тоо өөрчлөгддөг тул scrollHeight vs clientHeight-ийг харьцуулна.
-  // Зvвхvн collapsed (line-clamp-4) vед хэмжинэ, expanded vед clientHeight
-  // өөрөө өсдөг тул хуучин vр дvнгээ хадгална.
+  // Зүвхүн collapsed (line-clamp-4) үед хэмжинэ, expanded үед clientHeight
+  // өөрөө өсдөг тул хуучин үр дүнгээ хадгална.
   const [isTruncated, setIsTruncated] = useState(false);
   const textRef = useRef(null);
 
@@ -116,9 +149,9 @@ export default function News({ id, badges, datetime, category, viewCount, title,
     return () => window.removeEventListener('resize', measure);
   }, [bodyText, expanded]);
 
-  // Карт анх дэлгэцэнд гарахад (mount) нэг удаа "Vзсэн" тоолуурыг
-  // нэмэгдvvлнэ — 2026-08-19 хэрэглэгч заасны дагуу; давхар тоологдохоос
-  // сэргийлэх (session доторх ID бvрийг зөвхөн 1 удаа) логик эцэг
+  // Карт анх дэлгэцэнд гарахад (mount) нэг удаа "Үзсэн" тоолуурыг
+  // нэмэгдүүлнэ — 2026-08-19 хэрэглэгч заасны дагуу; давхар тоологдохоос
+  // сэргийлэх (session доторх ID бүрийг зөвхөн 1 удаа) логик эцэг
   // компонент (pages/News.jsx)-д байрлана.
   useEffect(() => {
     onView?.(id);
@@ -138,24 +171,24 @@ export default function News({ id, badges, datetime, category, viewCount, title,
 
       {bodyText && (
         <div>
-          {/* Collapsed vед бvх параграфыг НЭГ урсгал текст болгож нийлvvлж
-              line-clamp-4-ээр таслана (line-clamp олон <p> хvvхэд элемент
-              дээр зввгvй ажилладаг тул). Expanded vед '\n\n'-ээр тусдаа
-              параграф болгож задалж, тус бvрийг justify (хоёр талдаа
-              тэгширсэн), шинэ мврний ЭХЭНД зай/догол авахгvй байдлаар
+          {/* Collapsed үед бүх параграфыг НЭГ урсгал текст болгож нийлүүлж
+              line-clamp-4-ээр таслана (line-clamp олон <p> хүүхэд элемент
+              дээр зввгүй ажилладаг тул). Expanded үед '\n\n'-ээр тусдаа
+              параграф болгож задалж, тус бүрийг justify (хоёр талдаа
+              тэгширсэн), шинэ мврний ЭХЭНД зай/догол авахгүй байдлаар
               харуулна (догол мвр биш, ердийн параграф хоорондын зайгаар
               ялгана). */}
           {expanded ? (
             <div ref={textRef}>
               {bodyText.split(/\n\n+/).map((para, i) => (
                 <p key={i} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] mb-2 last:mb-0">
-                  {stripInvisible(para)}
+                  {parseNewsBody(stripInvisible(para))}
                 </p>
               ))}
             </div>
           ) : (
             <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] line-clamp-4">
-              {stripInvisible(bodyText.replace(/\n+/g, ' '))}
+              {parseNewsBody(stripInvisible(bodyText.replace(/\n+/g, ' ')))}
             </p>
           )}
           {isTruncated && (
