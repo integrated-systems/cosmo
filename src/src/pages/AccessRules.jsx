@@ -122,7 +122,7 @@ export default function AccessRules() {
 
   return (
     <>
-      <div className="ds-card p-4 mb-2.5">
+      <div className="ds-card p-4">
         <div className="flex flex-wrap gap-2">
           {PAGES.map((p) => (
             <button
