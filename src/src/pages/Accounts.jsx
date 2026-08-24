@@ -119,7 +119,19 @@ export default function Accounts() {
       supabase.from('tenant_users').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false })
     );
     if (error) { alert(error.message); setLoading(false); return; }
-    setRows(data ?? []);
+
+    // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: tenant_users.email
+    // үүсгэсэн мөчийн snapshot тул хугацаа өнгөрэхэд хуучирч болзошгүй
+    // ("4-р асуудал", tenant_users vs auth.users). Үүнээс сэргийлж,
+    // үзүүлэлт бүрд Supabase-ээс "амьд" (live) имэйлийг нэмж дүүргэнэ —
+    // хадгалагдсан snapshot-ыг ОГТ өөрчлөхгүй, зүгээр дэлгэцэн дээр
+    // үзүүлэхдээ л live утгыг илүүд тавина.
+    const { data: liveEmails } = await supabase.rpc('get_tenant_user_emails', { p_tenant_id: hoaId });
+    const liveMap = {};
+    (liveEmails ?? []).forEach((r) => { liveMap[r.user_id] = r.live_email; });
+    const merged = (data ?? []).map((r) => ({ ...r, email: liveMap[r.user_id] || r.email }));
+
+    setRows(merged);
     setLoading(false);
   }
 
