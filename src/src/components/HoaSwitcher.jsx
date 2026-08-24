@@ -28,7 +28,6 @@ export default function HoaSwitcher({ isSuperSysAdmin, value, onChange, tenants 
         onChange={(e) => onChange(e.target.value)}
         className="ds-select w-full"
       >
-        <option value="" disabled>СӨХ сонгох</option>
         {tenants.map((t) => (
           <option key={t.id} value={t.id}>{t.name}</option>
         ))}
