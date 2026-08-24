@@ -5,28 +5,26 @@ import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import EditTenantModal from '../components/EditTenantModal';
 import { useConfirm } from '../hooks/useConfirm';
 
-// SUPERSYSADMIN-ийн "Tenant Status" хуудас — Твлбврийн 3-р алхмын
+// SUPERSYSADMIN-ийн "Tenant Status" хуудас — Төлбөрийн 3-р алхмын
 // "Гараар (invoice)" горим: бодит твлбврийн шлюз (QPay/SocialPay г.м)
 // хараахан холбогдоогүй тул SUPERSYSADMIN энд СӨХ бүрийн статусыг
-// (trial→active г.м) гараар вврчилдвг. `tenants.status`+RLS UPDATE/DELETE
+// (trial→active г.м) гараар өөрчилдөг. `tenants.status`+RLS UPDATE/DELETE
 // policy (0005/0006 migration) дээр суурилна.
 //
 // 2026-08-19 (3-р засвар): "Approval" (Хүлээн зөвшөөргвл) БОЛОН
-// "Tenant status" (Твлбврийн статус) баганы нэр/үтгүүдийг Англи болгов
+// "Tenant status" (Төлбөрийн статус) баганы нэр/үтгүүдийг Англи болгов
 // (SaaS платформуудын нийтлэг конвенц). Approval-ийн баруун талд Багц
 // шууд dropdown болгож шилжүүлэв (өмнв нь Засах модаль дотор л
 // солигддог байсныг ойртуулав). Мвн: EditTenantModal нь key prop
 // дутуу байсан тул хуучин tenant-ийн дата үлдэж (дахин пре-fill
 // хийгддэггүй) байсан bug-ийг олж зассан.
 const STATUS_OPTIONS = [
-  { key: 'trial', label: 'Trial' },
   { key: 'active', label: 'Active' },
   { key: 'suspended', label: 'Paused' },
   { key: 'cancelled', label: 'Stopped' },
 ];
 
 const STATUS_COLOR = {
-  trial: 'bg-blue-500/[0.18] text-customBlue border-blue-500/30',
   active: 'bg-green-500/[0.18] text-customGreen border-green-500/30',
   suspended: 'bg-orange-500/[0.18] text-customOrange border-orange-500/30',
   cancelled: 'bg-red-500/[0.18] text-customRed border-red-500/30',
@@ -122,7 +120,7 @@ export default function TenantStatus() {
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from('tenants')
-      .update({ approval_status: 'approved', status: 'trial', trial_ends_at: trialEndsAt })
+      .update({ approval_status: 'approved', status: 'active', plan_key: 'trial', trial_ends_at: trialEndsAt })
       .eq('id', tenantId)
       .select()
       .single();
@@ -165,7 +163,7 @@ export default function TenantStatus() {
   }
 
   async function handleDelete(row) {
-    if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмвсвн устгах уу? Энэ үйлдлийг буцаах боломжгүй (вмчлвгч/зах зээлийн дата хамт устана).`))) return;
+    if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсөн устгах уу? Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
     const { error } = await supabase.from('tenants').delete().eq('id', row.id);
     if (error) {
       window.alert(error.message);
@@ -231,26 +229,24 @@ export default function TenantStatus() {
                       <option key={p.key} value={p.key}>{p.name}</option>
                     ))}
                   </select>
+                  {r.plan_key === 'trial' && r.trial_ends_at && (
+                    <div className="text-[10px] text-mutedtext mt-1">Дуусах: {formatTrialEnds(r.trial_ends_at)}</div>
+                  )}
                 </td>
                 <td className="py-2.5 px-3">
                   {r.approval_status !== 'approved' ? (
                     <span className="text-mutedtext text-[12px]">—</span>
                   ) : (
-                    <div>
-                      <select
-                        className="ds-select w-full"
-                        value={r.status}
-                        disabled={savingId === r.id}
-                        onChange={(e) => handleStatusChange(r.id, e.target.value)}
-                      >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s.key} value={s.key}>{s.label}</option>
-                        ))}
-                      </select>
-                      {r.status === 'trial' && r.trial_ends_at && (
-                        <div className="text-[10px] text-mutedtext mt-1">Дуусах: {formatTrialEnds(r.trial_ends_at)}</div>
-                      )}
-                    </div>
+                    <select
+                      className="ds-select w-full"
+                      value={r.status}
+                      disabled={savingId === r.id}
+                      onChange={(e) => handleStatusChange(r.id, e.target.value)}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
                   )}
                 </td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
