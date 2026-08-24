@@ -95,6 +95,7 @@ export default function TenantStatus() {
       .single();
     setSavingId(null);
     if (error) { window.alert(error.message); return; }
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'change_status', p_details: { new_status: newStatus }, p_target_name: data.name });
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
@@ -110,6 +111,7 @@ export default function TenantStatus() {
       .single();
     setSavingId(null);
     if (error) { window.alert(error.message); return; }
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'change_plan', p_details: { new_plan: newPlanKey }, p_target_name: data.name });
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
@@ -126,6 +128,7 @@ export default function TenantStatus() {
       .single();
     setSavingId(null);
     if (error) { window.alert(error.message); return; }
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'approve_tenant', p_target_name: data.name });
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
@@ -148,6 +151,7 @@ export default function TenantStatus() {
     const { error: tuErr } = await supabase.from('tenant_users').delete().eq('tenant_id', tenantId).eq('role', 'admin');
     setSavingId(null);
     if (roleErr || tuErr) window.alert(`Статус солигдсон ч эрх/бүртгэл хасахад алдаа гарлаа: ${(roleErr || tuErr).message}`);
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'reject_tenant', p_target_name: data.name });
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
@@ -162,12 +166,14 @@ export default function TenantStatus() {
       window.alert(error.message);
       return;
     }
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'edit_tenant_info', p_details: payload, p_target_name: data.name });
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
     setEditing(null);
   }
 
   async function handleDelete(row) {
     if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсөн устгах уу? Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
+    await supabase.rpc('log_audit_event', { p_tenant_id: row.id, p_action: 'delete_tenant', p_target_name: row.name });
     const { error } = await supabase.from('tenants').delete().eq('id', row.id);
     if (error) {
       window.alert(error.message);

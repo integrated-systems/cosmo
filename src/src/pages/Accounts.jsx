@@ -136,11 +136,13 @@ export default function Accounts() {
       const { data, error } = await supabase.from('tenant_users').update(payload).eq('id', editing.id).select().single();
       if (error) { alert(error.message); return; }
       setRows((rs) => rs.map((r) => (r.id === editing.id ? data : r)));
+      supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: 'edit_user', p_details: payload, p_target_name: data.fullname });
       if (form.password && form.password.trim()) {
         const { error: pwErr } = await supabase.functions.invoke('manage-tenant-user', {
           body: { action: 'reset_password', tenantId: hoaId, userId: editing.user_id, password: form.password },
         });
         if (pwErr) { alert(`Профайл шинэчлэгдсэн ч нууц үг солиход алдаа гарлаа: ${pwErr.message}`); }
+        else supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: 'reset_password', p_target_name: data.fullname });
       }
     } else {
       const { data: result, error } = await supabase.functions.invoke('manage-tenant-user', {
@@ -148,6 +150,7 @@ export default function Accounts() {
       });
       if (error || result?.error) { alert(result?.error || error.message); return; }
       setRows((rs) => [result.data, ...rs]);
+      supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: 'create_user', p_details: { role: form.role, email: form.email }, p_target_name: form.fullname });
     }
     setAdding(false);
     setEditing(null);
@@ -166,6 +169,7 @@ export default function Accounts() {
       body: { action: 'delete', tenantId: hoaId, rowId: row.id, userId: row.user_id },
     });
     if (error || result?.error) { alert(result?.error || error.message); return; }
+    supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: 'delete_user', p_target_name: row.fullname });
     setRows((rs) => rs.filter((r) => r.id !== row.id));
   }
 

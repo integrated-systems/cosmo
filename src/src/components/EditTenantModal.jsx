@@ -55,6 +55,7 @@ export default function EditTenantModal({ tenant, adminEmail, onClose, onSave, o
       return;
     }
     setAdminMsg('Админ амжилттай сольсон.');
+    supabase.rpc('log_audit_event', { p_tenant_id: tenant.id, p_action: 'reassign_admin', p_details: { new_admin_email: newAdminEmail.trim() }, p_target_name: tenant.name });
     setNewAdminEmail('');
     onAdminChanged?.();
   }
