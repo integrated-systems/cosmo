@@ -142,8 +142,12 @@ export default function TenantStatus() {
       .single();
     if (error) { setSavingId(null); window.alert(error.message); return; }
     const { error: roleErr } = await supabase.from('user_roles').delete().eq('tenant_id', tenantId).eq('role', 'tenant_admin');
+    // 2026-08-19 (2-р засвар): tenant_users-ийн "admin" мөрийг ч хамт
+    // цэвэрлнэ — эс тгүл татгалзсан tenant-д "фантом админ" мөр үлдэж,
+    // "Хэрэглэгчийн удирдлага" хуудсанд буруу үзүүлэлт үүсгэдэг байв.
+    const { error: tuErr } = await supabase.from('tenant_users').delete().eq('tenant_id', tenantId).eq('role', 'admin');
     setSavingId(null);
-    if (roleErr) window.alert(`Статус солигдсон ч эрх хасахад алдаа гарлаа: ${roleErr.message}`);
+    if (roleErr || tuErr) window.alert(`Статус солигдсон ч эрх/бүртгэл хасахад алдаа гарлаа: ${(roleErr || tuErr).message}`);
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 

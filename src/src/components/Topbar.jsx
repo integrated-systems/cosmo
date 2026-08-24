@@ -1,13 +1,37 @@
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import { MailIcon, SunIcon, MoonIcon } from './icons/Icons';
+import { supabase } from '../lib/supabaseClient';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
+
+// YYYY/MM/DD формат — хэрэглэгчийн тодорхой заасан.
+function formatExpiryDate(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { hoaId } = useParams();
+  const [expiryLabel, setExpiryLabel] = useState(null);
+
+  // 2026-08-19 хэрэглэгч тодорхой заасан: "Захиалах" товчны дизайн/
+  // хүрээг ОГТ өөрчлөхгүйгээр, дотор нь тухайн tenant-ийн Төлбөрийн
+  // хугацаа (trial_ends_at) дуусах огноог YYYY/MM/DD форматаар
+  // харуулна (аль ч багцийн tenant-д хамаарна — зөвхөн Trial биш).
+  // Огноо байхгүй бол хуучин "Захиалах" текст хэвээрээ үлдэнэ.
+  useEffect(() => {
+    if (!hoaId) return;
+    let cancelled = false;
+    supabase.from('tenants').select('trial_ends_at').eq('id', hoaId).single().then(({ data }) => {
+      if (!cancelled) setExpiryLabel(data?.trial_ends_at ? formatExpiryDate(data.trial_ends_at) : null);
+    });
+    return () => { cancelled = true; };
+  }, [hoaId]);
+
   // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж
   // match хийнэ.
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
@@ -20,19 +44,14 @@ export default function Topbar({ theme, onToggleTheme }) {
       <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{title}</span>
 
       <div className="flex items-center gap-2">
-      {/* 2026-08-19 хэрэглэгчийн хvсэлтээр placeholder товч — тухайн
-          тенант СvХ-ийн тvvлбар/vйлчилгээ сунгах зорилготой (одоогоор
-          бодит payment/renewal логик хvлээгдэж буй, зvгээр onClick
-          хоосон). Имэйл/тема товчны загварыг дvvриалгав (border+bg+
-          hover) гэхдээ текст агуулсан тул px-3 өргөнтэй. */}
       <button
         onClick={() => {}}
-        title="Захиалах"
+        title={expiryLabel ? `Төлбөрийн хугацаа дуусах: ${expiryLabel}` : 'Захиалах'}
         className="h-8 px-3 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
           flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext hover:text-slate-900
           dark:hover:text-white transition-colors cursor-pointer"
       >
-        Захиалах
+        {expiryLabel || 'Захиалах'}
       </button>
 
       <button

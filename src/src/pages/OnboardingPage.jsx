@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
-import { PLANS } from '../data/plans';
 import AuthLogo from '../components/AuthLogo';
 
 // 2026-08-15: Sign-Up-ийн 2-р алхам — session бий боловч user_roles-д
@@ -16,7 +15,6 @@ export default function OnboardingPage() {
   const [taxPayerNo, setTaxPayerNo] = useState('');
   const [orgEmail, setOrgEmail] = useState('');
   const [orgPhone, setOrgPhone] = useState('');
-  const [planKey, setPlanKey] = useState(PLANS[0].key);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,7 +27,7 @@ export default function OnboardingPage() {
     setLoading(true);
     const { error: rpcError } = await supabase.rpc('create_tenant_and_assign_admin', {
       p_tenant_name: tenantName.trim(),
-      p_plan_key: planKey,
+      p_plan_key: 'trial',
       p_registration_no: registrationNo.trim() || null,
       p_tax_payer_no: taxPayerNo.trim() || null,
       p_email: orgEmail.trim() || null,
@@ -103,32 +101,9 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-[10px] font-semibold text-mutedtext mb-2.5 uppercase tracking-[.06em]">
-            Багц сонгох
-          </label>
-          <div className="space-y-2.5">
-            {PLANS.map((plan) => (
-              <label
-                key={plan.key}
-                className={`block px-4 py-3 rounded-md border cursor-pointer transition-colors ${
-                  planKey === plan.key ? 'border-blue-500 bg-blue-500/10' : 'border-bordercol hover:border-blue-500/40'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="radio" name="plan" value={plan.key} checked={planKey === plan.key}
-                      onChange={() => setPlanKey(plan.key)} className="w-3.5 h-3.5 accent-blue-600 cursor-pointer"
-                    />
-                    <span className="text-sm font-semibold text-text">{plan.name}</span>
-                  </div>
-                  <span className="text-sm text-mutedtext">{plan.priceLabel}</span>
-                </div>
-                <div className="text-xs text-darktext mt-1 ml-6">{plan.description}</div>
-              </label>
-            ))}
-          </div>
+        <div className="mb-6 px-4 py-3 bg-blue-500/10 border border-blue-500/30 rounded-md">
+          <div className="text-sm text-text">СүХ үүссэний дараа <span className="font-semibold">14 хоногийн Trial үе</span> автоматаар эхэлнэ.</div>
+          <div className="text-xs text-mutedtext mt-1">SuperSysAdmin бүртгэлийг хүлээн зөвшөөрсний дараа үйлчилгээ идэвхжинэ.</div>
         </div>
 
         {error && (
