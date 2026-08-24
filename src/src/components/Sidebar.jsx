@@ -29,14 +29,17 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const [msgrUnread, setMsgrUnread] = useState(0);
   const [pendingTenantCount, setPendingTenantCount] = useState(0);
 
-  // SUPERSYSADMIN-ийн "Tenant Status" цэсний хажууд "Хүлээгдэж байна"
-  // твлввтэй (pending_approval) шинэ tenant хүсэлтийн тоог badge
+    // SUPERSYSADMIN-ийн "Tenant Status" цэсний хажууд "Хүлээгдэж байна"
+  // (approval_status='pending') шинэ tenant хүсэлтийн тоог badge
   // маягаар харуулна — 2026-08-19 хэрэглэгч тодорхой заасан "SUPERSYSADMIN-д
-  // мэдэгдэнэ" гэсэн шаардлагыг үүгээр (in-app badge) хэрэгжүүлэв.
+  // мэдэгдэнэ" гэсэн шаардлагыг үүгээр (in-app badge) hэрэгжүүлэв.
+  // 2026-08-19 (2-р засвар): status-аас approval_status рүү шилжсэн
+  // (status='pending_approval' үтга үүрд үүсгэгддэггүй болсон тул энэ
+  // query ямар ч үр дүнгүй болсон байсныг аудит хийж олж зассан).
   useEffect(() => {
     if (!isSuperSysAdmin) return;
     let cancelled = false;
-    supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval').then(({ count }) => {
+    supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('approval_status', 'pending').then(({ count }) => {
       if (!cancelled) setPendingTenantCount(count || 0);
     });
     return () => { cancelled = true; };
