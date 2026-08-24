@@ -11,18 +11,18 @@ import { useConfirm } from '../hooks/useConfirm';
 // (trial→active г.м) гараар вврчилдвг. `tenants.status`+RLS UPDATE/DELETE
 // policy (0005/0006 migration) дээр суурилна.
 //
-// 2026-08-19 (2-р засвар): "Хүлээн зөвшөөргвл" (approval_status: pending/
-// approved/rejected, ГАНЦ УДААГИЙН, шинэ бүртгүүлэгчид зориулсан) БОЛОН
-// "Твлбврийн статус" (status: trial/active/suspended/cancelled, зөвшөөрсний
-// ДАРАА л хамааралтай) хоёрыг бүрэн ТУСГААРЛАВ — үмнв нь нэг баганад
-// холилдож, аль хэдийн ажиллаж буй tenant-д "Татгалзсан" гэсэн сонголт ч
-// харагддаг байсан будлиантай асуудлыг зассан. Trial 14 хоногийн хугацаа
-// (trial_ends_at) ЗвВШвврСвН мвчээс л эхэлж тоологдоно.
+// 2026-08-19 (3-р засвар): "Approval" (Хүлээн зөвшөөргвл) БОЛОН
+// "Tenant status" (Твлбврийн статус) баганы нэр/үтгүүдийг Англи болгов
+// (SaaS платформуудын нийтлэг конвенц). Approval-ийн баруун талд Багц
+// шууд dropdown болгож шилжүүлэв (өмнв нь Засах модаль дотор л
+// солигддог байсныг ойртуулав). Мвн: EditTenantModal нь key prop
+// дутуу байсан тул хуучин tenant-ийн дата үлдэж (дахин пре-fill
+// хийгддэггүй) байсан bug-ийг олж зассан.
 const STATUS_OPTIONS = [
-  { key: 'trial', label: 'Туршилт (trial)' },
-  { key: 'active', label: 'Идэвхтэй' },
-  { key: 'suspended', label: 'Түдгэлзүүлсэн' },
-  { key: 'cancelled', label: 'Цуцалсан' },
+  { key: 'trial', label: 'Trial' },
+  { key: 'active', label: 'Active' },
+  { key: 'suspended', label: 'Paused' },
+  { key: 'cancelled', label: 'Stopped' },
 ];
 
 const STATUS_COLOR = {
@@ -33,19 +33,15 @@ const STATUS_COLOR = {
 };
 
 const APPROVAL_LABEL = {
-  pending: 'Хүлээгдэж байна',
-  approved: 'Зввшвврсвн',
-  rejected: 'Татгалзсан',
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
 };
 const APPROVAL_COLOR = {
   pending: 'bg-yellow-500/[0.18] text-customOrange border-yellow-500/30',
   approved: 'bg-green-500/[0.18] text-customGreen border-green-500/30',
   rejected: 'bg-red-500/[0.18] text-customRed border-red-500/30',
 };
-
-function planLabel(planKey) {
-  return PLANS.find((p) => p.key === planKey)?.name || planKey || '—';
-}
 
 function formatTrialEnds(iso) {
   if (!iso) return '';
@@ -89,9 +85,8 @@ export default function TenantStatus() {
     loadTenants();
   }, []);
 
-  // Твлбврийн статус (Trial/Идэвхтэй/Түдгэлзүүлсэн/Цуцалсан) — зөвхөн
-  // approval_status='approved' үед л хамааралтай, "Хүлээн зөвшөөргвл"-д
-  // ХАМААРАЛГүй.
+  // Tenant status (Trial/Active/Paused/Stopped) — зөвхөн approval_status
+  // ='approved' үед л хамааралтай, "Approval"-д ХАМААРАЛГүй.
   async function handleStatusChange(tenantId, newStatus) {
     setSavingId(tenantId);
     const { data, error } = await supabase
@@ -105,10 +100,23 @@ export default function TenantStatus() {
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
-  // Зввшвврвх: approval_status='approved' болгож, ШИНЭЭР 14 хоногийн
-  // Trial хугацаа эхлүүлнэ (зөвшөөрсвн мвчээс л тоологдоно — хүлээгдэж
-  // байх үед хэрэглэгч ямар ч хуудас нээж чадаагүй тул тэр хугацаа
-  // "үрэгдэхгүй").
+  // 2026-08-19 (3-р засвар): Багцыг шууд мвр дотор нь (Засах модаль
+  // нээхгүйгээр) солих боломжтой болгов.
+  async function handlePlanChange(tenantId, newPlanKey) {
+    setSavingId(tenantId);
+    const { data, error } = await supabase
+      .from('tenants')
+      .update({ plan_key: newPlanKey })
+      .eq('id', tenantId)
+      .select()
+      .single();
+    setSavingId(null);
+    if (error) { window.alert(error.message); return; }
+    setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
+  }
+
+  // Approve: approval_status='approved' болгож, ШИНЭЭР 14 хоногийн
+  // Trial хугацаа эхлүүлнэ (зөвшөөрсвн мвчээс л тоологдоно).
   async function handleApprove(tenantId) {
     setSavingId(tenantId);
     const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -123,7 +131,7 @@ export default function TenantStatus() {
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
-  // Татгалзах: approval_status='rejected' болгож, тухайн хэрэглэгчийн
+  // Reject: approval_status='rejected' болгож, тухайн хэрэглэгчийн
   // tenant_admin эрхийг ч хамт хасна — эс тгвл орфон эрх үлдэнэ.
   async function handleReject(tenantId) {
     if (!(await confirm('Энэ бүртгүүлэх хүсэлтийг татгалзах уу? Хэрэглэгчийн эрх ч хамт хасагдана.'))) return;
@@ -176,10 +184,10 @@ export default function TenantStatus() {
               <th className="py-2.5 px-3">РЕГИСТР</th>
               <th className="py-2.5 px-3">ИМЭЙЛ</th>
               <th className="py-2.5 px-3">УТАС</th>
+              <th className="py-2.5 px-3">АДМИН НЭВТРЭХ ИМЭЙЛ</th>
+              <th className="py-2.5 px-3">APPROVAL</th>
               <th className="py-2.5 px-3">БАГЦ</th>
-              <th className="py-2.5 px-3">АДМИНЫ НЭВТРЭХ</th>
-              <th className="py-2.5 px-3">ХүЛЭЭН ЗввШввРГвЛ</th>
-              <th className="py-2.5 px-3">ТвЛБвРИЙН СТАТУС</th>
+              <th className="py-2.5 px-3">TENANT STATUS</th>
               <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
             </tr>
           </thead>
@@ -199,19 +207,30 @@ export default function TenantStatus() {
                 <td className="py-2.5 px-3">{r.registration_no || '—'}</td>
                 <td className="py-2.5 px-3">{r.email || '—'}</td>
                 <td className="py-2.5 px-3">{r.phone || '—'}</td>
-                <td className="py-2.5 px-3">{planLabel(r.plan_key)}</td>
                 <td className="py-2.5 px-3">{adminEmails[r.id] || '—'}</td>
                 <td className="py-2.5 px-3">
                   {r.approval_status === 'pending' ? (
                     <div className="flex items-center gap-1.5">
-                      <button className="ds-btn-primary !py-1 !px-2 text-[11px]" disabled={savingId === r.id} onClick={() => handleApprove(r.id)}>Зввшвврвх</button>
-                      <button className="ds-btn-secondary !py-1 !px-2 text-[11px] text-customRed" disabled={savingId === r.id} onClick={() => handleReject(r.id)}>Татгалзах</button>
+                      <button className="ds-btn-primary !py-1 !px-2 text-[11px]" disabled={savingId === r.id} onClick={() => handleApprove(r.id)}>Approve</button>
+                      <button className="ds-btn-secondary !py-1 !px-2 text-[11px] text-customRed" disabled={savingId === r.id} onClick={() => handleReject(r.id)}>Reject</button>
                     </div>
                   ) : (
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${APPROVAL_COLOR[r.approval_status] || ''}`}>
                       {APPROVAL_LABEL[r.approval_status] || r.approval_status}
                     </span>
                   )}
+                </td>
+                <td className="py-2.5 px-3">
+                  <select
+                    className="ds-select w-full"
+                    value={r.plan_key || PLANS[0].key}
+                    disabled={savingId === r.id}
+                    onChange={(e) => handlePlanChange(r.id, e.target.value)}
+                  >
+                    {PLANS.map((p) => (
+                      <option key={p.key} value={p.key}>{p.name}</option>
+                    ))}
+                  </select>
                 </td>
                 <td className="py-2.5 px-3">
                   {r.approval_status !== 'approved' ? (
@@ -249,6 +268,7 @@ export default function TenantStatus() {
       </div>
 
       <EditTenantModal
+        key={editing?.id}
         tenant={editing}
         adminEmail={editing ? adminEmails[editing.id] : ''}
         onClose={() => setEditing(null)}
