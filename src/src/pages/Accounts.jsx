@@ -61,9 +61,10 @@ function AddUserModal({ open, onClose, onSave, editing }) {
       <div className="space-y-3">
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Роль</label>
-          <select className="ds-select w-full" value={role} onChange={(e) => setRole(e.target.value)}>
+          <select className="ds-select w-full" value={role} onChange={(e) => setRole(e.target.value)} disabled={editing?.role === 'admin'}>
             {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
+          {editing?.role === 'admin' && <div className="text-[10px] text-mutedtext mt-1">ҮҮсгэсэн Админ ролийг энд солих боломжгүй (Tenant Status хуудсаас "Reassign" хийнэ).</div>}
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Бүтэн нэр</label>
