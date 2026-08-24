@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
-import { MailIcon, SunIcon, MoonIcon } from './icons/Icons';
+import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
@@ -17,6 +17,7 @@ export default function Topbar({ theme, onToggleTheme }) {
   const navigate = useNavigate();
   const { hoaId } = useParams();
   const [expiryLabel, setExpiryLabel] = useState(null);
+  const [planMenuOpen, setPlanMenuOpen] = useState(false);
 
   // 2026-08-19 хэрэглэгч тодорхой заасан: "Захиалах" товчны дизайн/
   // хүрээг ОГТ өөрчлөхгүйгээр, дотор нь тухайн tenant-ийн Төлбөрийн
@@ -83,6 +84,40 @@ export default function Topbar({ theme, onToggleTheme }) {
       >
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
       </button>
+
+      {/* 2026-08-19: Багц ахиулах/сунгах placeholder — одоогоор бодит
+          твлбврийн логик хүлээгдэж буй, зүгээр dropdown үзүүлнэ.
+          Дараа хвгжүүлнэ. */}
+      <div className="relative">
+        <button
+          onClick={() => setPlanMenuOpen((v) => !v)}
+          title="Багцын тохиргоо"
+          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
+            flex items-center justify-center text-slate-600 dark:text-mutedtext hover:text-slate-900
+            dark:hover:text-white transition-colors cursor-pointer"
+        >
+          <SettingsIcon />
+        </button>
+        {planMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-[901]" onClick={() => setPlanMenuOpen(false)} />
+            <div className="absolute right-0 top-[calc(100%+6px)] z-[902] w-[180px] rounded-lg border border-slate-200 dark:border-bordercol bg-white dark:bg-sidebg shadow-lg overflow-hidden">
+              <button
+                onClick={() => setPlanMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors"
+              >
+                Багц ахиулах
+              </button>
+              <button
+                onClick={() => setPlanMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
+              >
+                Багц сунгах
+              </button>
+            </div>
+          </>
+        )}
+      </div>
       </div>
     </header>
   );
