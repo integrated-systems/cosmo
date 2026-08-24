@@ -27,6 +27,20 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { stats } = useTenantStats(hoaId);
   const [msgrUnread, setMsgrUnread] = useState(0);
+  const [pendingTenantCount, setPendingTenantCount] = useState(0);
+
+  // SUPERSYSADMIN-ийн "Tenant Status" цэсний хажууд "Хүлээгдэж байна"
+  // твлввтэй (pending_approval) шинэ tenant хүсэлтийн тоог badge
+  // маягаар харуулна — 2026-08-19 хэрэглэгч тодорхой заасан "SUPERSYSADMIN-д
+  // мэдэгдэнэ" гэсэн шаардлагыг үүгээр (in-app badge) хэрэгжүүлэв.
+  useEffect(() => {
+    if (!isSuperSysAdmin) return;
+    let cancelled = false;
+    supabase.from('tenants').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval').then(({ count }) => {
+      if (!cancelled) setPendingTenantCount(count || 0);
+    });
+    return () => { cancelled = true; };
+  }, [isSuperSysAdmin]);
 
   // Sidebar цэсний "Мессенжер"-ийн хажууд уншаагүй мессежийн НИЙТ тоог
   // badge маягаар харуулах — 2026-08-19 хэрэглэгч тодорхой заасан.
@@ -151,6 +165,11 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
               className={({ isActive }) => `${navItemBase} pl-7 ${isActive ? navItemActive : navItemInactive}`}
             >
               <span>{item.label}</span>
+              {item.key === 'tenantstatus' && pendingTenantCount > 0 && (
+                <span className="bg-customOrange text-white text-[10px] px-1.5 py-0.5 rounded-[10px] font-semibold leading-none">
+                  {pendingTenantCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </div>

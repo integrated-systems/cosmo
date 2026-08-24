@@ -16,17 +16,21 @@ import { useConfirm } from '../hooks/useConfirm';
 // (`get_tenant_admin_emails`)-ээр ЗӨВХӨН имэйл харуулна — нууц үг ХЭЗЭЭ Ч
 // харуулахгүй (Supabase bcrypt hash-аар хадгалдаг, эргэж унших боломжгүй).
 const STATUS_OPTIONS = [
+  { key: 'pending_approval', label: 'Хүлээгдэж байна' },
   { key: 'trial', label: 'Туршилт (trial)' },
   { key: 'active', label: 'Идэвхтэй' },
   { key: 'suspended', label: 'Түдгэлзүүлсэн' },
   { key: 'cancelled', label: 'Цуцалсан' },
+  { key: 'rejected', label: 'Татгалзсан' },
 ];
 
 const STATUS_COLOR = {
+  pending_approval: 'bg-yellow-500/[0.18] text-customOrange border-yellow-500/30',
   trial: 'bg-blue-500/[0.18] text-customBlue border-blue-500/30',
   active: 'bg-green-500/[0.18] text-customGreen border-green-500/30',
   suspended: 'bg-orange-500/[0.18] text-customOrange border-orange-500/30',
   cancelled: 'bg-red-500/[0.18] text-customRed border-red-500/30',
+  rejected: 'bg-red-500/[0.18] text-customRed border-red-500/30',
 };
 
 function planLabel(planKey) {
@@ -138,7 +142,7 @@ export default function TenantStatus() {
               <tr><td colSpan={9} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && rows.map((r) => (
-              <tr key={r.id}>
+              <tr key={r.id} className={r.status === 'pending_approval' ? 'bg-yellow-500/[0.06]' : ''}>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.registration_no || '—'}</td>
                 <td className="py-2.5 px-3">{r.email || '—'}</td>

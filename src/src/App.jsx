@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import LoginPage from './pages/LoginPage';
@@ -36,8 +37,28 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 // хоосон буцааж байсан алдааг олж, nested-route+<Outlet/> загварт шилжүүлсэн.
 function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   const { isSuperSysAdmin } = useAuth();
+  const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const scrollRef = useRef(null);
   usePullToRefresh(scrollRef);
+  const [tenantStatus, setTenantStatus] = useState(null);
+
+  // 2026-08-19 хэрэглэгч тодорхой заасан дүрэм: дурын хүн sign-up хийж
+  // шинэ tenant (СӨХ) үүсгэхэд шууд идэвхжихгүй, SUPERSYSADMIN
+  // "Tenant Status" хуудсаар зөвшөөрсний ("pending_approval" -> "trial"/
+  // "active" болгосны) дараа л бодит хуудсуудад хандах боломжтой болно.
+  // SUPERSYSADMIN үүнийг бүрэн тойрч (God of Gods) үргэлж хандана.
+  useEffect(() => {
+    if (isSuperSysAdmin || !hoaId) { setTenantStatus('ok'); return; }
+    let cancelled = false;
+    supabase.from('tenants').select('status').eq('id', hoaId).single().then(({ data }) => {
+      if (!cancelled) setTenantStatus(data?.status || 'ok');
+    });
+    return () => { cancelled = true; };
+  }, [hoaId, isSuperSysAdmin]);
+
+  const isPending = tenantStatus === 'pending_approval';
+  const isRejected = tenantStatus === 'rejected';
+
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
       <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} isSuperSysAdmin={isSuperSysAdmin} />
@@ -49,7 +70,21 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
 
         <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
-          <Outlet />
+          {isPending || isRejected ? (
+            <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
+              <div className="text-4xl">{isPending ? '⏳' : '🚫'}</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">
+                {isPending ? 'Хүлээгдэж байна' : 'Хүсэлт татгалзагдсан'}
+              </div>
+              <div className="text-sm text-slate-500 dark:text-mutedtext max-w-md">
+                {isPending
+                  ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ vv.'
+                  : 'Уучлаарай, таны үүсгэсэн СӨХ-ийн хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
           <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Integrated Systems</div>
         </div>
       </div>
