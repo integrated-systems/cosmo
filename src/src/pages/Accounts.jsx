@@ -9,10 +9,13 @@ import { SearchIcon, EyeIcon, EyeOffIcon, EditIcon, DeleteIcon } from '../compon
 import Modal from '../components/Modal';
 
 // "Хэрэглэгчийн удирдлага" (/accounts) — 2026-08-19 хэрэглэгчийн
-// screenshot-оор өгсвн бүтэц. TODO: нууц үг бодит Supabase Auth-тай
-// (auth.admin.createUser) холбоогүй — үүнд Edge Function+service role
-// key хэрэгтэй, дараагийн ажил. Одоогоор зүгээр tenant_users хүснэгэлд
-// хэрэглэгчийн бичлэг (нэр/имэйл/роль/хаяг/твлвв) л хадгална.
+// screenshot-оор өгсөн бүтэц. 2026-08-19 (2-р засвар): нууц үг
+// бодит Supabase Auth-тай ("manage-tenant-user" Edge Function,
+// service_role key ашиглана) холбогдов — шинэ хэрэглэгч үүсгэхэд
+// бодит нэвтрэх эрх (auth.admin.createUser) үүсгэж, user_roles-т
+// ролийг нь бичнэ. Устгахад Auth-аас ч хамт хасна. Нууц үг сэргээх
+// боломжтой (Засах модальд шинэ нууц үг бичвэл л шинэчлэгдэнэ, хоосон
+// үлдээвэл өвчлвгдвхгүй).
 const ROLE_LABELS = {
   admin: 'Админ',
   board: 'Удирдах зөвлөл',
@@ -31,6 +34,7 @@ function AddUserModal({ open, onClose, onSave, editing }) {
   const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -41,11 +45,17 @@ function AddUserModal({ open, onClose, onSave, editing }) {
     setPassword('');
   }, [open, editing]);
 
+  async function submit() {
+    setSaving(true);
+    await onSave({ role, fullname, email, address, password });
+    setSaving(false);
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Хэрэглэгч нэмэх" size="sm" footer={
+    <Modal open={open} onClose={onClose} title={editing ? 'Хэрэглэгч засах' : 'Хэрэглэгч нэмэх'} size="sm" footer={
       <>
         <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
-        <button className="ds-btn-primary" onClick={() => onSave({ role, fullname, email, address })}>үүсгэх</button>
+        <button className="ds-btn-primary" onClick={submit} disabled={saving}>{saving ? 'Хадгалж байна...' : (editing ? 'Хадгалах' : 'үүсгэх')}</button>
       </>
     }>
       <div className="space-y-3">
@@ -61,7 +71,8 @@ function AddUserModal({ open, onClose, onSave, editing }) {
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">И-мэйл</label>
-          <input className="ds-input w-full" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="ds-input w-full" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editing} />
+          {editing && <div className="text-[10px] text-mutedtext mt-1">И-мэйл үүсгэсний дараа солигдохгүй.</div>}
         </div>
         {role === 'owner' && (
           <div>
@@ -70,7 +81,7 @@ function AddUserModal({ open, onClose, onSave, editing }) {
           </div>
         )}
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нууц үг</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нууц үг{editing && ' (солихгүй бол хоосон үлдээнэ vv)'}</label>
           <div className="relative">
             <input
               type={showPw ? 'text' : 'password'}
@@ -83,7 +94,6 @@ function AddUserModal({ open, onClose, onSave, editing }) {
               {showPw ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
-          <div className="text-[10px] text-mutedtext mt-1">TODO: бодит нэвтрэлттэй (Supabase Auth) хараахан холбогдоогүй.</div>
         </div>
       </div>
     </Modal>
@@ -118,15 +128,23 @@ export default function Accounts() {
   );
 
   async function handleSave(form) {
-    const payload = { tenant_id: hoaId, role: form.role, fullname: form.fullname, email: form.email, address: form.address || null };
     if (editing) {
+      const payload = { role: form.role, fullname: form.fullname, address: form.address || null };
       const { data, error } = await supabase.from('tenant_users').update(payload).eq('id', editing.id).select().single();
       if (error) { alert(error.message); return; }
       setRows((rs) => rs.map((r) => (r.id === editing.id ? data : r)));
+      if (form.password && form.password.trim()) {
+        const { error: pwErr } = await supabase.functions.invoke('manage-tenant-user', {
+          body: { action: 'reset_password', tenantId: hoaId, userId: editing.user_id, password: form.password },
+        });
+        if (pwErr) { alert(`Профайл шинэчлэгдсэн ч нууц үг солиход алдаа гарлаа: ${pwErr.message}`); }
+      }
     } else {
-      const { data, error } = await supabase.from('tenant_users').insert(payload).select().single();
-      if (error) { alert(error.message); return; }
-      setRows((rs) => [data, ...rs]);
+      const { data: result, error } = await supabase.functions.invoke('manage-tenant-user', {
+        body: { action: 'create', tenantId: hoaId, email: form.email, password: form.password, fullname: form.fullname, role: form.role, address: form.address || null },
+      });
+      if (error || result?.error) { alert(result?.error || error.message); return; }
+      setRows((rs) => [result.data, ...rs]);
     }
     setAdding(false);
     setEditing(null);
@@ -140,9 +158,11 @@ export default function Accounts() {
   }
 
   async function handleDelete(row) {
-    if (!(await confirm(`"${row.fullname}"-г устгах уу?`))) return;
-    const { error } = await supabase.from('tenant_users').delete().eq('id', row.id);
-    if (error) { alert(error.message); return; }
+    if (!(await confirm(`"${row.fullname}"-г устгах уу? Үүнтэй хамт нэвтрэх эрх нь ч бүрмөсөн устана.`))) return;
+    const { data: result, error } = await supabase.functions.invoke('manage-tenant-user', {
+      body: { action: 'delete', tenantId: hoaId, rowId: row.id, userId: row.user_id },
+    });
+    if (error || result?.error) { alert(result?.error || error.message); return; }
     setRows((rs) => rs.filter((r) => r.id !== row.id));
   }
 
