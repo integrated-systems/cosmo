@@ -40,24 +40,25 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const scrollRef = useRef(null);
   usePullToRefresh(scrollRef);
-  const [tenantStatus, setTenantStatus] = useState(null);
+  const [approvalStatus, setApprovalStatus] = useState(null);
 
-  // 2026-08-19 хэрэглэгч тодорхой заасан дүрэм: дурын хүн sign-up хийж
-  // шинэ tenant (СӨХ) үүсгэхэд шууд идэвхжихгүй, SUPERSYSADMIN
-  // "Tenant Status" хуудсаар зөвшөөрсний ("pending_approval" -> "trial"/
-  // "active" болгосны) дараа л бодит хуудсуудад хандах боломжтой болно.
+  // 2026-08-19 хэрэглэгчтэй тохиролцсон архитектур: "Хүлээн звВШввргвл"
+  // (approval_status) БОЛОН "Твлбврийн статус" (status) хоёрыг бүрэн
+  // ТУСГААРЛАВ. Энэ gate ЗвВХвН approval_status='pending'/'rejected'
+  // үед л дурын хуудсыг блоклоно — status (trial/active/suspended/
+  // cancelled) энд огт хамааралгүй.
   // SUPERSYSADMIN үүнийг бүрэн тойрч (God of Gods) үргэлж хандана.
   useEffect(() => {
-    if (isSuperSysAdmin || !hoaId) { setTenantStatus('ok'); return; }
+    if (isSuperSysAdmin || !hoaId) { setApprovalStatus('ok'); return; }
     let cancelled = false;
-    supabase.from('tenants').select('status').eq('id', hoaId).single().then(({ data }) => {
-      if (!cancelled) setTenantStatus(data?.status || 'ok');
+    supabase.from('tenants').select('approval_status').eq('id', hoaId).single().then(({ data }) => {
+      if (!cancelled) setApprovalStatus(data?.approval_status || 'ok');
     });
     return () => { cancelled = true; };
   }, [hoaId, isSuperSysAdmin]);
 
-  const isPending = tenantStatus === 'pending_approval';
-  const isRejected = tenantStatus === 'rejected';
+  const isPending = approvalStatus === 'pending';
+  const isRejected = approvalStatus === 'rejected';
 
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
