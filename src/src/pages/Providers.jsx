@@ -7,15 +7,17 @@ import ProvidersTable from '../components/ProvidersTable';
 import EditProviderModal from '../components/EditProviderModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { useAccessRules } from '../hooks/useAccessRules';
 
-// "Харилцагчийн бvртгэл" (/providers, "Дотоод vйл ажиллагаа" бvлэг) —
-// Clientele.jsx-ийн бvтэц/компонент задаргааны загварыг яг дахин
-// ашигласан (Rule of two). Supabase "providers" хvснэгэлээс tenant_id-
-// аар шvvж унших/бичих/устгах. 2026-08-19 хэрэглэгч тодорхой заасны
-// дагуу: зввхvн vйлчилгээ vзvvлэгч (provider) байгууллагын бvртгэл,
-// Owners/Clientele-тэй одоогоор ХОЛБООГvй.
+// "Харилцагчийн бүртгэл" (/providers, "Дотоод үйл ажиллагаа" бүлэг) —
+// Clientele.jsx-ийн бүтэц/компонент задаргааны загварыг яг дахин
+// ашигласан (Rule of two). Supabase "providers" хүснэгэлээс tenant_id-
+// аар шүүж унших/бичих/устгах. 2026-08-19 хэрэглэгч тодорхой заасны
+// дагуу: зввхүн үйлчилгээ үзүүлэгч (provider) байгууллагын бүртгэл,
+// Owners/Clientele-тэй одоогоор ХОЛБООГүй.
 export default function Providers() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { can } = useAccessRules(hoaId);
   const { confirm, ConfirmDialog } = useConfirm();
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
@@ -93,7 +95,7 @@ export default function Providers() {
 
   return (
     <>
-      <ProvidersToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} />
+      <ProvidersToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} canAdd={can('providers', 'add')} />
 
       <ProvidersTable
         rows={filteredRows}
@@ -102,6 +104,8 @@ export default function Providers() {
         onRowClick={setEditing}
         onEdit={setEditing}
         onDelete={handleDelete}
+        canEdit={can('providers', 'edit')}
+        canDelete={can('providers', 'delete')}
       />
 
       <EditProviderModal

@@ -9,6 +9,7 @@ import OwnersTable from '../components/OwnersTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { useAccessRules } from '../hooks/useAccessRules';
 
 // 2026-08-15: Supabase-тай холбогдов — EXAMPLE_OWNERS mock массив
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
@@ -22,6 +23,7 @@ export default function Owners() {
   // (боломжгүй ч гэсэн) нөхцөлд зориулсан нөөц утга.
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { can } = useAccessRules(hoaId);
   const [rows, setRows] = useState([]);
   const [unitLayouts, setUnitLayouts] = useState([]);
   const [search, setSearch] = useState('');
@@ -123,6 +125,7 @@ export default function Owners() {
       <OwnersToolbar
         search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)}
         buildingOptions={buildingOptions} buildingFilter={buildingFilter} onBuildingFilterChange={setBuildingFilter}
+        canAdd={can('owners', 'add')}
       />
 
       <OwnersTable
@@ -133,6 +136,8 @@ export default function Owners() {
         onRowClick={setSelected}
         onEdit={setEditing}
         onDelete={handleDelete}
+        canEdit={can('owners', 'edit')}
+        canDelete={can('owners', 'delete')}
       />
 
       <OwnerInfoModal

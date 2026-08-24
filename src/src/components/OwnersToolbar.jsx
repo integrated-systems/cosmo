@@ -1,12 +1,12 @@
 import { SearchIcon } from './icons/Icons';
 
-// Owners.jsx-ийн тvvлбэр (шvvлтvvр+хайлт+vйлдлийн товчнууд) — 2026-08-15
+// Owners.jsx-ийн түүлбэр (шүүлтүүр+хайлт+үйлдлийн товчнууд) — 2026-08-15
 // хэрэглэгчийн заасны дагуу тусдаа компонент болгов (Rule of two,
-// ирээдvйд бусад хvснэгэлт хуудсанд дахин ашиглагдана).
+// ирээдүйд бусад хүснэгэлт хуудсанд дахин ашиглагдана).
 // 2026-08-19: "Байр" dropdown статик placeholder-ээс bodit Supabase
-// (unit_layouts) дата руу динамик болов; "Орц" dropdown БvРМвСвН
-// арилгав — 100-200 орцноос шvvх шаардлага бодит хэрэглээнд гардаггvй.
-export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange }) {
+// (unit_layouts) дата руу динамик болов; "Орц" dropdown БүРМвСвН
+// арилгав — 100-200 орцноос шүүх шаардлага бодит хэрэглээнд гардаггүй.
+export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, canAdd = true }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
@@ -30,7 +30,7 @@ export default function OwnersToolbar({ search, onSearchChange, onAddClick, buil
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
         <button className="ds-btn-secondary">Экспортлох</button>
-        <button className="ds-btn-primary" onClick={onAddClick}>+ Сууц өмчлөгч нэмэх</button>
+        {canAdd && <button className="ds-btn-primary" onClick={onAddClick}>+ Сууц өмчлөгч нэмэх</button>}
       </div>
     </div>
   );

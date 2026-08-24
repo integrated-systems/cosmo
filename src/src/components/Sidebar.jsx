@@ -8,6 +8,7 @@ import { useTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { useAccessRules } from '../hooks/useAccessRules';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
@@ -26,13 +27,14 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { stats } = useTenantStats(hoaId);
+  const { can: canAccess } = useAccessRules(hoaId);
   const [msgrUnread, setMsgrUnread] = useState(0);
   const [pendingTenantCount, setPendingTenantCount] = useState(0);
 
     // SUPERSYSADMIN-ийн "Tenant Status" цэсний хажууд "Хүлээгдэж байна"
   // (approval_status='pending') шинэ tenant хүсэлтийн тоог badge
   // маягаар харуулна — 2026-08-19 хэрэглэгч тодорхой заасан "SUPERSYSADMIN-д
-  // мэдэгдэнэ" гэсэн шаардлагыг үүгээр (in-app badge) hэрэгжүүлэв.
+  // мэдэгдэнэ" гэсэн шаардлагыг үүгээр (in-app badge) хэрэгжүүлэв.
   // 2026-08-19 (2-р засвар): status-аас approval_status рүү шилжсэн
   // (status='pending_approval' үтга үүрд үүсгэгддэггүй болсон тул энэ
   // query ямар ч үр дүнгүй болсон байсныг аудит хийж олж зассан).
@@ -128,7 +130,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
             <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-semibold uppercase leading-[1.2]">
               {section.title}
             </div>
-            {section.items.filter((item) => item.key !== 'emails').map((item) => {
+            {section.items.filter((item) => item.key !== 'emails' && canAccess(item.key, 'view')).map((item) => {
               const badge = item.key === 'msgr' ? (msgrUnread > 0 ? msgrUnread : null) : item.badge;
               return (
               <NavLink

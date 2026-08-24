@@ -1,8 +1,8 @@
 import { SearchIcon } from './icons/Icons';
 
-// "Харилцагчийн бvртгэл" (/providers) хуудасны тvvлбэр —
+// "Харилцагчийн бүртгэл" (/providers) хуудасны түүлбэр —
 // ClienteleToolbar.jsx-ийн загварыг дахин ашигласан (Rule of two).
-export default function ProvidersToolbar({ search, onSearchChange, onAddClick }) {
+export default function ProvidersToolbar({ search, onSearchChange, onAddClick, canAdd = true }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
@@ -20,7 +20,7 @@ export default function ProvidersToolbar({ search, onSearchChange, onAddClick })
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
         <button className="ds-btn-secondary">Экспортлох</button>
-        <button className="ds-btn-primary" onClick={onAddClick}>+ Харилцагч нэмэх</button>
+        {canAdd && <button className="ds-btn-primary" onClick={onAddClick}>+ Харилцагч нэмэх</button>}
       </div>
     </div>
   );

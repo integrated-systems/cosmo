@@ -7,6 +7,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
 import { SearchIcon, EyeIcon, EyeOffIcon, EditIcon, DeleteIcon } from '../components/icons/Icons';
 import Modal from '../components/Modal';
+import { useAccessRules } from '../hooks/useAccessRules';
 
 // "Хэрэглэгчийн удирдлага" (/accounts) — 2026-08-19 хэрэглэгчийн
 // screenshot-оор өгсөн бүтэц. 2026-08-19 (2-р засвар): нууц үг
@@ -103,6 +104,7 @@ function AddUserModal({ open, onClose, onSave, editing }) {
 
 export default function Accounts() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { can } = useAccessRules(hoaId);
   const { confirm, ConfirmDialog } = useConfirm();
   const { alert, AlertDialog } = useAlert();
   const [rows, setRows] = useState([]);
@@ -174,7 +176,7 @@ export default function Accounts() {
           <input type="text" placeholder="Хайх..." className="ds-input w-full pl-8" value={search} onChange={(e) => setSearch(e.target.value)} />
           <SearchIcon className="w-4 h-4 text-slate-400 dark:text-mutedtext absolute left-2.5 top-2" />
         </div>
-        <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Хэрэглэгч нэмэх</button>
+        {can('accounts', 'add') && <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Хэрэглэгч нэмэх</button>}
       </div>
 
       <div className="ds-table-wrap">
@@ -208,8 +210,10 @@ export default function Accounts() {
                     </button>
                   </td>
                   <td className="text-right whitespace-nowrap">
-                    <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}><EditIcon /></button>
-                    {r.role !== 'admin' && (
+                    {can('accounts', 'edit') && (
+                      <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(r)}><EditIcon /></button>
+                    )}
+                    {can('accounts', 'delete') && r.role !== 'admin' && (
                       <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(r)}><DeleteIcon /></button>
                     )}
                   </td>

@@ -14,7 +14,7 @@ function findLayoutRow(unitLayouts, r) {
   );
 }
 
-export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete }) {
+export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true }) {
   // Ихэнх тохиолдолд tenant бүхэлдээ НЭГ дугаарлалтын бүтэц ашиглана
   // (анхны байрны утгаар баганын гарчгийг тодорхойлно, мөр бүр өөрийн
   // бодит утгыг харуулна).
@@ -88,12 +88,16 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
                 <td className="py-2.5 px-3"><PaymentBadges paidThroughMonth={EXAMPLE_PAID_THROUGH[idx % EXAMPLE_PAID_THROUGH.length]} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
-                    <EditIcon />
-                  </button>
-                  <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
-                    <DeleteIcon />
-                  </button>
+                  {canEdit && (
+                    <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
+                      <EditIcon />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
+                      <DeleteIcon />
+                    </button>
+                  )}
                 </td>
               </tr>
               );

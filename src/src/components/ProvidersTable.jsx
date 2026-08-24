@@ -1,14 +1,14 @@
 import { formatDate } from '../lib/format';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
-// "Харилцагчийн бvртгэл" (/providers) хуудасны хvснэгэл — 2026-08-19
+// "Харилцагчийн бүртгэл" (/providers) хуудасны хүснэгэл — 2026-08-19
 // хэрэглэгчийн screenshot-оор өгсөн баганын дараалал: # | Хуулийн
-// этгээдийн нэр | Гэрчилгээ № | Гvйцэтгэх удирдлага | Гар утас | Утас |
-// Мэйл | Гэрээ № | Гэрээ эхлэх | Гэрээ дуусах | Тэмдэглэл | Vйлдэл.
+// этгээдийн нэр | Гэрчилгээ № | Гүйцэтгэх удирдлага | Гар утас | Утас |
+// Мэйл | Гэрээ № | Гэрээ эхлэх | Гэрээ дуусах | Тэмдэглэл | Үйлдэл.
 // ClienteleTable.jsx-ийн загвар/дизайныг дахин ашигласан (Rule of two).
-// Owners/Clientele-тэй одоогоор ХОЛБООГvй, зvгээр vйлчилгээ vзvvлэгч
-// (provider) байгууллагын бvртгэл.
-export default function ProvidersTable({ rows, loading, loadError, onRowClick, onEdit, onDelete }) {
+// Owners/Clientele-тэй одоогоор ХОЛБООГүй, зүгээр үйлчилгээ үзүүлэгч
+// (provider) байгууллагын бүртгэл.
+export default function ProvidersTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true }) {
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto">
@@ -53,12 +53,16 @@ export default function ProvidersTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3">{r.contract_end ? formatDate(r.contract_end) : '—'}</td>
                 <td className="py-2.5 px-3 max-w-[220px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
-                    <EditIcon />
-                  </button>
-                  <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
-                    <DeleteIcon />
-                  </button>
+                  {canEdit && (
+                    <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
+                      <EditIcon />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
+                      <DeleteIcon />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
