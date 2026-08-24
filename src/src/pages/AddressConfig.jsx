@@ -123,17 +123,25 @@ function UnitLayoutDesigner() {
 
   async function handleSaveAll() {
     setSaving(true);
-    await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId);
     const rows = [];
+    const seenKeys = new Set();
+    let duplicateInfo = null;
+    let hasAnyValidBuilding = false;
     buildings.forEach((bld) => {
       // 2026-08-18: .trim() зөвхөн ХООСОН эсэхийг шалгахад л ашиглана —
       // Байрны дугаарт хэрэглэгч зориудаар оруулсан хоосон зай (spacer
       // болгон ашиглах зорилготой) хадгалахдаа арилахгүй байх ёстой.
       const bNo = bld.buildingNo;
       if (!bNo || !bNo.trim()) return;
+      hasAnyValidBuilding = true;
       bld.entrances.forEach((e) => {
         e.floors.forEach((f) => {
           f.units.forEach((u, unitIdx) => {
+            const key = `${bNo}\u0000${e.entranceNo}\u0000${f.floorNo}\u0000${u.doorNo}`;
+            if (seenKeys.has(key) && !duplicateInfo) {
+              duplicateInfo = { building: bNo, floor: f.floorNo, doorNo: u.doorNo };
+            }
+            seenKeys.add(key);
             rows.push({
               tenant_id: hoaId,
               building_no: bNo,
@@ -149,13 +157,33 @@ function UnitLayoutDesigner() {
         });
       });
     });
+
+    // 2026-08-19 ЧУХАЛ засвар: хадгалахаас ҮМНӘ бүрэн шалгана —
+    // энээс ҮМНӘ .delete()-ийг шууд эхлж, дараа нь .insert() давхцсан
+    // (тэндэй байр, орц, давхар, тоот) key-тэй мөртэй мөргүлдэж
+    // БтҮЛГүй болвол DELETE аль хэдийн гүйцэтгэгдсэн байсан тул
+    // БҮХ мэдээлэл бүрмөсвөн алдагддаг байсан (өмнө хэрэглэгч бодитоор
+    // мэдээлэл алдсан) — одоо ЭХЛЭЭД шалгаж, алдаа олдвол DELETE-ийг ОГТ
+    // дуудахгүй, одоо байгаа мэдээлэл хэвээр үлдэнэ.
+    if (duplicateInfo) {
+      alert(`"${duplicateInfo.building}" байрны ${duplicateInfo.floor}-р давхарт ${duplicateInfo.doorNo}-р тоот ХОЁР ДАВТАГСАН байна (жиш дуплекс давхар үүсгэхдээ давхарын дугаарыг санамсаргүй давхарласан байж болзошгүй) — хадгалахаас ӨМНӘ давхцлыг арилгана уу. Одоо байгаа мэдээлэл хэвээр үлдлээ.`);
+      setSaving(false);
+      return;
+    }
+    if (buildings.length > 0 && !hasAnyValidBuilding) {
+      alert('Ямар ч байранд Байрны дугаар бөглөгдөөгүй тул хадгалах зүйл алга. Байрны дугаараа бөглөнө уу.');
+      setSaving(false);
+      return;
+    }
+
+    await supabase.from('unit_layouts').delete().eq('tenant_id', hoaId);
     // Их хэмжээний мөрийг (олон байр*давхар) НЭГ insert хүсэлтэд илгээхээс
     // зайлсхийж 500-аар багцлана (хүсэлтийн хэмжээ/тоо хязгаараас найдвартай байлгах).
     if (rows.length > 0) {
       const BATCH = 500;
       for (let i = 0; i < rows.length; i += BATCH) {
         const { error } = await supabase.from('unit_layouts').insert(rows.slice(i, i + BATCH));
-        if (error) { alert(error.message); setSaving(false); return; }
+        if (error) { alert(`Хадгалахад алдаа гарлаа: ${error.message}\n\n⚠️ Хуучин мэдээлэл аль хэдийн уссан байж болзошгүй — хуудасыг дахин ачаалж шалгана уу.`); setSaving(false); await loadAllBuildings(); return; }
       }
     }
     setSaving(false);
