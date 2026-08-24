@@ -81,11 +81,21 @@ export default function TenantStatus() {
       .eq('id', tenantId)
       .select()
       .single();
-    setSavingId(null);
     if (error) {
+      setSavingId(null);
       window.alert(error.message);
       return;
     }
+    // 2026-08-19 хэрэглэгч тодорхой заасан засвар: "Татгалзсан" болгоход
+    // тухайн tenant-ийн tenant_admin эрхийг ч хамт хасна — эс тгвл
+    // хэрэглэгч tenant_admin эрхтэй хэвээр үлдэж, зүгээр App.jsx-ийн
+    // pending gate-ээр л блоклогдож үлддэг байсан (эрхийн цэвэр бус
+    // үлдэгдэл үүсдэг байсан).
+    if (newStatus === 'rejected') {
+      const { error: roleErr } = await supabase.from('user_roles').delete().eq('tenant_id', tenantId).eq('role', 'tenant_admin');
+      if (roleErr) window.alert(`Статус солигдсон ч эрх хасахад алдаа гарлаа: ${roleErr.message}`);
+    }
+    setSavingId(null);
     setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
   }
 
