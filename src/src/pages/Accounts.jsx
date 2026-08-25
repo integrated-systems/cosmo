@@ -120,17 +120,17 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
             </div>
           )}
         </div>
+        {role === 'owner' && (
+          <div>
+            <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоот</label>
+            <input className="ds-input w-full" value={address} readOnly disabled title="Овог нэрээр сонгосон сууц өмчлөгчийн тоот автоматаар дүүргэгдэнэ, гараар өөрчлөх боломжгүй." />
+          </div>
+        )}
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">И-мэйл</label>
           <input className="ds-input w-full" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editing} />
           {editing && <div className="text-[10px] text-mutedtext mt-1">И-мэйл үүсгэсний дараа солигдохгүй.</div>}
         </div>
-        {role === 'owner' && (
-          <div>
-            <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоот</label>
-            <input className="ds-input w-full" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </div>
-        )}
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нууц үг{editing && ' (солихгүй бол хоосон үлдээнэ vv)'}</label>
           <div className="relative">
