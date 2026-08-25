@@ -44,7 +44,7 @@ const APPROVAL_COLOR = {
 function formatTrialEnds(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export default function TenantStatus() {
@@ -105,7 +105,7 @@ export default function TenantStatus() {
     setSavingId(tenantId);
     const { data, error } = await supabase
       .from('tenants')
-      .update({ plan_key: newPlanKey })
+      .update({ plan_key: newPlanKey, plan_activated_at: new Date().toISOString() })
       .eq('id', tenantId)
       .select()
       .single();
@@ -116,13 +116,14 @@ export default function TenantStatus() {
   }
 
   // Approve: approval_status='approved' болгож, ШИНЭЭР 14 хоногийн
-  // Trial хугацаа эхлүүлнэ (зөвшөөрсвн мвчээс л тоологдоно).
+  // Trial хугацаа эхлvулнэ (зөвшөөрсвн мөчээс л тоологдоно).
   async function handleApprove(tenantId) {
     setSavingId(tenantId);
-    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from('tenants')
-      .update({ approval_status: 'approved', status: 'active', plan_key: 'trial', trial_ends_at: trialEndsAt })
+      .update({ approval_status: 'approved', status: 'active', plan_key: 'trial', plan_activated_at: now.toISOString(), trial_ends_at: trialEndsAt })
       .eq('id', tenantId)
       .select()
       .single();
@@ -188,26 +189,28 @@ export default function TenantStatus() {
         <table className="ds-table">
           <thead>
             <tr>
-              <th className="py-2.5 px-3">СӨХ-НЫ НЭР</th>
+              <th className="py-2.5 px-3">СӘХ-НЫ НЭР</th>
               <th className="py-2.5 px-3">РЕГИСТР</th>
               <th className="py-2.5 px-3">ИМЭЙЛ</th>
               <th className="py-2.5 px-3">УТАС</th>
               <th className="py-2.5 px-3">АДМИН НЭВТРЭХ ИМЭЙЛ</th>
               <th className="py-2.5 px-3">APPROVAL</th>
               <th className="py-2.5 px-3">БАГЦ</th>
+              <th className="py-2.5 px-3">БАГЦ ИДЭВХЖСЭН</th>
+              <th className="py-2.5 px-3">БАГЦ ДУУСАХ</th>
               <th className="py-2.5 px-3">TENANT STATUS</th>
-              <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
+              <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={9} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={11} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={9} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={11} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={9} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={11} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && rows.map((r) => (
               <tr key={r.id} className={r.approval_status === 'pending' ? 'bg-yellow-500/[0.06]' : ''}>
@@ -239,10 +242,9 @@ export default function TenantStatus() {
                       <option key={p.key} value={p.key}>{p.name}</option>
                     ))}
                   </select>
-                  {r.plan_key === 'trial' && r.trial_ends_at && (
-                    <div className="text-[10px] text-mutedtext mt-1">Дуусах: {formatTrialEnds(r.trial_ends_at)}</div>
-                  )}
                 </td>
+                <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatTrialEnds(r.plan_activated_at) : '—'}</td>
+                <td className="py-2.5 px-3 whitespace-nowrap">{r.trial_ends_at ? formatTrialEnds(r.trial_ends_at) : '—'}</td>
                 <td className="py-2.5 px-3">
                   {r.approval_status !== 'approved' ? (
                     <span className="text-mutedtext text-[12px]">—</span>
