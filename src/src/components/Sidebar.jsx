@@ -59,7 +59,6 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
     });
     return () => { cancelled = true; };
   }, [hoaId]);
-  const hasPicked = sessionStorage.getItem(HOA_PICKED_KEY) === 'true';
   const currentTenantName = tenants.find((t) => t.id === hoaId)?.name;
 
   // HoaSwitcher-ээс шинэ СӨХ сонгоход SPA soft-navigate (react-router) БИШ,
@@ -111,7 +110,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       {/* SUPERSYSADMIN-д зөвхөн харагдах СӨХ context switcher — "ҮНДСЭН"
           бүлгийн эхэнд, менюгээс тусад нь. Сонголт URL-ийн :hoaId-г шууд
           өөрчилдөг тул refresh/share-д тэсвэртэй. */}
-      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hasPicked ? hoaId : ''} onChange={handleHoaChange} tenants={tenants} />
+      <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Ердийн (supersysadmin биш) tenant хэрэглэгчид зориулсан — сонголт
           биш, зөвхөн нэвтэрсэн өөрийн СӨХ-ийн нэрийг харуулах статик мөр. */}
