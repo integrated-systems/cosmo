@@ -4,6 +4,7 @@ import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import SignUpPage from './pages/SignUpPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PageInProgress from './pages/PageInProgress';
@@ -97,7 +98,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
 function AppRoutes() {
   const { theme, toggleTheme } = useTheme();
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
-  const { session, loading, roles, tenantIds } = useAuth();
+  const { session, loading, roles, tenantIds, passwordRecovery } = useAuth();
   // Login/Sign-Up хоёрын хооронд сэлгэх — session алга үед ЭДГЭЭР 2
   // хуудас <Routes>-ийн бүрэн гадна, энгийн local state-ээр сэлгэгддэг
   // (auth хийгдээгүй үед бүтэн route бүтэц шаардлагагүй).
@@ -111,6 +112,12 @@ function AppRoutes() {
     );
   }
 
+  // 2026-08-19 хэрэглэгч тодорхой заасан: "Нууц үг сэргээх" эвент
+  // үүссэн үед (recovery session), СЕССИЙН ХАРГАЛЗАХГүй ЭНЭ ХУУДСЫГ
+  // үзүүлнэ — хамгийн эрэмбэ өндвр шалгалт, бусад бүх route-оос ӨМНв.
+  if (passwordRecovery) {
+    return <ResetPasswordPage />;
+  }
 
   if (!session) {
     return authView === 'signup'

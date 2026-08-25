@@ -5,14 +5,23 @@ import { supabase } from './supabaseClient';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(undefined); // undefined=ачаалж байна, null=нэвтрээгүй
+  const [session, setSession] = useState(undefined); // undefined=өачаалж байна, null=үнэвтрээгүй
   const [roles, setRoles] = useState([]);
   const [tenantIds, setTenantIds] = useState([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  // 2026-08-19 хэрэглэгч тодорхой заасан цоорхойг олж засав: имэйл дэх
+  // нууц үг сэргээх линк дарахад Supabase "PASSWORD_RECOVERY" эвент
+  // шидэж, түр (recovery) session үүсгэдэг байсан ч, ЭНЭ эвентийг
+  // тусгайлан барьдаг логик огт байгаагүй тул хэрэглэгч үүнийг анзаармааргүй
+  // энгийн нэвтрэлт мэт барьж, шинэ нууц үг тохируулах саналгүй шууд
+  // апп руу оруулдаг байв. Одоо энэ flag-ыг App.jsx барьж, "Нууц үг
+  // сэргээх" бүтүн дэлгэцийн хуудсыг үзүүлдэг болно.
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
       setSession(newSession);
     });
     return () => listener.subscription.unsubscribe();
@@ -58,6 +67,8 @@ export function AuthProvider({ children }) {
     isSuperSysAdmin: roles.includes('supersysadmin'),
     signOut: () => supabase.auth.signOut(),
     refreshRoles: () => fetchRoles(session?.user?.id),
+    passwordRecovery,
+    clearPasswordRecovery: () => setPasswordRecovery(false),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
