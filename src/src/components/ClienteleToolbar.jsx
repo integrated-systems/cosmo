@@ -12,7 +12,7 @@ const PAYMENT_FILTER_OPTIONS = [
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 
-export default function ClienteleToolbar({ search, onSearchChange, onAddClick }) {
+export default function ClienteleToolbar({ search, onSearchChange, onAddClick, canAdd = true }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
@@ -35,7 +35,7 @@ export default function ClienteleToolbar({ search, onSearchChange, onAddClick })
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
         <button className="ds-btn-secondary">Экспортлох</button>
-        <button className="ds-btn-primary" onClick={onAddClick}>+ Талбай өмчлөгч нэмэх</button>
+        {canAdd && <button className="ds-btn-primary" onClick={onAddClick}>+ Талбай өмчлөгч нэмэх</button>}
       </div>
     </div>
   );

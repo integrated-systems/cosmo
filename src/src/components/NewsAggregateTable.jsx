@@ -34,7 +34,7 @@ function YesNoCell({ value }) {
   );
 }
 
-export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, onDelete, onToggleStatus }) {
+export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, onDelete, onToggleStatus, canEdit = true, canDelete = true }) {
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto">
@@ -68,12 +68,16 @@ export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, 
                 <td className="py-2.5 px-3"><YesNoCell value={r.featured} /></td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.urgent} /></td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
-                    <EditIcon />
-                  </button>
-                  <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
-                    <DeleteIcon />
-                  </button>
+                  {canEdit && (
+                    <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
+                      <EditIcon />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
+                      <DeleteIcon />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

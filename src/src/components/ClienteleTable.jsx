@@ -8,7 +8,7 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // удирдлага | Гар утас | Утас | Имэйл | Гэрээ № | Гэрээ эхлэх | Гэрээ
 // дуусах | Зогсоол | Агуулах | Машин | Төлөлт (Сараар) | Тайлбар | Үйлдэл.
 // OwnersTable.jsx-ийн загвар/дизайныг дахин ашигласан (Rule of two).
-export default function ClienteleTable({ rows, loading, loadError, onRowClick, onEdit, onDelete }) {
+export default function ClienteleTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true }) {
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto">
@@ -65,12 +65,16 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3"><PaymentBadges paidThroughMonth={EXAMPLE_PAID_THROUGH[idx % EXAMPLE_PAID_THROUGH.length]} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                  <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
-                    <EditIcon />
-                  </button>
-                  <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
-                    <DeleteIcon />
-                  </button>
+                  {canEdit && (
+                    <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
+                      <EditIcon />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
+                      <DeleteIcon />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

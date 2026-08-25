@@ -11,6 +11,7 @@ import NewsAggregateTable from '../components/NewsAggregateTable';
 import NewsFormModal from '../components/NewsFormModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
+import { useAccessRules } from '../hooks/useAccessRules';
 
 // "Мэдээ, мэдээлэл" (/news) — 2 таб: Нийтлэгдсэн мэдээ / Мэдээний
 // агрегат. Сууц вмчлвгч гар утасны аппаараа үзэх тул responsive
@@ -61,6 +62,7 @@ function toTableRow(row) {
 
 export default function NewsPage() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { can } = useAccessRules(hoaId);
   const [tab, setTab] = useState('published');
   const [category, setCategory] = useState('');
   const [rows, setRows] = useState([]);
@@ -181,7 +183,7 @@ export default function NewsPage() {
       <NewsToolbar
         category={category}
         onCategoryChange={setCategory}
-        onCreateClick={tab === 'aggregate' ? () => setCreating(true) : undefined}
+        onCreateClick={tab === 'aggregate' && can('news', 'add') ? () => setCreating(true) : undefined}
       />
 
       <div className="flex gap-2">
@@ -212,6 +214,8 @@ export default function NewsPage() {
           onEdit={openEdit}
           onDelete={handleDelete}
           onToggleStatus={handleToggleStatus}
+          canEdit={can('news', 'edit')}
+          canDelete={can('news', 'delete')}
         />
       )}
 

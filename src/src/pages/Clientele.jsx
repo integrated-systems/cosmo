@@ -8,12 +8,14 @@ import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { useAccessRules } from '../hooks/useAccessRules';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудас — Owners.jsx-ийн бүтэц/
 // компонент задаргааны загварыг яг дахин ашигласан (Rule of two). Supabase
 // "clientele" хүснэгэлээс tenant_id-аар шүүж унших/бичих/устгах.
 export default function Clientele() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { can } = useAccessRules(hoaId);
   const { confirm, ConfirmDialog } = useConfirm();
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
@@ -96,7 +98,7 @@ export default function Clientele() {
 
   return (
     <>
-      <ClienteleToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} />
+      <ClienteleToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} canAdd={can('clientele', 'add')} />
 
       <ClienteleTable
         rows={filteredRows}
@@ -105,6 +107,8 @@ export default function Clientele() {
         onRowClick={setSelected}
         onEdit={setEditing}
         onDelete={handleDelete}
+        canEdit={can('clientele', 'edit')}
+        canDelete={can('clientele', 'delete')}
       />
 
       <ClientInfoModal
