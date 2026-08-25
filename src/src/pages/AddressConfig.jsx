@@ -49,9 +49,9 @@ function formatCode(buildingNo, floor, doorNo) {
 }
 
 // 2026-08-19: "Хаягжилт тохиргоо" хуудсыг 3 таб (Тоот/Зогсоол/Агуулах)
-// болгож задлахад энэ бvхэл grid designer-ыг ЭНД ГЭМТЭЭЛГvй, ЯГ ХЭВЭЭР
+// болгож задлахад энэ бүхэл grid designer-ыг ЭНД ГЭМТЭЭЛГүй, ЯГ ХЭВЭЭР
 // нь "Тоот" табын доторх компонент болгов (доор AddressConfig() wrapper
-// л шинээр нэмэгдсэн — доторх логик/UI бvгд хвндөгдөөгvй).
+// л шинээр нэмэгдсэн — доторх логик/UI бүгд хвндөгдөөгүй).
 function UnitLayoutDesigner() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -263,6 +263,21 @@ function UnitLayoutDesigner() {
     }));
     setEditing(null);
   }
+  // 2026-08-19 хэрэглэгч тодорхой заасан: нуугдсан тоотыг Тоот таб дээр
+  // саарал вnгвтэй харуулж, дахин дарж "Ил болгох" боломжтой болгов —
+  // үмнв нь нуугдсан тоот бүрмвсвн харагдахгүй (SISADMIN үвврвв ч
+  // олж чадахгүй, буцаах боломжгүй) болдог байсныг олж зассан.
+  function handleUnitUnhide(unitId) {
+    if (!editing) return;
+    updateBuilding(editing.buildingId, (b) => ({
+      ...b,
+      entrances: b.entrances.map((e) => ({
+        ...e,
+        floors: e.floors.map((f) => ({ ...f, units: f.units.map((u) => (u.id === unitId ? { ...u, hidden: false } : u)) })),
+      })),
+    }));
+    setEditing(null);
+  }
 
   const editingBuilding = editing ? buildings.find((b) => b.id === editing.buildingId) : null;
 
@@ -326,12 +341,16 @@ function UnitLayoutDesigner() {
                         <div key={floor.id} className="flex items-center gap-2">
                           <div className="w-7 shrink-0 text-[11px] text-mutedtext">{floor.floorNo}F</div>
                           <div className="flex gap-1">
-                            {floor.units.filter((u) => !u.hidden).map((u) => (
+                            {floor.units.map((u) => (
                               <button
                                 key={u.id}
                                 onClick={() => setEditing({ buildingId: bld.id, unit: u })}
                                 style={{ width: '58px', height: '44px' }}
-                                className="rounded flex flex-col items-center justify-center border border-blue-500/40 bg-blue-500/[0.12] text-customBlue hover:border-customBlue transition-colors shrink-0"
+                                className={
+                                  u.hidden
+                                    ? 'rounded flex flex-col items-center justify-center border border-slate-400/40 dark:border-mutedtext/40 bg-slate-200/40 dark:bg-white/[0.03] text-slate-400 dark:text-mutedtext hover:border-slate-500 dark:hover:border-mutedtext transition-colors shrink-0'
+                                    : 'rounded flex flex-col items-center justify-center border border-blue-500/40 bg-blue-500/[0.12] text-customBlue hover:border-customBlue transition-colors shrink-0'
+                                }
                               >
                                 <div className="text-[11px] font-semibold leading-tight">{formatCode(bld.buildingNo, floor.floorNo, u.doorNo)}</div>
                                 {u.sqm != null && <div className="text-[9px] opacity-80 leading-tight">{u.sqm}м²</div>}
@@ -417,6 +436,7 @@ function UnitLayoutDesigner() {
         onClose={() => setEditing(null)}
         onSave={handleUnitSave}
         onHide={handleUnitHide}
+        onUnhide={handleUnitUnhide}
       />
 
       <ConfirmDialog />
@@ -433,16 +453,16 @@ const ADDRESSING_TABS = [
 
 // "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
 // дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
-// UnitLayoutDesigner (өмнөх бvрэн бvтээгдсэн grid хуудас, хвндөгдөөгvй).
-// Зогсоол/Агуулах — дугаарлалтын дүрэм суулгах ирээдvйн ажил (одоогоор
-// зvгээр placeholder, grid шаардлагагvй гэдгийг хэрэглэгч тодорхой
+// UnitLayoutDesigner (өмнөх бүрэн бүтээгдсэн grid хуудас, хвндөгдөөгүй).
+// Зогсоол/Агуулах — дугаарлалтын дүрэм суулгах ирээдүйн ажил (одоогоор
+// зүгээр placeholder, grid шаардлагагүй гэдгийг хэрэглэгч тодорхой
 // заасан).
 // "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
 // дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
-// UnitLayoutDesigner (өмнөх бvрэн бvтээгдсэн grid хуудас, хвндөгдөөгvй).
-// "Зогсоол" таб = ParkingZoneDesigner (grid БИШ, давхар→бvс жагсаалт,
+// UnitLayoutDesigner (өмнөх бүрэн бүтээгдсэн grid хуудас, хвндөгдөөгүй).
+// "Зогсоол" таб = ParkingZoneDesigner (grid БИШ, давхар→бүс жагсаалт,
 // tenant даяар нэг нийтлэг сан — 2026-08-19 хэрэглэгч тодорхой заасан).
-// "Агуулах" — дугаарлалтын дvрэм суулгах ирээдvйн ажил (placeholder).
+// "Агуулах" — дугаарлалтын дүрэм суулгах ирээдүйн ажил (placeholder).
 export default function AddressConfig() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('unit');

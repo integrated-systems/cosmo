@@ -6,7 +6,7 @@ import Modal from './Modal';
 // м²(нэг мөрөнд)+Нуух/Хадгалах). 2026-08-17 (4-р засвар): "Дугаарын
 // бүтэц" (Байр+Давхар+Тоот / Байр+Орц+Тоот) dropdown нэмэв — энэ сонголт
 // БАЙР ТУС БҮРД (энэ tile-ийн байранд харьяалагдах бүх мөрд) хамаарна.
-export default function UnitEditModal({ unit, structureType, onStructureTypeChange, onClose, onSave, onHide }) {
+export default function UnitEditModal({ unit, structureType, onStructureTypeChange, onClose, onSave, onHide, onUnhide }) {
   const [doorNo, setDoorNo] = useState(unit?.doorNo ?? '');
   const [sqm, setSqm] = useState(unit?.sqm ?? '');
 
@@ -32,7 +32,11 @@ export default function UnitEditModal({ unit, structureType, onStructureTypeChan
         </div>
       </div>
       <div className="flex gap-2">
-        <button className="ds-btn-secondary flex-1" onClick={() => onHide(unit.id)}>Нуух</button>
+        {unit.hidden ? (
+          <button className="ds-btn-secondary flex-1" onClick={() => onUnhide(unit.id)}>Ил болгох</button>
+        ) : (
+          <button className="ds-btn-secondary flex-1" onClick={() => onHide(unit.id)}>Нуух</button>
+        )}
         <button
           className="ds-btn-primary flex-1"
           onClick={() => onSave(unit.id, { doorNo, sqm: sqm === '' ? null : Number(sqm) })}
