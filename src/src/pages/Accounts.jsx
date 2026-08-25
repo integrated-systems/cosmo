@@ -135,12 +135,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
               ⚠️ Сууц өмчлөгчийн хувьд БОДИТ, хандах боломжтой имэйл байх ёстой — нууц үг мартвал зөвхөн энэ имэйлээр л сэргээх боломжтой.
             </div>
           )}
-          {!editing && role !== 'owner' && (
-            <div className="text-[10px] text-mutedtext mt-1">
-              Ажилтны хувьд дурын имэйл ашиглаж болно (бодит байх шаардлагагүй).
-            </div>
-          )}
-        </div>
+          </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Нууц үг{editing && ' (солихгүй бол хоосон үлдээнэ vv)'}</label>
           <div className="relative">
