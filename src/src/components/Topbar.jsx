@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
+import ProfileModal from './ProfileModal';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 
@@ -18,6 +19,7 @@ export default function Topbar({ theme, onToggleTheme }) {
   const { hoaId } = useParams();
   const [expiryLabel, setExpiryLabel] = useState(null);
   const [planMenuOpen, setPlanMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // 2026-08-19 хэрэглэгч тодорхой заасан: "Захиалах" товчны дизайн/
   // хүрээг ОГТ өөрчлөхгүйгээр, дотор нь тухайн tenant-ийн Төлбөрийн
@@ -103,8 +105,14 @@ export default function Topbar({ theme, onToggleTheme }) {
             <div className="fixed inset-0 z-[901]" onClick={() => setPlanMenuOpen(false)} />
             <div className="absolute right-0 top-[calc(100%+6px)] z-[902] w-[180px] rounded-lg border border-slate-200 dark:border-bordercol bg-white dark:bg-sidebg shadow-lg overflow-hidden">
               <button
-                onClick={() => setPlanMenuOpen(false)}
+                onClick={() => { setPlanMenuOpen(false); setProfileOpen(true); }}
                 className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors"
+              >
+                Профайл
+              </button>
+              <button
+                onClick={() => setPlanMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
               >
                 Багц ахиулах
               </button>
@@ -119,6 +127,8 @@ export default function Topbar({ theme, onToggleTheme }) {
         )}
       </div>
       </div>
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
     </header>
   );
 }
