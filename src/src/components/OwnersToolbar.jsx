@@ -3,9 +3,20 @@ import { SearchIcon } from './icons/Icons';
 // Owners.jsx-ийн түүлбэр (шүүлтүүр+хайлт+үйлдлийн товчнууд) — 2026-08-15
 // хэрэглэгчийн заасны дагуу тусдаа компонент болгов (Rule of two,
 // ирээдүйд бусад хүснэгэлт хуудсанд дахин ашиглагдана).
-// 2026-08-19: "Байр" dropdown статик placeholder-ээс bodit Supabase
+// 2026-08-19: "Байр" dropdown статик placeholder-ээс бодит Supabase
 // (unit_layouts) дата руу динамик болов; "Орц" dropdown БүРМвСвН
 // арилгав — 100-200 орцноос шүүх шаардлага бодит хэрэглээнд гардаггүй.
+// 2026-08-19 (2): "Байр" dropdown-ийн баруун талд Бүгд/Хүлээлттэй/
+// Хэтэрсэн/Эрсдэлтэй гэсэн placeholder шүүлтүүр нэмэв — логикийг
+// "Тариф тохиргоо" хуудас бүтээгдсэний дараа холбоно (одоогоор
+// зүгээр UI, ямар ч бодит шүүлт хийхгүй).
+const PAYMENT_FILTER_OPTIONS = [
+  { key: 'all', label: 'Бүгд' },
+  { key: 'pending', label: 'Хүлээлттэй' },
+  { key: 'overdue', label: 'Хэтэрсэн' },
+  { key: 'at_risk', label: 'Эрсдэлтэй' },
+];
+
 export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, canAdd = true }) {
   return (
     <div className="ds-toolbar">
@@ -14,6 +25,11 @@ export default function OwnersToolbar({ search, onSearchChange, onAddClick, buil
           <option value="">Бүх байр</option>
           {buildingOptions.map((b) => (
             <option key={b} value={b}>{b}-р байр</option>
+          ))}
+        </select>
+        <select className="ds-select" defaultValue="all" title="Төлбөрийн хугацааны шүүлтүүр (одоогоор placeholder)">
+          {PAYMENT_FILTER_OPTIONS.map((o) => (
+            <option key={o.key} value={o.key}>{o.label}</option>
           ))}
         </select>
         <div className="relative min-w-[200px]">
