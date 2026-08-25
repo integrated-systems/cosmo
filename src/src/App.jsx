@@ -96,11 +96,8 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
         <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
           {isOwnerRole ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
-              <div className="text-4xl">🏠</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white">Энэ систем зүгээр СӨХ-ийн ажилтанд зориулагдсан</div>
-              <div className="text-sm text-slate-500 dark:text-mutedtext max-w-md">
-                Сууц өмчлөгчдод зориулсан хэрэглэгчийн апп удахгүй нээгдэнэ.
-              </div>
+              <div className="text-4xl">🚫</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
             </div>
           ) : isPending || isRejected ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
