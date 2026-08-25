@@ -8,6 +8,7 @@ import { useAlert } from '../hooks/useAlert';
 import { SearchIcon, EyeIcon, EyeOffIcon, EditIcon, DeleteIcon } from '../components/icons/Icons';
 import Modal from '../components/Modal';
 import { useAccessRules } from '../hooks/useAccessRules';
+import { formatUnitCode } from '../lib/ownersFormat';
 
 // "Хэрэглэгчийн удирдлага" (/accounts) — 2026-08-19 хэрэглэгчийн
 // screenshot-оор өгсөн бүтэц. 2026-08-19 (2-р засвар): нууц үг
@@ -28,7 +29,7 @@ const ROLE_LABELS = {
 };
 const ROLE_OPTIONS = ['manager', 'accountant', 'executive_director', 'supervisory_board', 'board', 'owner', 'admin'];
 
-function AddUserModal({ open, onClose, onSave, editing }) {
+function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   const [role, setRole] = useState('manager');
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
@@ -36,6 +37,8 @@ function AddUserModal({ open, onClose, onSave, editing }) {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [owners, setOwners] = useState([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +48,30 @@ function AddUserModal({ open, onClose, onSave, editing }) {
     setAddress(editing?.address || '');
     setPassword('');
   }, [open, editing]);
+
+  // 2026-08-19 хэрэглэгч тодорхой заасан: "Роль" нь "Сууц өмчлөгч" үед,
+  // "Овог нэр" талбарт бичиж эхэлмэгц Owners хүснэгэлээс тохирох нэр
+  // санал болгож, сонгоход "Тоот" талбар автоматаар дүүргэгддэг болов.
+  // owners жагсаалтыг зүгээр НЭГ удаа (role='owner' болмогц) татна —
+  // tenant-ийн хэмжээ жижиг тул client талд шүүх нь хялбар бвгввд хурдан.
+  useEffect(() => {
+    if (role !== 'owner' || !hoaId || owners.length > 0) return;
+    supabase.from('owners').select('id,firstname,lastname,building_no,floor,door_no').eq('tenant_id', hoaId).then(({ data }) => {
+      setOwners(data ?? []);
+    });
+  }, [role, hoaId, owners.length]);
+
+  const q = fullname.trim().toLowerCase();
+  const ownerMatches = q
+    ? owners.filter((o) => `${o.firstname || ''} ${o.lastname || ''}`.toLowerCase().startsWith(q)
+        || (o.lastname || '').toLowerCase().startsWith(q)).slice(0, 20)
+    : [];
+
+  function pickOwner(o) {
+    setFullname(`${o.firstname || ''} ${o.lastname || ''}`.trim());
+    setAddress(formatUnitCode(o.building_no, null, o.floor, null, o.door_no));
+    setSuggestOpen(false);
+  }
 
   async function submit() {
     setSaving(true);
@@ -56,7 +83,7 @@ function AddUserModal({ open, onClose, onSave, editing }) {
     <Modal open={open} onClose={onClose} title={editing ? 'Хэрэглэгч засах' : 'Хэрэглэгч нэмэх'} size="sm" footer={
       <>
         <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
-        <button className="ds-btn-primary" onClick={submit} disabled={saving}>{saving ? 'Хадгалж байна...' : (editing ? 'Хадгалах' : 'Үүсгэх')}</button>
+        <button className="ds-btn-primary" onClick={submit} disabled={saving}>{saving ? 'Хадгалж байна...' : (editing ? 'Хадгалах' : 'ҮҮсгэх')}</button>
       </>
     }>
       <div className="space-y-3">
@@ -67,9 +94,31 @@ function AddUserModal({ open, onClose, onSave, editing }) {
           </select>
           {editing?.role === 'admin' && <div className="text-[10px] text-mutedtext mt-1">ҮҮсгэсэн Админ ролийг энд солих боломжгүй (Tenant Status хуудсаас "Reassign" хийнэ).</div>}
         </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Бүтэн нэр</label>
-          <input className="ds-input w-full" placeholder="Овог Нэр" value={fullname} onChange={(e) => setFullname(e.target.value)} />
+        <div className="relative">
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Овог нэр</label>
+          <input
+            className="ds-input w-full"
+            placeholder="Овог Нэр"
+            value={fullname}
+            onChange={(e) => { setFullname(e.target.value); setSuggestOpen(true); }}
+            onFocus={() => setSuggestOpen(true)}
+            onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+          />
+          {role === 'owner' && suggestOpen && q && ownerMatches.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol rounded-lg shadow-lg p-1">
+              {ownerMatches.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onMouseDown={() => pickOwner(o)}
+                  className="block w-full text-left px-2 py-1.5 text-[12px] rounded hover:bg-slate-100 dark:hover:bg-appbg text-slate-900 dark:text-white"
+                >
+                  {o.firstname} {o.lastname}
+                  <span className="text-slate-400 dark:text-mutedtext ml-1.5">{formatUnitCode(o.building_no, null, o.floor, null, o.door_no)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">И-мэйл</label>
@@ -78,7 +127,7 @@ function AddUserModal({ open, onClose, onSave, editing }) {
         </div>
         {role === 'owner' && (
           <div>
-            <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хаяг (тоотын код)</label>
+            <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоот</label>
             <input className="ds-input w-full" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
         )}
@@ -241,7 +290,7 @@ export default function Accounts() {
         <div className="ds-table-summary"><div>Нийт: <span className="text-slate-900 dark:text-white font-medium">{filtered.length}</span></div></div>
       </div>
 
-      <AddUserModal open={adding || !!editing} editing={editing} onClose={() => { setAdding(false); setEditing(null); }} onSave={handleSave} />
+      <AddUserModal open={adding || !!editing} editing={editing} hoaId={hoaId} onClose={() => { setAdding(false); setEditing(null); }} onSave={handleSave} />
       <ConfirmDialog />
       <AlertDialog />
     </>
