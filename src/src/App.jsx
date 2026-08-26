@@ -19,7 +19,8 @@ import AccessRules from './pages/AccessRules';
 import Accounts from './pages/Accounts';
 import Logs from './pages/Logs';
 import UserAppConfig from './pages/UserAppConfig';
-import { useAccessRules } from './hooks/useAccessRules';
+import { useTenantGate } from './hooks/useTenantGate';
+import UserApp from './UserApp';
 import NewsPage from './pages/News';
 import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
@@ -41,76 +42,51 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 // байрлаж, :hoaId параметрийг зөв уншина. 2026-08-13 архитектурын аудитаар
 // Sidebar нь <Routes>-ийн гадна (sibling) байрлаж, useParams() үргэлж
 // хоосон буцааж байсан алдааг олж, nested-route+<Outlet/> загварт шилжүүлсэн.
-function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
+// 2026-08-19 (3-р засвар): "Сууц вмчлвгч" (owner) роль эсэхийг шалгаж,
+// admin-ийн Layout (Sidebar+Topbar) эсвэл резидентийн UserApp (энгийн
+// толгой+хэвтээ цэс) хоёрын алийг үзүүлэхийг сонгодог "шийдвэр вгвгч"
+// wrapper. ҮҮнийг тусад нь гаргасны ач холбогдол: Layout-т owner-ийн
+// код ОГТ орохгүй, UserApp-т ч мвн admin-ийн код орохгүй — 2 shell
+// бүрэн цэвэр тусгаарлагдана (ирээдүйд UserApp-ыг гарган авахад бэлэн).
+function TenantShell(props) {
   const { isSuperSysAdmin, user } = useAuth();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
-  const location = useLocation();
-  const scrollRef = useRef(null);
-  usePullToRefresh(scrollRef);
-  const [approvalStatus, setApprovalStatus] = useState(null);
-  // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: "Сууц өмчлөгч" роль бол
-  // үнэн хэрэгтээ ИРЭЭДүйН тусдаа резидент апп (Мэдээ/Мессенжер/зочны
-  // машины дугаар бүртгүүлэх/сонгуульд оролцох)-д зориулагдсан.
-  // 2026-08-19 (2-р засвар): бүрэн блоклохын оронд, "Хандах эрхийн
-  // тохиргоо" (owner роль) БОЛОН "UserApp тохиргоо" (userapp_config)
-  // хоёр НЭГ ЗЭРЭГ зөвшөөрсөн хуудсанд л нэвтрүүлдэг болов — 2 давхар
-  // opt-in шалгалт (аль нэг нь дутвал хориглоно).
   const [isOwnerRole, setIsOwnerRole] = useState(false);
-  const [userappEnabled, setUserappEnabled] = useState({});
-  const { can: ownerCan, loading: accessLoading } = useAccessRules(hoaId);
-  // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: "Хэрэглэгчийн удирдлага"
-  // хуудасны "Идэвхтэй/Идэвхгүй" товч ЗвВХвН зүгээр л үзүүлэлт байсан,
-  // бодит хандалтыг ХЭЗЭЭ Ч хязгаарладаггүй ЦООРХОЙ байв (идэвхгүй
-  // болгосон хүн hараахан бүрэн нэвтэрч чаддаг байсан). Одоо тэдгээр хүн
-  // ЭНЭ хуудсаар (Layout gate) блоклогдоно.
-  const [isDeactivated, setIsDeactivated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); setIsDeactivated(false); return; }
+    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); setLoading(false); return; }
     let cancelled = false;
     supabase.from('user_roles').select('role').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
       if (cancelled) return;
       const rolesHere = (data ?? []).map((r) => r.role);
       setIsOwnerRole(rolesHere.length > 0 && rolesHere.every((r) => r === 'owner'));
-    });
-    supabase.from('tenant_users').select('status').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
-      if (cancelled) return;
-      const rows = data ?? [];
-      // Хэрэв тухайн хүн энэ tenant-д tenant_users мүртэй, БүГД нь
-      // 'inactive' бол блоклоно (мвр байхгүй бол — жиш tenant_admin
-      // үүсгэсэн даруй, hараахан tenant_users мвртэй болоогүй байж
-      // болзошгүй үе — блокгүй, аюулгүй тал руу нь үлдээнэ).
-      setIsDeactivated(rows.length > 0 && rows.every((r) => r.status === 'inactive'));
+      setLoading(false);
     });
     return () => { cancelled = true; };
   }, [hoaId, isSuperSysAdmin, user]);
 
-  useEffect(() => {
-    if (!isOwnerRole || !hoaId) return;
-    let cancelled = false;
-    supabase.from('userapp_config').select('page_key,enabled').eq('tenant_id', hoaId).then(({ data }) => {
-      if (cancelled) return;
-      const map = {};
-      (data ?? []).forEach((r) => { map[r.page_key] = r.enabled; });
-      setUserappEnabled(map);
-    });
-    return () => { cancelled = true; };
-  }, [isOwnerRole, hoaId]);
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-sidebg text-mutedtext text-sm">
+        Ачаалж байна...
+      </div>
+    );
+  }
 
-  // Одоогийн замын (:hoaId-г тайлсан) page key-г ALL_ITEMS-ээс олно.
-  const pathAfterHoaForGate = location.pathname.replace(/^\/[^/]+/, '');
-  const currentMenuItem = ALL_ITEMS.find((i) => pathAfterHoaForGate === i.path || pathAfterHoaForGate.startsWith(i.path + '/'));
-  const currentPageKey = currentMenuItem?.key;
-  // "userapp_config"-д мвр үүсгэгдээгүй (SISADMIN hараахан хадгалаагүй)
-  // үед анхдагчаар ТИЙМ гэж үзнэ (UserAppConfig.jsx-ийн "анхдагч бүгд
-  // идэвхтэй" зарчимтай нийцүүлэв) — зүгээр access_rules л үнэхээр
-  // хатуу хамгаалалт хийнэ.
-  const isPageAllowedForOwner = currentPageKey
-    ? (userappEnabled[currentPageKey] !== false) && ownerCan(currentPageKey, 'view')
-    : false;
+  return isOwnerRole ? <UserApp theme={props.theme} onToggleTheme={props.onToggleTheme} /> : <Layout {...props} />;
+}
 
-  const isPending = approvalStatus === 'pending';
-  const isRejected = approvalStatus === 'rejected';
+
+function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
+  const { isSuperSysAdmin } = useAuth();
+  const scrollRef = useRef(null);
+  usePullToRefresh(scrollRef);
+  // 2026-08-19 (3-р засвар): "Сууц өмчлөгч" (owner) ролийн шалгалт,
+  // whitelist-ийн логикийг бүрэн UserApp.jsx рүү гаргав. Энэ Layout зүгээр admin
+  // энгийн ("Хүлээн зөвшөөргүл"/"Идэвхгүй" бүртгэл) шалгалтыг хариулна
+  // (useTenantGate hook-oor хуваалцдаг).
+  const { isPending, isRejected, isDeactivated } = useTenantGate();
 
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
@@ -128,13 +104,6 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
               <div className="text-4xl">🚫</div>
               <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
             </div>
-          ) : isOwnerRole && accessLoading ? (
-            <div className="ds-card p-8 text-center text-darktext" style={{ minHeight: '60vh' }}>Ачаалж байна...</div>
-          ) : isOwnerRole && !isPageAllowedForOwner ? (
-            <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
-              <div className="text-4xl">🚫</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй хуудас</div>
-            </div>
           ) : isPending || isRejected ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
               <div className="text-4xl">{isPending ? '⏳' : '🚫'}</div>
@@ -143,7 +112,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
               </div>
               <div className="text-sm text-slate-500 dark:text-mutedtext max-w-md">
                 {isPending
-                  ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ vv.'
+                  ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ уу.'
                   : 'Уучлаарай, таны үүсгэсэн СӨХ-ийн хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
               </div>
             </div>
@@ -206,7 +175,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={`/${rootTenantId}/dashboard`} replace />} />
-      <Route path="/:hoaId" element={<Layout theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
+      <Route path="/:hoaId" element={<TenantShell theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="owners" element={<Owners />} />
         {/* restmarket СИСАДМИН (tenant-level) цэсэнд байгаа тул бусад СИСАДМИН
