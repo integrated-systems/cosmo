@@ -26,11 +26,29 @@ const TITLE_PLACEHOLDER = {
   discussion: 'Жиш: Хэлэлцүүлэг - 2026/10 сар',
 };
 
-function toDatetimeLocal(iso) {
+// 2026-08-19 хэрэглэгч тодорхой заасны дагуу: native <input
+// type="datetime-local"> нь браузер/OS-ийн локал форматаар (mm/dd/yyyy)
+// л үзүүлдэг, hэрэглэгчийн шаардсан "YYYY/MM/DD HH:MM" форматыг
+// шууд бүрдүүлэх боломжгүй тул, зүгээр текст талбар болгож, гараар
+// parse/validate хийдэг болгов.
+function toDisplayDateTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (isNaN(d)) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// "YYYY/MM/DD HH:MM" гэсэн текстийг Date болгож задална, буруу формат
+// эсвэл хоосон бол null буцаана.
+function parseDisplayDateTime(text) {
+  if (!text || !text.trim()) return null;
+  const m = text.trim().match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);
+  if (!m) return undefined; // undefined = буруу формат (invalid), null-ээс ялгах
+  const [, y, mo, d, h, mi] = m;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
+  if (isNaN(date)) return undefined;
+  return date;
 }
 
 export default function VotingEditPage() {
@@ -63,8 +81,8 @@ export default function VotingEditPage() {
         setType(poll.type);
         setTitle(poll.title || '');
         setDescription(poll.description || '');
-        setStartAt(toDatetimeLocal(poll.start_at));
-        setEndAt(toDatetimeLocal(poll.end_at));
+        setStartAt(toDisplayDateTime(poll.start_at));
+        setEndAt(toDisplayDateTime(poll.end_at));
         setIsSecret(poll.is_secret);
         setShowLive(poll.show_live_results);
         setBoardVotesAllowed(poll.board_votes_allowed ?? 1);
@@ -111,8 +129,20 @@ export default function VotingEditPage() {
     setter((cs) => cs.filter((c) => c.id !== id));
   }
 
-  async function handleSave() {
+  async function handleSave(targetStatus) {
     if (!title.trim()) { alert('Гарчиг оруулна уу'); return; }
+
+    const parsedStart = parseDisplayDateTime(startAt);
+    const parsedEnd = parseDisplayDateTime(endAt);
+    if (parsedStart === undefined || parsedEnd === undefined) {
+      alert('Огноог "YYYY/MM/DD HH:MM" форматаар оруулна уу (жиш: 2026/10/15 09:00)');
+      return;
+    }
+    if (targetStatus === 'active' && (!parsedStart || !parsedEnd)) {
+      alert('Нийтлэхийн тулд Эхлэх БОЛОН Дуусах огноог заавал оруулна уу');
+      return;
+    }
+
     setSaving(true);
 
     const payload = {
@@ -120,12 +150,13 @@ export default function VotingEditPage() {
       type,
       title: title.trim(),
       description: description.trim() || null,
-      start_at: startAt || null,
-      end_at: endAt || null,
+      start_at: parsedStart ? parsedStart.toISOString() : null,
+      end_at: parsedEnd ? parsedEnd.toISOString() : null,
       is_secret: isSecret,
       show_live_results: showLive,
       board_votes_allowed: boardVotesAllowed,
       supervisory_votes_allowed: supervisoryVotesAllowed,
+      status: targetStatus,
     };
 
     let currentPollId = pollId;
@@ -162,7 +193,7 @@ export default function VotingEditPage() {
       }
     }
 
-    supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: isEditing ? 'edit_voting' : 'create_voting', p_target_name: title.trim() });
+    supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: (isEditing ? 'edit_voting' : 'create_voting'), p_details: { status: targetStatus }, p_target_name: title.trim() });
     setSaving(false);
     navigate(`/${hoaId}/voting`);
   }
@@ -204,11 +235,11 @@ export default function VotingEditPage() {
         <div className="grid grid-cols-2 gap-3 mb-3.5">
           <div>
             <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Эхлэх огноо, цаг, минут</label>
-            <input type="datetime-local" className="ds-input w-full" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+            <input type="text" className="ds-input w-full" placeholder="YYYY/MM/DD HH:MM" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
           </div>
           <div>
             <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Дуусах огноо, цаг, минут</label>
-            <input type="datetime-local" className="ds-input w-full" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+            <input type="text" className="ds-input w-full" placeholder="YYYY/MM/DD HH:MM" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
           </div>
         </div>
 
@@ -300,7 +331,8 @@ export default function VotingEditPage() {
 
       <div className="flex justify-end gap-2">
         <button className="ds-btn-secondary" onClick={() => navigate(`/${hoaId}/voting`)}>Болих</button>
-        <button className="ds-btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
+        <button className="ds-btn-secondary" onClick={() => handleSave('draft')} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
+        <button className="ds-btn-primary" onClick={() => handleSave('active')} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Нийтлэх'}</button>
       </div>
     </div>
   );
