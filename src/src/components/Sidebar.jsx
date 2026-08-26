@@ -113,8 +113,10 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Ердийн (supersysadmin биш) tenant хэрэглэгчид зориулсан — сонголт
-          биш, зөвхөн нэвтэрсэн өөрийн СӨХ-ийн нэрийг харуулах статик мөр. */}
-      {!isSuperSysAdmin && (
+          биш, зүгээр нэвтэрсэн өөрийн СӨХ-ийн нэрийг харуулах статик мөр.
+          2026-08-19: зөвхөн 1 tenant дээр эрхтэй үед л үзүүлнэ — 2+ үед
+          HoaSwitcher-ийн dropdown-той давхцахаас сэргийлнэ. */}
+      {!isSuperSysAdmin && tenants.length <= 1 && (
         <div className="px-3 pt-[23px] pb-1">
           <div className="text-[13px] font-semibold text-slate-900 dark:text-white truncate px-1">
             {currentTenantName || '—'}
