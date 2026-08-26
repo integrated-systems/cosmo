@@ -21,6 +21,8 @@ import Logs from './pages/Logs';
 import NewsPage from './pages/News';
 import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
+import VotingPage from './pages/VotingPage';
+import VotingEditPage from './pages/VotingEditPage';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
@@ -206,12 +208,15 @@ function AppRoutes() {
         <Route path="news" element={<NewsPage />} />
         <Route path="providers" element={<Providers />} />
         <Route path="msgr" element={<Msgr />} />
+        <Route path="voting" element={<VotingPage />} />
+        <Route path="voting/new" element={<VotingEditPage />} />
+        <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
         {/* Tenant Status — SUPERSYSADMIN-ийн Төлбөрийн 3-р алхам (гараар
             invoice горим). SUPERSYSADMIN_TENANT_ITEMS-д багтдаг тул
             RequireRole ХЭРЭГТЭЙ. */}
         <Route path="tenant-status" element={<RequireRole roles={['supersysadmin']}><TenantStatus /></RequireRole>} />
-        {/* Цэсний бусад бүх линк (47 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
-        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/clientele', '/property', '/addressing', '/news', '/providers', '/msgr', '/rolesrules', '/accounts', '/logs'].includes(i.path)).map((item) => {
+        {/* Цэснийн бусад бүх линк (47 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
+        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/clientele', '/property', '/addressing', '/news', '/providers', '/msgr', '/rolesrules', '/accounts', '/logs', '/voting'].includes(i.path)).map((item) => {
           const isTenantSaasItem = TENANT_ITEM_PATHS.includes(item.path) || item.path === SUPERSYSADMIN.path;
           const element = isTenantSaasItem
             ? <RequireRole roles={['supersysadmin']}><PageInProgress /></RequireRole>
