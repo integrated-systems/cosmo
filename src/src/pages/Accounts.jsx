@@ -160,7 +160,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
 export default function Accounts() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { can } = useAccessRules(hoaId);
-  const { user } = useAuth();
+  const { user, isSuperSysAdmin } = useAuth();
   const { confirm, ConfirmDialog } = useConfirm();
   const { alert, AlertDialog } = useAlert();
   const [rows, setRows] = useState([]);
@@ -228,8 +228,13 @@ export default function Accounts() {
   // боломжгүй (зввгүар Reassign үйлдлээр — user_roles-ийг ч мвн зввгүй
   // hамт вврчилдэг). Мвн хэн ч (admin ч гэсэн) вврийн мврийг идэвхгүй
   // болгож чадахгүй — санамсаргүй вврийгвв түгжихээс сэргийлнэ.
+  // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: tenant_admin (SISADMIN)
+  // вврийгвв БОЛОН бусад admin ролийг идэвхгүй болгож чадахгүй. Харин
+  // SUPERSYSADMIN бүх SISADMIN-ийг идэвхгүй болгох эрхтэй (энгийн
+  // tenant_admin-ийн эрхээс тусдаа, илүү өндвр эрх мэдэл) — үүнийг
+  // үмнвх засвар буруугаар БүГДЭД адилхан хориглосон байсныг олж зассан.
   async function handleToggleStatus(row) {
-    if (row.role === 'admin') return;
+    if (row.role === 'admin' && !isSuperSysAdmin) return;
     if (row.user_id === user?.id) return;
     const status = row.status === 'active' ? 'inactive' : 'active';
     const { error } = await supabase.from('tenant_users').update({ status }).eq('id', row.id);
@@ -279,8 +284,8 @@ export default function Accounts() {
                   <td>
                     <button
                       onClick={() => handleToggleStatus(r)}
-                      disabled={r.role === 'admin' || r.user_id === user?.id}
-                      title={r.role === 'admin' ? 'Admin ролийг Tenant Status хуудсаас "Reassign" хийж солино' : r.user_id === user?.id ? 'өөрийгөө идэвхгүй болгох боломжгүй' : ''}
+                      disabled={(r.role === 'admin' && !isSuperSysAdmin) || r.user_id === user?.id}
+                      title={r.role === 'admin' && !isSuperSysAdmin ? 'Admin ролийг зввгвар SUPERSYSADMIN идэвхгүй болгож чадна' : r.user_id === user?.id ? 'вврийгвв идэвхгүй болгох боломжгүй' : ''}
                       className={`text-[11px] px-2 py-0.5 rounded-full border disabled:opacity-50 disabled:cursor-not-allowed ${
                         r.status === 'active'
                           ? 'text-customGreen border-customGreen/30 bg-customGreen/10'
