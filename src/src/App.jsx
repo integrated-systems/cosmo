@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useParams, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabaseClient';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -19,6 +19,7 @@ import AccessRules from './pages/AccessRules';
 import Accounts from './pages/Accounts';
 import Logs from './pages/Logs';
 import UserAppConfig from './pages/UserAppConfig';
+import { useAccessRules } from './hooks/useAccessRules';
 import NewsPage from './pages/News';
 import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
@@ -43,21 +44,22 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   const { isSuperSysAdmin, user } = useAuth();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const location = useLocation();
   const scrollRef = useRef(null);
   usePullToRefresh(scrollRef);
   const [approvalStatus, setApprovalStatus] = useState(null);
   // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: "Сууц өмчлөгч" роль бол
   // үнэн хэрэгтээ ИРЭЭДүйН тусдаа резидент апп (Мэдээ/Мессенжер/зочны
-  // машины дугаар бүртгүулэх/сонгуульд оролцох)-д зориулагдсан — энэ
-  // үндсэн апп (менежерийн систем) руу нэвтрэх ЭРХ БИШ. Резидент апп
-  // хараахан бүтээгдээгүй, харин access_rules матриц "owner" ролийг ОГТ
-  // хамардаггүй тул (STAFF_ROLES-д ороогүй) энэ роль үүсгэгдвэл үнэн
-  // хэрэгтээ ХЯЗГААРГүЙ хандалт олж, аюулгүй байдлын цоорхой үүсгэдэг
-  // байсныг олж, урьдчилан хамгаалж (одоогоор ямар ч owner акаунт
-  // үүсгэгдээгүй үе) энэ gate-ийг нэмэв.
+  // машины дугаар бүртгүүлэх/сонгуульд оролцох)-д зориулагдсан.
+  // 2026-08-19 (2-р засвар): бүрэн блоклохын оронд, "Хандах эрхийн
+  // тохиргоо" (owner роль) БОЛОН "UserApp тохиргоо" (userapp_config)
+  // хоёр НЭГ ЗЭРЭГ зөвшөөрсөн хуудсанд л нэвтрүүлдэг болов — 2 давхар
+  // opt-in шалгалт (аль нэг нь дутвал хориглоно).
   const [isOwnerRole, setIsOwnerRole] = useState(false);
+  const [userappEnabled, setUserappEnabled] = useState({});
+  const { can: ownerCan, loading: accessLoading } = useAccessRules(hoaId);
   // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: "Хэрэглэгчийн удирдлага"
-  // хуудасны "Идэвхтэй/Идэвхгүй" товч ЗӨВХӨН зүгээр л үзүүлэлт байсан,
+  // хуудасны "Идэвхтэй/Идэвхгүй" товч ЗвВХвН зүгээр л үзүүлэлт байсан,
   // бодит хандалтыг ХЭЗЭЭ Ч хязгаарладаггүй ЦООРХОЙ байв (идэвхгүй
   // болгосон хүн hараахан бүрэн нэвтэрч чаддаг байсан). Одоо тэдгээр хүн
   // ЭНЭ хуудсаар (Layout gate) блоклогдоно.
@@ -74,8 +76,8 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
     supabase.from('tenant_users').select('status').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
       if (cancelled) return;
       const rows = data ?? [];
-      // Хэрэв тухайн хүн энэ tenant-д tenant_users мвртэй, БүГД нь
-      // 'inactive' бол блоклоно (mвр байхгүй бол — жиш tenant_admin
+      // Хэрэв тухайн хүн энэ tenant-д tenant_users мүртэй, БүГД нь
+      // 'inactive' бол блоклоно (мвр байхгүй бол — жиш tenant_admin
       // үүсгэсэн даруй, hараахан tenant_users мвртэй болоогүй байж
       // болзошгүй үе — блокгүй, аюулгүй тал руу нь үлдээнэ).
       setIsDeactivated(rows.length > 0 && rows.every((r) => r.status === 'inactive'));
@@ -83,20 +85,29 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
     return () => { cancelled = true; };
   }, [hoaId, isSuperSysAdmin, user]);
 
-  // 2026-08-19 хэрэглэгчтэй тохиролцсон архитектур: "Хүлээн зөвшөөргүл"
-  // (approval_status) БОЛОН "Төлбөрийн статус" (status) хоёрыг бүрэн
-  // ТУСГААРЛАВ. Энэ gate ЗөВХөН approval_status='pending'/'rejected'
-  // үед л дурын хуудсыг блоклоно — status (trial/active/suspended/
-  // cancelled) энд огт хамааралгүй.
-  // SUPERSYSADMIN үүнийг бүрэн тойрч (God of Gods) үргэлж хандана.
   useEffect(() => {
-    if (isSuperSysAdmin || !hoaId) { setApprovalStatus('ok'); return; }
+    if (!isOwnerRole || !hoaId) return;
     let cancelled = false;
-    supabase.from('tenants').select('approval_status').eq('id', hoaId).single().then(({ data }) => {
-      if (!cancelled) setApprovalStatus(data?.approval_status || 'ok');
+    supabase.from('userapp_config').select('page_key,enabled').eq('tenant_id', hoaId).then(({ data }) => {
+      if (cancelled) return;
+      const map = {};
+      (data ?? []).forEach((r) => { map[r.page_key] = r.enabled; });
+      setUserappEnabled(map);
     });
     return () => { cancelled = true; };
-  }, [hoaId, isSuperSysAdmin]);
+  }, [isOwnerRole, hoaId]);
+
+  // Одоогийн замын (:hoaId-г тайлсан) page key-г ALL_ITEMS-ээс олно.
+  const pathAfterHoaForGate = location.pathname.replace(/^\/[^/]+/, '');
+  const currentMenuItem = ALL_ITEMS.find((i) => pathAfterHoaForGate === i.path || pathAfterHoaForGate.startsWith(i.path + '/'));
+  const currentPageKey = currentMenuItem?.key;
+  // "userapp_config"-д мвр үүсгэгдээгүй (SISADMIN hараахан хадгалаагүй)
+  // үед анхдагчаар ТИЙМ гэж үзнэ (UserAppConfig.jsx-ийн "анхдагч бүгд
+  // идэвхтэй" зарчимтай нийцүүлэв) — зүгээр access_rules л үнэхээр
+  // хатуу хамгаалалт хийнэ.
+  const isPageAllowedForOwner = currentPageKey
+    ? (userappEnabled[currentPageKey] !== false) && ownerCan(currentPageKey, 'view')
+    : false;
 
   const isPending = approvalStatus === 'pending';
   const isRejected = approvalStatus === 'rejected';
@@ -117,10 +128,12 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
               <div className="text-4xl">🚫</div>
               <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
             </div>
-          ) : isOwnerRole ? (
+          ) : isOwnerRole && accessLoading ? (
+            <div className="ds-card p-8 text-center text-darktext" style={{ minHeight: '60vh' }}>Ачаалж байна...</div>
+          ) : isOwnerRole && !isPageAllowedForOwner ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
               <div className="text-4xl">🚫</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй хуудас</div>
             </div>
           ) : isPending || isRejected ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>

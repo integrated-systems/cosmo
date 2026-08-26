@@ -22,11 +22,12 @@ import { useAlert } from '../hooks/useAlert';
 //   Admin-only тул энэ матрицад хамаарахгүй). Доод тал: сонгосон
 //   хуудасны үйлдэл(мвр) × роль(багана) матриц, Тийм/Үгүй dropdown.
 const ROLES = [
-  { key: 'board', label: 'Удирдах зөвлөл' },
-  { key: 'supervisory_board', label: 'Хяналтын зөвлөл' },
+  { key: 'board', label: 'Удирдах зввлвл' },
+  { key: 'supervisory_board', label: 'Хяналтын зввлвл' },
   { key: 'executive_director', label: 'Гүйцэтгэх захирал' },
   { key: 'accountant', label: 'Нягтлан бодогч' },
   { key: 'manager', label: 'Менежер' },
+  { key: 'owner', label: 'Сууц вмчлвгч (резидент апп)' },
 ];
 
 const STANDARD_ACTIONS = [
