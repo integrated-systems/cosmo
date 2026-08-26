@@ -27,7 +27,7 @@ const ROLES = [
   { key: 'executive_director', label: 'Гүйцэтгэх захирал' },
   { key: 'accountant', label: 'Нягтлан бодогч' },
   { key: 'manager', label: 'Менежер' },
-  { key: 'owner', label: 'Сууц вмчлвгч (резидент апп)' },
+  { key: 'owner', label: 'Сууц өмчлөгч (OwnerApp)' },
 ];
 
 const STANDARD_ACTIONS = [
