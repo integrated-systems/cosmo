@@ -72,6 +72,15 @@ export default function VotingEditPage() {
     if (!isEditing) return;
     (async () => {
       const { data: poll } = await supabase.from('voting_polls').select('*').eq('id', pollId).single();
+      // 2026-08-19 hэрэглэгч олсон бодит цоорхойг засах хамгаалалт: хэрэв
+      // хүн шууд URL бичиж НИЙТЛЭГДСЭН (draft биш) зүйлийн Засах хуудас
+      // руу орохыг оролдвол, VotingPage.jsx-ийн жагсаалтын товшилтоос
+      // гадуур ч мвн уншихад зориулсан хуудас руу автоматаар дахин
+      // чиглүүлнэ (админ ч гэсэн нийтлэгдсэн зүйлийг засварлаж болохгүй).
+      if (poll && poll.status !== 'draft') {
+        navigate(`/${hoaId}/voting/${pollId}/results`, { replace: true });
+        return;
+      }
       if (poll) {
         setType(poll.type);
         setTitle(poll.title || '');

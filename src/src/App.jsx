@@ -26,6 +26,7 @@ import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
 import VotingPage from './pages/VotingPage';
 import VotingEditPage from './pages/VotingEditPage';
+import VotingResultsPage from './pages/VotingResultsPage';
 import RequireRole from './components/RequireRole';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
@@ -196,6 +197,7 @@ function AppRoutes() {
         <Route path="voting" element={<VotingPage />} />
         <Route path="voting/new" element={<VotingEditPage />} />
         <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
+        <Route path="voting/:pollId/results" element={<VotingResultsPage />} />
         {/* Tenant Status — SUPERSYSADMIN-ийн Төлбөрийн 3-р алхам (гараар
             invoice горим). SUPERSYSADMIN_TENANT_ITEMS-д багтдаг тул
             RequireRole ХЭРЭГТЭЙ. */}

@@ -32,23 +32,41 @@ function formatDate(iso) {
 export default function VotingPage() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const navigate = useNavigate();
-  const { can } = useAccessRules(hoaId);
+  const { can, bypass } = useAccessRules(hoaId);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  // 2026-08-19 hэрэглэгч олсон бодит цоорхойг засав: үмнв нь СТАТУС үл
+  // хамааран бүх зүйл ЗАСВАРЛАХ хуудас руу чиглүүлдэг байсан тул, admin
+  // БИШ хүн (owner) ч гэсэн засах/устгах эрхтэй мэт UI-г хардаг байв.
+  // Одоо: "draft" (ноорог) зүйлийг зввхвн Засах эрхтэй (bypass) хүн л
+  // хардаг (owner-д ноорог ОГТ үзүүлэхгүй), нийтлэгдсэн (active/closed)
+  // зүйл дээр дарахад БүГД (admin ч гэсэн) зввхвн уншихад зориулсан
+  // VotingResultsPage.jsx руу л чиглүүлнэ.
+  const canEditPoll = bypass || can('voting', 'edit');
 
   async function load() {
     setLoading(true);
     setLoadError('');
-    const { data, error } = await fetchAllRows(() =>
-      supabase.from('voting_polls').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false })
-    );
+    let query = supabase.from('voting_polls').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false });
+    if (!canEditPoll) {
+      query = query.in('status', ['active', 'closed']);
+    }
+    const { data, error } = await fetchAllRows(() => query);
     if (error) { setLoadError(error.message); setLoading(false); return; }
     setRows(data ?? []);
     setLoading(false);
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [hoaId]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [hoaId, canEditPoll]);
+
+  function openItem(row) {
+    if (row.status === 'draft' && canEditPoll) {
+      navigate(`/${hoaId}/voting/${row.id}/edit`);
+    } else {
+      navigate(`/${hoaId}/voting/${row.id}/results`);
+    }
+  }
 
   return (
     <>
@@ -68,7 +86,7 @@ export default function VotingPage() {
         {!loading && !loadError && rows.map((r) => (
           <button
             key={r.id}
-            onClick={() => navigate(`/${hoaId}/voting/${r.id}/edit`)}
+            onClick={() => openItem(r)}
             className="ds-card p-4 flex items-center justify-between text-left hover:border-blue-500/40 transition-colors"
           >
             <div>
