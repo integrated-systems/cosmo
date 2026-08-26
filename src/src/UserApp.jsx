@@ -6,20 +6,29 @@ import { useAccessRules } from './hooks/useAccessRules';
 import { useTenantGate } from './hooks/useTenantGate';
 import { DEFAULT_TENANT_ID } from './config/tenant';
 import { MENU_SECTIONS } from './config/menu';
+import TileGrid from './components/UserApp/TileGrid';
+import TabBar from './components/UserApp/TabBar';
+import UserAppProfile from './components/UserApp/UserAppProfile';
+import './userapp.css';
 
-// 2026-08-19 хэрэглэгчтэй тохиролцсон архитектур (C хувилбар): резидент
-// (owner) хэрэглэгчид зориулсан БүРЭН ТУСДАА "shell" — Layout.jsx (admin
-// Sidebar+Topbar)-ыг ОГТ ашигладаггүй, вврийн энгийн, мобайл-д
-// тохиромжтой толгой+доод цэс ашиглана. Гэхдээ ижил bundle, ижил route
-// tree дотор — Мэдээ/Мессенжер/Voting гэх мэт хуудасны КОМПОНЕНТүүдийг
-// admin-тай ХАМТ ашиглана (кодыг 2 удаа бичихгүй).
+// 2026-08-19: резидент (owner) shell — the2m26/suh (GitHub: userapp-react)
+// прожектийн бодитоор туршигдсан, бүтэн PWA UI/UX (TileGrid+TabBar)-ыг
+// Cosmo-ийн бодит эрхийн систем (useAccessRules+userapp_config)-той
+// hолбож дасан зохицуулав. Үвр Supabase project/схем ОГТ ашиглаагүй —
+// зүгээр л дизайн/interaction кодыг л "аврч" авав.
 //
-// ИРЭЭДүй: энэ файл (+ hooks/useTenantGate.js, hooks/useAccessRules.js)
-// нь код зохион байгуулалтын хувьд аль хэдийн бүрэн тусгаарлагдсан тул,
-// хэрэв ирээдүйд бүрэн тусдаа project (эсвэл PWA→Android/iOS апп) болгож
-// "гарган авах" шаардлага гарвал, зүгээр эдгээр файлыг хуулж, дундаа
-// байгаа page компонентуудын import зам солиход л хүрэлцэнэ.
+// Одоогоор бодит Cosmo backend-тэй hолбогдсон модуль: news, voting, msgr.
+// Үлдсэн (Дашбоард-ийн санхүүгийн график, Твлбвр/QPay, Зочин урих,
+// Хэрэгцээт мэдээлэл г.м) — Cosmo-д тэдгээрийн backend hараахан
+// байгуулагдаагүй тул "Түн удахгүй" гэсэн placeholder-ээр үзүүлнэ.
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr'];
+
+const TABS = [
+  { key: 'home', label: 'Home', icon: <HomeIcon /> },
+  { key: 'payment', label: 'Твлбвр', icon: <PaymentIcon /> },
+  { key: 'profile', label: 'Profile', icon: <ProfileIcon /> },
+];
 
 export default function UserApp({ theme, onToggleTheme }) {
   const { user } = useAuth();
@@ -30,6 +39,9 @@ export default function UserApp({ theme, onToggleTheme }) {
   const { can, loading: accessLoading } = useAccessRules(hoaId);
   const [userappEnabled, setUserappEnabled] = useState({});
   const [tenantName, setTenantName] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [comingSoonTitle, setComingSoonTitle] = useState(null);
+  const [bottomTab, setBottomTab] = useState('home');
 
   useEffect(() => {
     if (!hoaId) return;
@@ -46,80 +58,115 @@ export default function UserApp({ theme, onToggleTheme }) {
     return () => { cancelled = true; };
   }, [hoaId]);
 
-  // Резидент апп-д зориулсан цэс — зүгээр л userapp_config.enabled !==
-  // false БОЛОН access_rules-ийн Харах=Тийм хоёул үнэн үед л үзүүлнэ.
   const allowedItems = ALL_MENU_ITEMS.filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view'));
 
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
+  const isHome = pathAfterHoa === '' || pathAfterHoa === '/';
   const currentItem = ALL_MENU_ITEMS.find((i) => pathAfterHoa === i.path || pathAfterHoa.startsWith(i.path + '/'));
   const isCurrentPageAllowed = currentItem
     ? (userappEnabled[currentItem.key] !== false) && can(currentItem.key, 'view')
     : false;
 
-  let content;
+  function handleOpenTile(item) {
+    if (BUILT_PAGE_KEYS.includes(item.key)) {
+      navigate(`/${hoaId}${item.path}`);
+    } else {
+      setComingSoonTitle(item.label);
+    }
+  }
+
+  function handleTabChange(key) {
+    setBottomTab(key);
+    if (key === 'home') navigate(`/${hoaId}`);
+    else if (key === 'profile') navigate(`/${hoaId}/userapp-profile`);
+    else setComingSoonTitle('Твлбвр');
+  }
+
+  let mainContent;
   if (isDeactivated) {
-    content = <GateMessage icon="🚫" title="Нэвтрэх эрхгүй бүртгэлийн хаяг" />;
+    mainContent = <GateMessage icon="🚫" title="Нэвтрэх эрхгүй бүртгэлийн хаяг" />;
   } else if (isPending || isRejected) {
-    content = (
-      <GateMessage
-        icon={isPending ? '⏳' : '🚫'}
-        title={isPending ? 'Хүлээгдэж байна' : 'Хүсэлт татгалзагдсан'}
+    mainContent = <GateMessage icon={isPending ? '⏳' : '🚫'} title={isPending ? 'Хүлээгдэж байна' : 'Хүсэлт татгалзагдсан'} />;
+  } else if (accessLoading) {
+    mainContent = <div className="pool-empty">Ачаалж байна...</div>;
+  } else if (isHome) {
+    mainContent = (
+      <TileGrid
+        items={allowedItems}
+        onOpenTile={handleOpenTile}
+        showAddModal={showAddModal}
+        onCloseAddModal={() => setShowAddModal(false)}
       />
     );
-  } else if (accessLoading) {
-    content = <div className="text-center text-mutedtext py-10 text-sm">Ачаалж байна...</div>;
+  } else if (pathAfterHoa.startsWith('/userapp-profile')) {
+    mainContent = <UserAppProfile user={user} theme={theme} onToggleTheme={onToggleTheme} />;
   } else if (!isCurrentPageAllowed) {
-    content = <GateMessage icon="🚫" title="Нэвтрэх эрхгүй хуудас" />;
+    mainContent = <GateMessage icon="🚫" title="Нэвтрэх эрхгүй хуудас" />;
   } else {
-    content = <Outlet />;
+    mainContent = <Outlet />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-appbg text-slate-800 dark:text-white">
-      <header className="h-14 bg-white dark:bg-sidebg border-b border-slate-200 dark:border-bordercol flex items-center justify-between px-4 sticky top-0 z-50">
-        <div className="flex flex-col leading-tight">
-          <span className="text-[13px] font-semibold text-slate-900 dark:text-white">{tenantName || 'COSMO'}</span>
-          <span className="text-[10px] text-mutedtext">{user?.email}</span>
+    <div className="userapp-root app-shell" data-theme={theme === 'dark' ? 'dark' : 'light'}>
+      <div className="home-header">
+        <div>
+          <div className="app-title">{tenantName || 'COSMO'}</div>
+          <div className="user-greeting">{user?.email} · Сууц вмчлвгч</div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onToggleTheme} className="w-8 h-8 rounded-lg border border-slate-200 dark:border-bordercol flex items-center justify-center text-slate-600 dark:text-mutedtext">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <button onClick={() => supabase.auth.signOut()} className="w-8 h-8 rounded-lg border border-slate-200 dark:border-bordercol flex items-center justify-center text-slate-600 dark:text-mutedtext">
-            ⎋
-          </button>
+        <div className="header-actions">
+          {isHome && (
+            <button className="icon-btn" onClick={() => setShowAddModal(true)} aria-label="Нуусан товч">+</button>
+          )}
+          <button className="icon-btn" onClick={() => supabase.auth.signOut()} aria-label="Гарах">⎋</button>
         </div>
-      </header>
+      </div>
 
-      <nav className="flex overflow-x-auto gap-1 px-3 py-2 bg-white dark:bg-sidebg border-b border-slate-200 dark:border-bordercol">
-        {allowedItems.map((item) => {
-          const isActive = pathAfterHoa === item.path || pathAfterHoa.startsWith(item.path + '/');
-          return (
-            <button
-              key={item.key}
-              onClick={() => navigate(`/${hoaId}${item.path}`)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors ${
-                isActive ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-mutedtext hover:bg-slate-100 dark:hover:bg-appbg'
-              }`}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
+      <div className="content-body">{mainContent}</div>
 
-      <main className="p-3">{content}</main>
+      {comingSoonTitle && (
+        <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && setComingSoonTitle(null)}>
+          <div className="qpay-modal">
+            <div className="add-tile-title">{comingSoonTitle}</div>
+            <div className="pool-empty" style={{ padding: '10px 0 20px' }}>Энэ модуль түн удахгүй нэмэгдэнэ.</div>
+            <button className="login-btn" onClick={() => setComingSoonTitle(null)}>Хаах</button>
+          </div>
+        </div>
+      )}
 
-      <div className="text-center text-[10px] text-darktext py-3">© 2026 Integrated Systems</div>
+      <div className="tab-bar-wrap">
+        <TabBar
+          tabs={TABS}
+          active={TABS.findIndex((t) => t.key === bottomTab)}
+          onChange={(idx) => handleTabChange(TABS[idx].key)}
+        />
+      </div>
     </div>
   );
 }
 
 function GateMessage({ icon, title }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center gap-2 py-16">
-      <div className="text-4xl">{icon}</div>
-      <div className="text-[14px] font-semibold text-slate-900 dark:text-white">{title}</div>
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <div style={{ fontSize: 40 }}>{icon}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, marginTop: 8 }}>{title}</div>
     </div>
+  );
+}
+
+function HomeIcon() {
+  return <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11h2.3v9.3h6V15h2.4v5.3h6V11h2.3z" /></svg>;
+}
+function PaymentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
+function ProfileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19a4 4 0 014-3h8a4 4 0 014 3" /><circle cx="12" cy="8" r="4" />
+    </svg>
   );
 }

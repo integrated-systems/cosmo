@@ -177,6 +177,7 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to={`/${rootTenantId}/dashboard`} replace />} />
       <Route path="/:hoaId" element={<TenantShell theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="userapp-profile" element={null} />
         <Route path="owners" element={<Owners />} />
         {/* restmarket СИСАДМИН (tenant-level) цэсэнд байгаа тул бусад СИСАДМИН
             модуль шиг RequireRole-гүй — зөвхөн SUPERSYSADMIN_TENANT_ITEMS +
