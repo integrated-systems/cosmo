@@ -18,8 +18,13 @@
 // босоо тэнхлэгийн дагуу яг нэг шугаманд байрлуулав (padding-top 22px =
 // Topbar 50px-ийн ард content-wrap-ийн p-2.5(10px)+.ds-toolbar-ийн
 // p-3(12px) = toolbar доторх select-ийн яг тэр өндөртэй тааруулсан).
+// 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: үмнв нь ЗвВХвН
+// SUPERSYSADMIN үед л үзүүлдэг байсан тул, нэг tenant_admin 2+ tenant-д
+// эрхтэй болсон ч switcher ОГТ гарч ирэхгүй байв (dropmires-ийн жишээгээр
+// олдсон бодит алдаа). Одоо SUPERSYSADMIN үргэлж, энгийн хэрэглэгч 1-ээс
+// олон tenant-д эрхтэй үед харагдана.
 export default function HoaSwitcher({ isSuperSysAdmin, value, onChange, tenants = [] }) {
-  if (!isSuperSysAdmin) return null;
+  if (!isSuperSysAdmin && tenants.length <= 1) return null;
 
   return (
     <div className="px-3 pt-[23px] pb-1">
