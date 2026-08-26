@@ -39,7 +39,12 @@ export default function Topbar({ theme, onToggleTheme }) {
   // match хийнэ.
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
   const current = ALL_ITEMS.find((i) => i.path === pathAfterHoa);
-  const title = current?.label || 'Хянах самбар';
+  // 2026-08-19: "Сонгууль, санал асуулга" хуудасны дэд route-үүд
+  // (/voting/new, /voting/:id/edit) яг таарахгүй тул үндсэн Voting
+  // цэсний гарчгийг ашиглана — vv нь тусдаа "Хянах самбар" хуудас
+  // БИШ, зүгээр л үүний нэг хэсэг.
+  const votingItem = ALL_ITEMS.find((i) => i.path === '/voting');
+  const title = current?.label || (pathAfterHoa.startsWith('/voting') ? votingItem?.label : null) || 'Хянах самбар';
 
   return (
     <header className="h-[50px] bg-white dark:bg-appbg border-b border-slate-200 dark:border-bordercol

@@ -17,6 +17,15 @@ const TYPES = [
   { key: 'discussion', label: 'Хэлэлцүүлэг', subtitle: 'Сэдэв хэлэлцэх' },
 ];
 
+// 2026-08-19 хэрэглэгч тодорхой заасны дагуу: сонгосон төрлөөс хамаарч
+// "Гарчиг" талбарын жишээ (placeholder) текст солигдоно.
+const TITLE_PLACEHOLDER = {
+  poll: 'Жиш: Санал асуулга - 2026/10 сар',
+  rating: 'Жиш: Үнэлгээ - 2026/10 сар',
+  election: 'Жиш: Сонгууль - 2026/10 сар',
+  discussion: 'Жиш: Хэлэлцүүлэг - 2026/10 сар',
+};
+
 function toDatetimeLocal(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -184,11 +193,11 @@ export default function VotingEditPage() {
 
         <div className="mb-3.5">
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гарчиг</label>
-          <input className="ds-input w-full" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Жиш: СүХ-ны Бүх гишүүдийн хурал - 2026, Санал асуулга - 2026/03" />
+          <input className="ds-input w-full" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={TITLE_PLACEHOLDER[type]} />
         </div>
 
         <div className="mb-3.5">
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар (заавал биш)</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
           <textarea className="ds-input w-full min-h-[80px]" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Санал хураалт, санал асуулгын зорилго, тайлбар" />
         </div>
 
