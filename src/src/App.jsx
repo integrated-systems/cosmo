@@ -48,24 +48,39 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   // машины дугаар бүртгүулэх/сонгуульд оролцох)-д зориулагдсан — энэ
   // үндсэн апп (менежерийн систем) руу нэвтрэх ЭРХ БИШ. Резидент апп
   // хараахан бүтээгдээгүй, харин access_rules матриц "owner" ролийг ОГТ
-  // хамардаггүй тул (STAFF_ROLES-д ороогvй) энэ роль үүсгэгдвэл үнэн
+  // хамардаггүй тул (STAFF_ROLES-д ороогүй) энэ роль үүсгэгдвэл үнэн
   // хэрэгтээ ХЯЗГААРГүЙ хандалт олж, аюулгүй байдлын цоорхой үүсгэдэг
   // байсныг олж, урьдчилан хамгаалж (одоогоор ямар ч owner акаунт
   // үүсгэгдээгүй үе) энэ gate-ийг нэмэв.
   const [isOwnerRole, setIsOwnerRole] = useState(false);
+  // 2026-08-19 хэрэглэгчтэй тохиролцсон засвар: "Хэрэглэгчийн удирдлага"
+  // хуудасны "Идэвхтэй/Идэвхгүй" товч ЗӨВХӨН зүгээр л үзүүлэлт байсан,
+  // бодит хандалтыг ХЭЗЭЭ Ч хязгаарладаггүй ЦООРХОЙ байв (идэвхгүй
+  // болгосон хүн hараахан бүрэн нэвтэрч чаддаг байсан). Одоо тэдгээр хүн
+  // ЭНЭ хуудсаар (Layout gate) блоклогдоно.
+  const [isDeactivated, setIsDeactivated] = useState(false);
 
   useEffect(() => {
-    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); return; }
+    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); setIsDeactivated(false); return; }
     let cancelled = false;
     supabase.from('user_roles').select('role').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
       if (cancelled) return;
       const rolesHere = (data ?? []).map((r) => r.role);
       setIsOwnerRole(rolesHere.length > 0 && rolesHere.every((r) => r === 'owner'));
     });
+    supabase.from('tenant_users').select('status').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
+      if (cancelled) return;
+      const rows = data ?? [];
+      // Хэрэв тухайн хүн энэ tenant-д tenant_users мвртэй, БүГД нь
+      // 'inactive' бол блоклоно (mвр байхгүй бол — жиш tenant_admin
+      // үүсгэсэн даруй, hараахан tenant_users мвртэй болоогүй байж
+      // болзошгүй үе — блокгүй, аюулгүй тал руу нь үлдээнэ).
+      setIsDeactivated(rows.length > 0 && rows.every((r) => r.status === 'inactive'));
+    });
     return () => { cancelled = true; };
   }, [hoaId, isSuperSysAdmin, user]);
 
-  // 2026-08-19 хэрэглэгчтэй тохиролцсон архитектур: "Хүлээн зөвшөөргvл"
+  // 2026-08-19 хэрэглэгчтэй тохиролцсон архитектур: "Хүлээн зөвшөөргүл"
   // (approval_status) БОЛОН "Төлбөрийн статус" (status) хоёрыг бүрэн
   // ТУСГААРЛАВ. Энэ gate ЗөВХөН approval_status='pending'/'rejected'
   // үед л дурын хуудсыг блоклоно — status (trial/active/suspended/
@@ -94,7 +109,12 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
 
         <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
-          {isOwnerRole ? (
+          {isDeactivated ? (
+            <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
+              <div className="text-4xl">🚫</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
+            </div>
+          ) : isOwnerRole ? (
             <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
               <div className="text-4xl">🚫</div>
               <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>

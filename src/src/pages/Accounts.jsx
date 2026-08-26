@@ -9,6 +9,7 @@ import { SearchIcon, EyeIcon, EyeOffIcon, EditIcon, DeleteIcon } from '../compon
 import Modal from '../components/Modal';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { formatUnitCode } from '../lib/ownersFormat';
+import { useAuth } from '../lib/AuthContext';
 
 // "Хэрэглэгчийн удирдлага" (/accounts) — 2026-08-19 хэрэглэгчийн
 // screenshot-оор өгсөн бүтэц. 2026-08-19 (2-р засвар): нууц үг
@@ -159,6 +160,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
 export default function Accounts() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { can } = useAccessRules(hoaId);
+  const { user } = useAuth();
   const { confirm, ConfirmDialog } = useConfirm();
   const { alert, AlertDialog } = useAlert();
   const [rows, setRows] = useState([]);
@@ -222,10 +224,17 @@ export default function Accounts() {
     setEditing(null);
   }
 
+  // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: admin ролийг энд солих
+  // боломжгүй (зввгүар Reassign үйлдлээр — user_roles-ийг ч мвн зввгүй
+  // hамт вврчилдэг). Мвн хэн ч (admin ч гэсэн) вврийн мврийг идэвхгүй
+  // болгож чадахгүй — санамсаргүй вврийгвв түгжихээс сэргийлнэ.
   async function handleToggleStatus(row) {
+    if (row.role === 'admin') return;
+    if (row.user_id === user?.id) return;
     const status = row.status === 'active' ? 'inactive' : 'active';
     const { error } = await supabase.from('tenant_users').update({ status }).eq('id', row.id);
     if (error) { alert(error.message); return; }
+    supabase.rpc('log_audit_event', { p_tenant_id: hoaId, p_action: status === 'inactive' ? 'deactivate_user' : 'activate_user', p_target_name: row.fullname });
     setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, status } : r)));
   }
 
@@ -270,7 +279,9 @@ export default function Accounts() {
                   <td>
                     <button
                       onClick={() => handleToggleStatus(r)}
-                      className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                      disabled={r.role === 'admin' || r.user_id === user?.id}
+                      title={r.role === 'admin' ? 'Admin ролийг Tenant Status хуудсаас "Reassign" хийж солино' : r.user_id === user?.id ? 'өөрийгөө идэвхгүй болгох боломжгүй' : ''}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border disabled:opacity-50 disabled:cursor-not-allowed ${
                         r.status === 'active'
                           ? 'text-customGreen border-customGreen/30 bg-customGreen/10'
                           : 'text-customRed border-customRed/30 bg-customRed/10'
