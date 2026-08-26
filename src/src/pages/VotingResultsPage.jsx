@@ -65,10 +65,10 @@ export default function VotingResultsPage() {
         <div className="text-[11px] text-mutedtext mb-3">
           {TYPE_LABELS[poll.type] || poll.type} · {formatDateTime(poll.start_at)} — {formatDateTime(poll.end_at)}
         </div>
-        {poll.description && <div className="text-[13px] text-slate-700 dark:text-text mb-2">{poll.description}</div>}
+        {poll.description && poll.type !== 'discussion' && <div className="text-[13px] text-slate-700 dark:text-text mb-2">{poll.description}</div>}
       </div>
 
-      {(poll.type === 'poll' || poll.type === 'rating' || poll.type === 'discussion') && (
+      {(poll.type === 'poll' || poll.type === 'rating') && (
         <div className="ds-card p-4">
           <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Асуултууд</div>
           {questions.length === 0 && <div className="text-[12px] text-mutedtext">Асуулт алга</div>}
@@ -76,14 +76,25 @@ export default function VotingResultsPage() {
             {questions.map((q) => (
               <div key={q.id} className="border border-slate-200 dark:border-bordercol rounded-lg p-3">
                 <div className="text-[13px] font-medium text-slate-800 dark:text-text mb-2">{q.question_text}</div>
-                <div className="flex flex-col gap-1">
-                  {(q.options || []).map((opt, idx) => (
-                    <div key={idx} className="text-[12px] text-mutedtext pl-3">• {opt}</div>
-                  ))}
-                </div>
+                {poll.type === 'rating' ? (
+                  <div className="pl-3 text-[20px] leading-none text-amber-400 select-none">★★★★★</div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    {(q.options || []).map((opt, idx) => (
+                      <div key={idx} className="text-[12px] text-mutedtext pl-3">• {opt}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {poll.type === 'discussion' && (
+        <div className="ds-card p-4">
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-2">Асуудал</div>
+          <div className="text-[13px] text-slate-700 dark:text-text">{poll.description || '—'}</div>
         </div>
       )}
 

@@ -68,6 +68,13 @@ export default function VotingEditPage() {
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
 
+  // 2026-08-19 хэрэглэгч тодорхой заасны дагуу: "Нэр дэвшигчийн нэр"
+  // талбарт бичиж эхэлмэгц "Сууц вмчлвгч бүртгэл" хүснэгэлээс тохирох
+  // нэр (эхний үсгээр таарсан) autocomplete-ээр санал болгоно —
+  // Accounts.jsx-ийн AddUserModal-той ижил зарчим.
+  const [owners, setOwners] = useState([]);
+  const [suggestFor, setSuggestFor] = useState(null); // { council, id }
+
   useEffect(() => {
     if (!isEditing) return;
     (async () => {
@@ -101,6 +108,13 @@ export default function VotingEditPage() {
     })();
   }, [isEditing, pollId]);
 
+  useEffect(() => {
+    if (type !== 'election' || !hoaId || owners.length > 0) return;
+    supabase.from('owners').select('id,firstname,lastname').eq('tenant_id', hoaId).then(({ data }) => {
+      setOwners(data ?? []);
+    });
+  }, [type, hoaId, owners.length]);
+
   function addQuestion() {
     setQuestions((qs) => [...qs, { id: genId(), question_text: '', options: [''] }]);
   }
@@ -131,6 +145,10 @@ export default function VotingEditPage() {
   function removeCandidate(council, id) {
     const setter = council === 'board' ? setBoardCandidates : setSupervisoryCandidates;
     setter((cs) => cs.filter((c) => c.id !== id));
+  }
+  function pickOwnerForCandidate(council, id, owner) {
+    updateCandidate(council, id, `${owner.firstname || ''} ${owner.lastname || ''}`.trim());
+    setSuggestFor(null);
   }
 
   async function handleSave(targetStatus) {
@@ -168,11 +186,11 @@ export default function VotingEditPage() {
       currentPollId = data.id;
     }
 
-    if (type === 'poll' || type === 'rating' || type === 'discussion') {
+    if (type === 'poll' || type === 'rating') {
       const rows = questions.filter((q) => q.question_text.trim()).map((q, idx) => ({
         poll_id: currentPollId,
         question_text: q.question_text.trim(),
-        options: q.options.filter((o) => o.trim()),
+        options: type === 'rating' ? ['1', '2', '3', '4', '5'] : q.options.filter((o) => o.trim()),
         order_index: idx,
       }));
       if (rows.length > 0) {
@@ -252,7 +270,7 @@ export default function VotingEditPage() {
         </div>
       </div>
 
-      {(type === 'poll' || type === 'rating' || type === 'discussion') && (
+      {(type === 'poll' || type === 'rating') && (
         <div className="ds-card p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-[13px] font-semibold text-slate-900 dark:text-white">Асуултууд</span>
@@ -269,20 +287,43 @@ export default function VotingEditPage() {
                   />
                   <button className="ds-icon-btn danger shrink-0" onClick={() => removeQuestion(q.id)}><DeleteIcon /></button>
                 </div>
-                <div className="flex flex-col gap-1.5 pl-3">
-                  {q.options.map((opt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        className="ds-input w-full text-[12px]" placeholder={`Сонголт ${idx + 1}`}
-                        value={opt} onChange={(e) => updateOption(q.id, idx, e.target.value)}
-                      />
-                      <button className="ds-icon-btn danger shrink-0" onClick={() => removeOption(q.id, idx)}><DeleteIcon /></button>
-                    </div>
-                  ))}
-                  <button className="text-[11px] text-customBlue self-start mt-1" onClick={() => addOption(q.id)}>+ Сонголт нэмэх</button>
-                </div>
+                {type === 'rating' ? (
+                  <div className="flex items-center gap-1 pl-3 text-[22px] leading-none text-amber-400 select-none" title="5 хошуу үнэлгээ">
+                    {'★★★★★'.split('').map((s, i2) => <span key={i2}>{s}</span>)}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5 pl-3">
+                    {q.options.map((opt, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          className="ds-input w-full text-[12px]" placeholder={`Сонголт ${idx + 1}`}
+                          value={opt} onChange={(e) => updateOption(q.id, idx, e.target.value)}
+                        />
+                        <button className="ds-icon-btn danger shrink-0" onClick={() => removeOption(q.id, idx)}><DeleteIcon /></button>
+                      </div>
+                    ))}
+                    <button className="text-[11px] text-customBlue self-start mt-1" onClick={() => addOption(q.id)}>+ Сонголт нэмэх</button>
+                  </div>
+                )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {type === 'discussion' && (
+        <div className="ds-card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-[11px] text-slate-500 dark:text-mutedtext">Асуудал</label>
+            <span className="text-[10px] text-mutedtext">{description.length}/220</span>
+          </div>
+          <textarea
+            className="ds-input w-full min-h-[90px]" maxLength={220}
+            value={description} onChange={(e) => setDescription(e.target.value)}
+            placeholder="Хэлэлцүүлэх асуудлыг товч, тодорхой бичнэ уу (хэд хэдэн өгүүлбэр, 220 тэмдэгтээс хэтрэхгүй)"
+          />
+          <div className="text-[10px] text-mutedtext mt-2">
+            Сууц вмчлвгч бүр нэг удаа, 220 тэмдэгтээс хэтрэхгүй саналаа бичих боломжтой болно (OwnerApp бүтээгдсэний дараа идэвхжинэ).
           </div>
         </div>
       )}
@@ -309,15 +350,38 @@ export default function VotingEditPage() {
                 </div>
                 {col.cands.length === 0 && <div className="text-[12px] text-mutedtext">Нэр дэвшигч нэмээгүй байна</div>}
                 <div className="flex flex-col gap-1.5">
-                  {col.cands.map((c) => (
-                    <div key={c.id} className="flex items-center gap-2">
-                      <input
-                        className="ds-input w-full" placeholder="Нэр дэвшигчийн нэр"
-                        value={c.fullname} onChange={(e) => updateCandidate(col.key, c.id, e.target.value)}
-                      />
-                      <button className="ds-icon-btn danger shrink-0" onClick={() => removeCandidate(col.key, c.id)}><DeleteIcon /></button>
-                    </div>
-                  ))}
+                  {col.cands.map((c) => {
+                    const q = c.fullname.trim().toLowerCase();
+                    const matches = q
+                      ? owners.filter((o) => `${o.firstname || ''} ${o.lastname || ''}`.toLowerCase().startsWith(q) || (o.lastname || '').toLowerCase().startsWith(q)).slice(0, 10)
+                      : [];
+                    const isOpen = suggestFor && suggestFor.council === col.key && suggestFor.id === c.id;
+                    return (
+                      <div key={c.id} className="relative flex items-center gap-2">
+                        <input
+                          className="ds-input w-full" placeholder="Нэр дэвшигчийн нэр"
+                          value={c.fullname}
+                          onChange={(e) => { updateCandidate(col.key, c.id, e.target.value); setSuggestFor({ council: col.key, id: c.id }); }}
+                          onFocus={() => setSuggestFor({ council: col.key, id: c.id })}
+                          onBlur={() => setTimeout(() => setSuggestFor(null), 150)}
+                        />
+                        <button className="ds-icon-btn danger shrink-0" onClick={() => removeCandidate(col.key, c.id)}><DeleteIcon /></button>
+                        {isOpen && q && matches.length > 0 && (
+                          <div className="absolute z-50 top-full left-0 right-9 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol rounded-lg shadow-lg p-1">
+                            {matches.map((o) => (
+                              <button
+                                key={o.id} type="button"
+                                onMouseDown={() => pickOwnerForCandidate(col.key, c.id, o)}
+                                className="block w-full text-left px-2 py-1.5 text-[12px] rounded hover:bg-slate-100 dark:hover:bg-appbg text-slate-900 dark:text-white"
+                              >
+                                {o.firstname} {o.lastname}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="text-[10px] text-mutedtext mt-2">"Аль нь ч биш" сонголт автоматаар нэмэгдэнэ.</div>
               </div>
