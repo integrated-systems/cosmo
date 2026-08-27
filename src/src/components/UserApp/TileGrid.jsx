@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 // 2026-08-19: userapp-react (the2m26/suh) прожектийн TileGrid.jsx-ийн
 // UI/UX-ыг (удаан дарж нуух, badge тоолуур, "нуусан товч сэргээх" модаль)
 // Cosmo-ийн бодит эрхийн системтэй (useAccessRules+userapp_config, UserApp.jsx-д
-// аль хэдийн дуудагдсан) hолбож дасан зохицуулав. Үвр Supabase project/схем
+// аль хэдийн дуудагдсан) холбож дасан зохицуулав. Үвр Supabase project/схем
 // (get_my_permissions RPC, settings хүснэгэл)-ийг ОГТ ашиглахгүй.
 const HIDDEN_TILES_KEY = 'cosmo_userapp_hidden_tiles';
 function getHiddenTiles() {
@@ -14,7 +14,7 @@ function setHiddenTilesStorage(set) { localStorage.setItem(HIDDEN_TILES_KEY, JSO
 
 const LONG_PRESS_MS = 500;
 
-function Tile({ tile, showHideBtn, onOpen, onLongPress, onHide, badgeCount = 0 }) {
+function Tile({ tile, wide, showHideBtn, onOpen, onLongPress, onHide, badgeCount = 0 }) {
   const timerRef = useRef(null);
   const firedRef = useRef(false);
   function onDown() {
@@ -27,12 +27,15 @@ function Tile({ tile, showHideBtn, onOpen, onLongPress, onHide, badgeCount = 0 }
     onOpen();
   }
   return (
-    <div className="tile" onClick={onClick} onPointerDown={onDown} onPointerUp={onUp} onPointerLeave={onUp}
+    <div className={`tile${wide ? ' wide' : ''}`} onClick={onClick} onPointerDown={onDown} onPointerUp={onUp} onPointerLeave={onUp}
       onContextMenu={(e) => e.preventDefault()}>
       {showHideBtn && <button className="tile-hide-btn" onClick={onHide} aria-label="Нуух">✕</button>}
       {badgeCount > 0 && <span className="tile-count-badge">{badgeCount}</span>}
-      <div className="tile-label">{tile.label}</div>
-      <div className="tile-status">Нээлттэй</div>
+      <div>
+        <div className="tile-label">{tile.label}</div>
+        <div className="tile-status">Нээлттэй</div>
+      </div>
+      {wide && <span style={{ color: 'var(--text-secondary)', fontSize: 18 }}>›</span>}
     </div>
   );
 }
@@ -62,11 +65,18 @@ export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddMo
   return (
     <div onClick={() => showHideBtnFor && setShowHideBtnFor(null)}>
       <div className="tile-grid">
-        {shown.map((t) => (
-          <Tile key={t.key} tile={t} showHideBtn={showHideBtnFor === t.key}
-            onOpen={() => onOpenTile(t)} onLongPress={() => setShowHideBtnFor(t.key)}
-            onHide={(e) => hideTile(e, t.key)} badgeCount={t.key === 'news' ? newsUnreadCount : 0} />
-        ))}
+        {shown.map((t) => {
+          const badgeCount = t.key === 'news' ? newsUnreadCount : 0;
+          // 2026-08-27: Bento дэлгэц (variant 1, хэрэглэгчийн сонгосон
+          // хувилбар) — Мессенжер (хамгийн их хэрэглэдэг) үргэлж өргөн,
+          // мвн шинэ зүйлтэй (badge) tile анхаарал татахын тулд өргөн.
+          const wide = t.key === 'msgr' || badgeCount > 0;
+          return (
+            <Tile key={t.key} tile={t} wide={wide} showHideBtn={showHideBtnFor === t.key}
+              onOpen={() => onOpenTile(t)} onLongPress={() => setShowHideBtnFor(t.key)}
+              onHide={(e) => hideTile(e, t.key)} badgeCount={badgeCount} />
+          );
+        })}
       </div>
       {showAddModal && (
         <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && onCloseAddModal()}>

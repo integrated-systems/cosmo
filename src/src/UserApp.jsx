@@ -10,6 +10,7 @@ import { MENU_SECTIONS } from './config/menu';
 import TileGrid from './components/UserApp/TileGrid';
 import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
+import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
@@ -157,12 +158,15 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <div className="pool-empty">Ачаалж байна...</div>;
   } else if (isHome) {
     mainContent = (
-      <TileGrid
-        items={allowedItems}
-        onOpenTile={handleOpenTile}
-        showAddModal={showAddModal}
-        onCloseAddModal={() => setShowAddModal(false)}
-      />
+      <>
+        <HeroQuorumCard hoaId={hoaId} />
+        <TileGrid
+          items={allowedItems}
+          onOpenTile={handleOpenTile}
+          showAddModal={showAddModal}
+          onCloseAddModal={() => setShowAddModal(false)}
+        />
+      </>
     );
   } else if (pathAfterHoa.startsWith('/userapp-dashboard')) {
     mainContent = <OwnerDashboard hoaId={hoaId} />;
