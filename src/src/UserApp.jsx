@@ -10,6 +10,7 @@ import { MENU_SECTIONS } from './config/menu';
 import TileGrid from './components/UserApp/TileGrid';
 import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
+import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
 // hex өнгийг хар/цагаан руу шугаман хольж тодорхой хувиар харлуулах/
@@ -42,7 +43,7 @@ function tintHex(hex, tint) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -128,7 +129,12 @@ export default function UserApp({ theme, onToggleTheme }) {
     : false;
 
   function handleOpenTile(item) {
-    if (BUILT_PAGE_KEYS.includes(item.key)) {
+    if (item.key === 'dashboard') {
+      // Dashboard: admin талын /dashboard-той ОГТ өөр (энгийн статик)
+      // компонент тул shared route биш, /userapp-dashboard тусдаа
+      // зам ашиглана (мвн адил зарчмаар /userapp-profile).
+      navigate(`/${hoaId}/userapp-dashboard`);
+    } else if (BUILT_PAGE_KEYS.includes(item.key)) {
       navigate(`/${hoaId}${item.path}`);
     } else {
       setComingSoonTitle(item.label);
@@ -158,6 +164,8 @@ export default function UserApp({ theme, onToggleTheme }) {
         onCloseAddModal={() => setShowAddModal(false)}
       />
     );
+  } else if (pathAfterHoa.startsWith('/userapp-dashboard')) {
+    mainContent = <OwnerDashboard hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile
