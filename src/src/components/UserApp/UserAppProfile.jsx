@@ -1,13 +1,15 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { DEFAULT_TENANT_ID } from '../../config/tenant';
 
 // 2026-08-19: резидентийн энгийн Профайл хуудас — the2m26/suh-ийн
-// settings-list/settings-row дизайныг ашиглав. Үвр төслийн Push
-// notification/background-тохиргоо зэрэг НАРИЙВЧЛАЛТАЙ хэсгүүдийг ОДООГООР
-// оруулаагүй (Cosmo-д тэдгээрийн backend байхгүй) — зүгээр l үндсэн
-// self-service нууц үг солих боломж (аль хэдийн admin талд ProfileModal.jsx-д
-// баталгаажсан адил зарчим: имэйл солих боломжгүй, зввгүар нууц үг).
+// settings-list/settings-row дизайныг ашиглав.
+// 2026-08-27: Push notification тохиргоо (дэвшилтэт зүйл #7) нэмэв.
 export default function UserAppProfile({ user, theme, onToggleTheme }) {
+  const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { supported: pushSupported, subscribed, subscribe, unsubscribe } = usePushNotifications(hoaId);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -45,6 +47,17 @@ export default function UserAppProfile({ user, theme, onToggleTheme }) {
             {theme === 'dark' ? '🌙 Харанхүй' : '☀️ Цайвар'}
           </button>
         </div>
+        {pushSupported && (
+          <div className="settings-row">
+            <span>Мэдэгдэл (Push)</span>
+            <button
+              className="settings-toggle-dot" style={{ position: 'static', background: 'none', width: 'auto', height: 'auto' }}
+              onClick={subscribed ? unsubscribe : subscribe}
+            >
+              {subscribed ? '🔔 Идэвхтэй' : '🔕 Идэвхжүүлэх'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="section-title" style={{ marginTop: 18 }}>Нууц үг солих</div>

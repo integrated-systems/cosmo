@@ -59,6 +59,7 @@ export default function VotingEditPage() {
   const [isSecret, setIsSecret] = useState(true);
   const [showLive, setShowLive] = useState(true);
   const [quorumPercent, setQuorumPercent] = useState(50);
+  const [useWeightedVoting, setUseWeightedVoting] = useState(false);
   const [boardVotesAllowed, setBoardVotesAllowed] = useState(1);
   const [supervisoryVotesAllowed, setSupervisoryVotesAllowed] = useState(1);
 
@@ -100,6 +101,7 @@ export default function VotingEditPage() {
         setBoardVotesAllowed(poll.board_votes_allowed ?? 1);
         setSupervisoryVotesAllowed(poll.supervisory_votes_allowed ?? 1);
         setQuorumPercent(poll.quorum_percent ?? 50);
+        setUseWeightedVoting(poll.use_weighted_voting || false);
       }
       const { data: qs } = await supabase.from('voting_questions').select('*').eq('poll_id', pollId).order('order_index');
       setQuestions((qs ?? []).map((q) => ({ id: q.id, question_text: q.question_text, options: q.options || [] })));
@@ -178,6 +180,7 @@ export default function VotingEditPage() {
       board_votes_allowed: boardVotesAllowed,
       supervisory_votes_allowed: supervisoryVotesAllowed,
       quorum_percent: quorumPercent,
+      use_weighted_voting: useWeightedVoting,
       status: targetStatus,
     };
 
@@ -296,6 +299,10 @@ export default function VotingEditPage() {
               type="number" min="0" max="100" className="ds-input w-[70px] !py-1"
               value={quorumPercent} onChange={(e) => setQuorumPercent(Number(e.target.value) || 0)}
             />
+          </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-slate-700 dark:text-text cursor-pointer">
+            <input type="checkbox" checked={useWeightedVoting} onChange={(e) => setUseWeightedVoting(e.target.checked)} />
+            Эзэмшлийн хувиар (м²) жинлэх
           </label>
         </div>
       </div>

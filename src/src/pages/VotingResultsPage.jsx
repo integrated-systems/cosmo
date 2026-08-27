@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../lib/AuthContext';
 import { useAccessRules } from '../hooks/useAccessRules';
@@ -51,13 +52,13 @@ function StarInput({ value, onChange, readOnly }) {
   );
 }
 
-function ResultBar({ label, count, total, highlight }) {
+function ResultBar({ label, count, total, highlight, unit = '' }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <div>
       <div className="flex items-center justify-between text-[12px] mb-1">
         <span className={highlight ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-text'}>{label}</span>
-        <span className="text-mutedtext">{count} · {pct}%</span>
+        <span className="text-mutedtext">{count}{unit} · {pct}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 dark:bg-bordercol overflow-hidden">
         <div className="h-full bg-customBlue" style={{ width: `${pct}%` }} />
@@ -83,6 +84,13 @@ export default function VotingResultsPage() {
   const [notFound, setNotFound] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState(null); // get_voting_results() JSON
+  const [turnoutDetail, setTurnoutDetail] = useState(null);
+  const [showTurnoutDetail, setShowTurnoutDetail] = useState(false);
+  const [receiptCode, setReceiptCode] = useState(null);
+  const [receiptQrUrl, setReceiptQrUrl] = useState(null);
+  const [showReceiptCheck, setShowReceiptCheck] = useState(false);
+  const [checkCodeInput, setCheckCodeInput] = useState('');
+  const [checkResult, setCheckResult] = useState(null);
   const [resultsLoading, setResultsLoading] = useState(false);
 
   // Owner-ий одоогоор бөглөж буй (илгээгээгүй) хариултууд
@@ -90,6 +98,7 @@ export default function VotingResultsPage() {
   const [ratingAnswers, setRatingAnswers] = useState({}); // {question_id: 1-5}
   const [electionSelections, setElectionSelections] = useState({ board: [], supervisory_board: [] }); // candidate_id[] эсвэл 'NONE'
   const [discussionText, setDiscussionText] = useState('');
+  const realtimeChannelRef = useRef(null);
 
   async function loadAll() {
     setLoading(true);
@@ -120,16 +129,54 @@ export default function VotingResultsPage() {
     setResultsLoading(false);
   }
 
+  async function loadTurnoutDetail() {
+    if (turnoutDetail) { setShowTurnoutDetail((s) => !s); return; }
+    const { data, error } = await supabase.rpc('get_voting_turnout_detail', { p_poll_id: pollId });
+    if (!error) { setTurnoutDetail(data); setShowTurnoutDetail(true); }
+  }
+
   useEffect(() => { loadAll(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [pollId, user?.id]);
+
+  useEffect(() => {
+    // 2026-08-27: Realtime тоолуур (дэвшилтэт зүйл #4) — RLS нь
+    // voting_responses-ийг зөвхөн ӨӨРИЙН мөрөөр хязгаарладаг тул
+    // Supabase-ийн стандарт "postgres_changes" бүртгэл (өөр хүний INSERT
+    // мврийг ил гаргана) ЭНД тохирохгүй (нууцлалыг зөрчинэ). Оронд нь
+    // зүгээр л "ямар нэг санал орж ирлээ" гэсэн агуулгагүй "broadcast"
+    // дохио ашиглаж, хүлээн авагч бүр өөрийн эрхээрээ get_voting_results()
+    // RPC-г дахин дуудна — ингэснээр хэн ямар сонголт хийснийг ил
+        // гаргахгүйгээр л тоолуур шууд шинэчлэгдэнэ.
+    if (!pollId) return;
+    const channel = supabase.channel(`voting-poll-${pollId}`);
+    channel.on('broadcast', { event: 'vote_cast' }, () => { loadResults(); }).subscribe();
+    realtimeChannelRef.current = channel;
+    return () => { supabase.removeChannel(channel); realtimeChannelRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pollId]);
+
+  function broadcastVoteCast() {
+    realtimeChannelRef.current?.send({ type: 'broadcast', event: 'vote_cast', payload: {} });
+  }
+
+  async function issueReceipt() {
+    // 2026-08-27, дэвшилтэт зүйл #8 — санал өгсний баталгаажуулах
+    // баримт. Ганц удаа үүсэж, дараа дахин дуудвал ЯГ ХУУЧИН кодоо
+    // буцаана (нэг poll-д нэг л баримт, санал бүрийг тус тусад нь биш).
+    const { data: code, error } = await supabase.rpc('get_or_create_voting_receipt', { p_poll_id: pollId });
+    if (error || !code) return;
+    setReceiptCode(code);
+    try {
+      const url = await QRCode.toDataURL(code, { width: 180, margin: 1 });
+      setReceiptQrUrl(url);
+    } catch { /* QR үүсгэхэд алдаа гарвал зүгээр кодыг текстээр үзүүлнэ */ }
+  }
 
   const now = new Date();
   const notStarted = !!(poll?.start_at && now < new Date(poll.start_at));
-  // 2026-08-20: цаг хугацаа дуусмагц статус автоматаар "closed" болдоггүй
-  // (энэ үүргийг гүйцэтгэх cron одоогоор үүсээгүй, msgr auto-delete
-  // cron-той адил ирээдүйн ажлын жагсаалтад нэмэх санал болгож байна) —
-  // тул frontend талд цагаар нь бас шалгаж, хугацаа дууссан бол
-  // санал авахаа зогсооно (voting_responses INSERT RLS-д ч мөн адил
-  // цагийн хамгаалалт бий, тул энэ давхар хамгаалалт).
+  // 2026-08-27: close_expired_polls() cron 15 минут тутам ажиллаж
+  // хугацаа дууссан "active" зүйлийг "closed" болгодог тул энэ давхар
+  // цагийн шалгалт нь зөвхөн тэр 15 минутын завсарлагааны хамгаалалт
+  // (voting_responses INSERT RLS-д ч мөн адил цагийн хамгаалалт бий).
   const timeEnded = !!(poll?.end_at && now > new Date(poll.end_at));
   const isOpenForVoting = poll?.status === 'active' && !notStarted && !timeEnded;
   const isOwnerViewer = !canEditPoll;
@@ -139,6 +186,14 @@ export default function VotingResultsPage() {
   const hasRespondedBoard = useMemo(() => myResponses.some((r) => r.council_type === 'board'), [myResponses]);
   const hasRespondedSupervisory = useMemo(() => myResponses.some((r) => r.council_type === 'supervisory_board'), [myResponses]);
   const hasRespondedDiscussion = useMemo(() => myResponses.some((r) => r.comment_text), [myResponses]);
+
+  useEffect(() => {
+    // Буцаж ирсэн (өмнө нь санал өгсөн) owner-д хуучин баримтаа дахин
+    // харуулна — get_or_create_voting_receipt() idempotent тул зүгээр
+    // хуучин кодоо буцаана, шинээр үүсгэхгүй.
+    if (isOwnerViewer && myResponses.length > 0 && !receiptCode) issueReceipt();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myResponses, isOwnerViewer]);
 
   useEffect(() => {
     // 2026-08-27: Кворум/оролцооны тоо (turnout) нь хэний ямар сонголт
@@ -189,6 +244,8 @@ export default function VotingResultsPage() {
     setSubmitting(false);
     if (error) { alert(error.message); return; }
     await loadAll();
+    broadcastVoteCast();
+    issueReceipt();
   }
 
   async function submitElectionCouncil(council) {
@@ -213,6 +270,8 @@ export default function VotingResultsPage() {
     }
     setSubmitting(false);
     await loadAll();
+    broadcastVoteCast();
+    issueReceipt();
   }
 
   async function submitDiscussion() {
@@ -229,6 +288,8 @@ export default function VotingResultsPage() {
     if (error) { alert(error.message); return; }
     setDiscussionText('');
     await loadAll();
+    broadcastVoteCast();
+    issueReceipt();
   }
 
   if (loading) return <div className="ds-card p-8 text-center text-darktext">Ачаалж байна...</div>;
@@ -238,8 +299,11 @@ export default function VotingResultsPage() {
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div>
+      <div className="flex items-center justify-between">
         <button className="ds-btn-secondary" onClick={() => navigate(`/${hoaId}/voting`)}>← Буцах</button>
+        {!isOwnerViewer && poll.status === 'closed' && (
+          <button className="ds-btn-secondary" onClick={() => navigate(`/${hoaId}/voting/${pollId}/protocol`)}>Албан ёсны протокол</button>
+        )}
       </div>
 
       <div className="ds-card p-4">
@@ -266,7 +330,7 @@ export default function VotingResultsPage() {
         <div className="ds-card p-4">
           <div className="flex items-center justify-between text-[12px] mb-1">
             <span className="text-slate-700 dark:text-text">
-              Оролцоо: <span className="font-semibold text-slate-900 dark:text-white">{results.turnout.responded_count} / {results.turnout.eligible_count}</span> ({results.turnout.turnout_percent}%)
+              Оролцоо: <span className="font-semibold text-slate-900 dark:text-white">{results.turnout.responded_count}{results.turnout.weighted ? ' м²' : ''} / {results.turnout.eligible_count}{results.turnout.weighted ? ' м²' : ''}</span> ({results.turnout.turnout_percent}%)
             </span>
             <span className={`font-semibold ${results.turnout.quorum_met ? 'text-customGreen' : 'text-orange-500'}`}>
               {results.turnout.quorum_met ? '✓ Кворум хүрсэн' : `Кворум хүрээгүй (${results.turnout.quorum_percent}%)`}
@@ -325,7 +389,7 @@ export default function VotingResultsPage() {
                     ) : (
                       <div className="flex flex-col gap-1.5 pl-3">
                         {(resultQ.options || []).map((o, idx) => (
-                          <ResultBar key={idx} label={o.option} count={o.count} total={resultQ.total_responses} />
+                          <ResultBar key={idx} label={o.option} count={o.count} total={resultQ.total_responses} unit={results?.turnout?.weighted ? ' м²' : ''} />
                         ))}
                       </div>
                     )
@@ -439,7 +503,7 @@ export default function VotingResultsPage() {
                     resultCouncil ? (
                       <div className="flex flex-col gap-2 mt-1">
                         {(resultCouncil.candidates || []).map((c) => (
-                          <ResultBar key={c.candidate_id} label={c.fullname} count={c.votes} total={totalVotes} highlight={c.fullname !== 'Аль нь ч биш'} />
+                          <ResultBar key={c.candidate_id} label={c.fullname} count={c.votes} total={totalVotes} highlight={c.fullname !== 'Аль нь ч биш'} unit={results?.turnout?.weighted ? ' м²' : ''} />
                         ))}
                       </div>
                     ) : (
@@ -454,6 +518,85 @@ export default function VotingResultsPage() {
       )}
 
       {resultsLoading && <div className="ds-card p-3 text-center text-[11px] text-mutedtext">Үр дүнг ачаалж байна...</div>}
+
+      {/* ============ САНАЛ ӨГСНИЙ БАТАЛГААЖУУЛАХ БАРИМТ (QR) ============ */}
+      {isOwnerViewer && receiptCode && (
+        <div className="ds-card p-4 text-center">
+          <div className="text-[12px] font-semibold text-slate-900 dark:text-white mb-2">✓ Таны санал бүртгэгдлээ — баталгаажуулах баримт</div>
+          {receiptQrUrl && <img src={receiptQrUrl} alt="QR баримт" className="mx-auto mb-2" width={140} height={140} />}
+          <div className="text-[11px] font-mono text-mutedtext break-all">{receiptCode}</div>
+          <div className="text-[10px] text-mutedtext mt-2">Энэ кодыг хадгална уу — дараа "Баримт шалгах" хэсэгт оруулж, таны санал бүртгэгдсэн эсэхийг ХЭН Ч (аль сонголтыг харуулахгүйгээр) баталгаажуулж болно.</div>
+        </div>
+      )}
+
+      <div className="ds-card p-4">
+        <button className="ds-btn-secondary !py-1 !px-2 text-[11px]" onClick={() => setShowReceiptCheck((s) => !s)}>
+          {showReceiptCheck ? 'Баримт шалгах хэсэг нуух' : 'Баримт шалгах'}
+        </button>
+        {showReceiptCheck && (
+          <div className="mt-3 flex flex-col gap-2 max-w-sm">
+            <div className="flex gap-2">
+              <input
+                className="ds-input w-full text-[12px]" placeholder="Баримтын код"
+                value={checkCodeInput} onChange={(e) => setCheckCodeInput(e.target.value)}
+              />
+              <button
+                className="ds-btn-primary shrink-0"
+                onClick={async () => {
+                  const { data } = await supabase.rpc('verify_voting_receipt', { p_receipt_code: checkCodeInput.trim() });
+                  setCheckResult(data);
+                }}
+              >
+                Шалгах
+              </button>
+            </div>
+            {checkResult && (
+              checkResult.valid ? (
+                <div className="text-[12px] text-customGreen">
+                  ✓ Баталгаажлаа — «{checkResult.poll_title}» санал асуулгад {formatDateTime(checkResult.recorded_at)} бүртгэгдсэн.
+                </div>
+              ) : (
+                <div className="text-[12px] text-customRed">✗ Ийм баримт олдсонгүй.</div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ============ ОРОЛЦООНЫ АДМИН DASHBOARD (зөвхөн staff) ============ */}
+      {!isOwnerViewer && (
+        <div className="ds-card p-4">
+          <button className="ds-btn-secondary !py-1 !px-2 text-[11px]" onClick={loadTurnoutDetail}>
+            {showTurnoutDetail ? 'Оролцооны жагсаалт нуух' : 'Оролцооны жагсаалт харах (хэн санал өгөөгүй)'}
+          </button>
+          {showTurnoutDetail && turnoutDetail && (
+            <div className="mt-3 max-h-80 overflow-y-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="text-left text-mutedtext border-b border-slate-200 dark:border-bordercol">
+                    <th className="py-1.5 pr-2">Байр/Тоот</th>
+                    <th className="py-1.5 pr-2">Нэр</th>
+                    <th className="py-1.5 text-right">Санал</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {turnoutDetail.map((o) => (
+                    <tr key={o.owner_id} className="border-b border-slate-100 dark:border-bordercol/50">
+                      <td className="py-1.5 pr-2 text-mutedtext">{[o.building_no, o.floor, o.door_no].filter(Boolean).join('-') || '—'}</td>
+                      <td className="py-1.5 pr-2">{o.fullname || '—'}</td>
+                      <td className="py-1.5 text-right">
+                        {o.has_voted
+                          ? <span className="text-customGreen font-semibold">✓ Өгсөн</span>
+                          : <span className="text-orange-500">Өгөөгүй</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
