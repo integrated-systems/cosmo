@@ -140,18 +140,17 @@ export default function VotingResultsPage() {
   const hasRespondedSupervisory = useMemo(() => myResponses.some((r) => r.council_type === 'supervisory_board'), [myResponses]);
   const hasRespondedDiscussion = useMemo(() => myResponses.some((r) => r.comment_text), [myResponses]);
 
-  const needsResults =
-    !isOwnerViewer ||
-    !isOpenForVoting ||
-    (poll?.type === 'discussion' && hasRespondedDiscussion) ||
-    ((poll?.type === 'poll' || poll?.type === 'rating') && hasRespondedAllQuestions) ||
-    (poll?.type === 'election' && (hasRespondedBoard || boardCandidates.length === 0) && (hasRespondedSupervisory || supervisoryCandidates.length === 0));
-
   useEffect(() => {
+    // 2026-08-27: Кворум/оролцооны тоо (turnout) нь хэний ямар сонголт
+    // хийснийг ил гаргадаггүй тул show_live_results-с үл хамааран
+    // үргэлж (санал өгч дуусаагүй үед ч) ачаалж, "хэдэн хүн санал
+    // өгснийг" харуулна — зөвхөн бодит үр дүнг (аль сонголт илүү гэдгийг)
+    // needsResults=false үед НУУНА (доорх render хэсэгт canAnswerThis/
+    // canVoteThis нөхцлүүдээр аль хэдийн хамгаалагдсан).
     if (!poll) return;
-    if (needsResults) loadResults();
+    loadResults();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [poll?.id, needsResults]);
+  }, [poll?.id]);
 
   function toggleCandidate(council, candId) {
     const limit = council === 'board' ? (poll.board_votes_allowed ?? 1) : (poll.supervisory_votes_allowed ?? 1);
@@ -261,6 +260,26 @@ export default function VotingResultsPage() {
           <div className="text-[12px] text-customRed">Санал хураалтын хугацаа дууссан байна.</div>
         )}
       </div>
+
+      {/* ============ КВОРУМ / ОРОЛЦОО ============ */}
+      {results?.turnout && (
+        <div className="ds-card p-4">
+          <div className="flex items-center justify-between text-[12px] mb-1">
+            <span className="text-slate-700 dark:text-text">
+              Оролцоо: <span className="font-semibold text-slate-900 dark:text-white">{results.turnout.responded_count} / {results.turnout.eligible_count}</span> ({results.turnout.turnout_percent}%)
+            </span>
+            <span className={`font-semibold ${results.turnout.quorum_met ? 'text-customGreen' : 'text-orange-500'}`}>
+              {results.turnout.quorum_met ? '✓ Кворум хүрсэн' : `Кворум хүрээгүй (${results.turnout.quorum_percent}%)`}
+            </span>
+          </div>
+          <div className="h-1.5 rounded-full bg-slate-200 dark:bg-bordercol overflow-hidden">
+            <div
+              className={`h-full ${results.turnout.quorum_met ? 'bg-customGreen' : 'bg-orange-400'}`}
+              style={{ width: `${Math.min(100, results.turnout.turnout_percent)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ============ POLL / RATING ============ */}
       {(poll.type === 'poll' || poll.type === 'rating') && (

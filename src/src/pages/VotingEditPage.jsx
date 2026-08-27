@@ -58,6 +58,7 @@ export default function VotingEditPage() {
   const [endAt, setEndAt] = useState('');
   const [isSecret, setIsSecret] = useState(true);
   const [showLive, setShowLive] = useState(true);
+  const [quorumPercent, setQuorumPercent] = useState(50);
   const [boardVotesAllowed, setBoardVotesAllowed] = useState(1);
   const [supervisoryVotesAllowed, setSupervisoryVotesAllowed] = useState(1);
 
@@ -98,6 +99,7 @@ export default function VotingEditPage() {
         setShowLive(poll.show_live_results);
         setBoardVotesAllowed(poll.board_votes_allowed ?? 1);
         setSupervisoryVotesAllowed(poll.supervisory_votes_allowed ?? 1);
+        setQuorumPercent(poll.quorum_percent ?? 50);
       }
       const { data: qs } = await supabase.from('voting_questions').select('*').eq('poll_id', pollId).order('order_index');
       setQuestions((qs ?? []).map((q) => ({ id: q.id, question_text: q.question_text, options: q.options || [] })));
@@ -175,6 +177,7 @@ export default function VotingEditPage() {
       show_live_results: showLive,
       board_votes_allowed: boardVotesAllowed,
       supervisory_votes_allowed: supervisoryVotesAllowed,
+      quorum_percent: quorumPercent,
       status: targetStatus,
     };
 
@@ -278,7 +281,7 @@ export default function VotingEditPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-5 flex-wrap">
           <label className="flex items-center gap-1.5 text-[12px] text-slate-700 dark:text-text cursor-pointer">
             <input type="checkbox" checked={isSecret} onChange={(e) => setIsSecret(e.target.checked)} />
             Нууц санал хураалт
@@ -286,6 +289,13 @@ export default function VotingEditPage() {
           <label className="flex items-center gap-1.5 text-[12px] text-slate-700 dark:text-text cursor-pointer">
             <input type="checkbox" checked={showLive} onChange={(e) => setShowLive(e.target.checked)} />
             Үр дүнг Live харуулах
+          </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-slate-700 dark:text-text">
+            Кворум (%):
+            <input
+              type="number" min="0" max="100" className="ds-input w-[70px] !py-1"
+              value={quorumPercent} onChange={(e) => setQuorumPercent(Number(e.target.value) || 0)}
+            />
           </label>
         </div>
       </div>
