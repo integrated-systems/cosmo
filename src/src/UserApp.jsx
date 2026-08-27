@@ -4,6 +4,7 @@ import { supabase } from './lib/supabaseClient';
 import { useAuth } from './lib/AuthContext';
 import { useAccessRules } from './hooks/useAccessRules';
 import { useTenantGate } from './hooks/useTenantGate';
+import { useUserAppPrefs } from './hooks/useUserAppPrefs';
 import { DEFAULT_TENANT_ID } from './config/tenant';
 import { MENU_SECTIONS } from './config/menu';
 import TileGrid from './components/UserApp/TileGrid';
@@ -11,16 +12,35 @@ import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
 import './userapp.css';
 
+// hex өнгийг хар/цагаан руу шугаман хольж тодорхой хувиар харлуулах/
+// цайруулах — хуучин "suh" (userapp-react) App.jsx-ийн tintHex()-тэй
+// ЯГ ИЖИЛ (2026-08-27, Профайл/Интерфейс тохиргоог Cosmo-д шилжүүлэх
+// үед хамт авав).
+function tintHex(hex, tint) {
+  const h = (hex || '#000000').replace('#', '');
+  let r = parseInt(h.substr(0, 2), 16) || 0, g = parseInt(h.substr(2, 2), 16) || 0, b = parseInt(h.substr(4, 2), 16) || 0;
+  const amt = Math.min(Math.abs(tint || 0), 50) / 50;
+  const mixTo = tint < 0 ? 0 : 255;
+  r = Math.round(r + (mixTo - r) * amt);
+  g = Math.round(g + (mixTo - g) * amt);
+  b = Math.round(b + (mixTo - b) * amt);
+  return `rgb(${r},${g},${b})`;
+}
+
 // 2026-08-19: резидент (owner) shell — the2m26/suh (GitHub: userapp-react)
 // прожектийн бодитоор туршигдсан, бүтэн PWA UI/UX (TileGrid+TabBar)-ыг
 // Cosmo-ийн бодит эрхийн систем (useAccessRules+userapp_config)-той
-// hолбож дасан зохицуулав. Үвр Supabase project/схем ОГТ ашиглаагүй —
+// холбож дасан зохицуулав. Өөр Supabase project/схем ОГТ ашиглаагүй —
 // зүгээр л дизайн/interaction кодыг л "аврч" авав.
 //
-// Одоогоор бодит Cosmo backend-тэй hолбогдсон модуль: news, voting, msgr.
+// Одоогоор бодит Cosmo backend-тэй холбогдсон модуль: news, voting, msgr.
 // Үлдсэн (Дашбоард-ийн санхүүгийн график, Төлбөр/QPay, Зочин урих,
-// Хэрэгцээт мэдээлэл г.м) — Cosmo-д тэдгээрийн backend hараахан
+// Хэрэгцээт мэдээлэл г.м) — Cosmo-д тэдгээрийн backend хараахан
 // байгуулагдаагүй тул "Түн удахгүй" гэсэн placeholder-ээр үзүүлнэ.
+// 2026-08-27: Профайл хуудасны Интерфейс тохиргоо (theme/дэвсгэр/картны
+// тунгалагшил г.м) хуучин "suh" төслөөс бүрэн шилжив — useUserAppPrefs()
+// hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
+// төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
 const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr'];
 
@@ -37,6 +57,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   const navigate = useNavigate();
   const { isPending, isRejected, isDeactivated } = useTenantGate();
   const { can, loading: accessLoading } = useAccessRules(hoaId);
+  const { prefs, bgImageUrl, savePrefs, uploadBgImage } = useUserAppPrefs(user?.id, hoaId);
   const [userappEnabled, setUserappEnabled] = useState({});
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,6 +78,45 @@ export default function UserApp({ theme, onToggleTheme }) {
     });
     return () => { cancelled = true; };
   }, [hoaId]);
+
+  // 2026-08-27: хуучин "suh" App.jsx-ийн 4 CSS хувьсагч тооцоолох
+  // useEffect-үүдийг ЯГ ИЖИЛ шилжүүлэв (--card-tint-overlay,
+  // --card-bg-computed, --bg-page/--bg-tint-overlay, --card-border-computed).
+  useEffect(() => {
+    const tint = prefs.card_tint ?? 0;
+    const overlay = tint < 0 ? `rgba(0,0,0,${Math.min(-tint, 50) / 100})` : `rgba(255,255,255,${Math.min(tint, 50) / 100})`;
+    document.documentElement.style.setProperty('--card-tint-overlay', overlay);
+  }, [prefs.card_tint]);
+
+  useEffect(() => {
+    const transparency = prefs.card_transparency ?? 0;
+    const alpha = 1 - Math.min(transparency, 90) / 100;
+    const [r, g, b] = theme === 'light' ? [255, 255, 255] : [22, 36, 64];
+    document.documentElement.style.setProperty('--card-bg-computed', `rgba(${r},${g},${b},${alpha})`);
+  }, [prefs.card_transparency, theme]);
+
+  useEffect(() => {
+    const tint = prefs.bg_tint ?? 0;
+    if (bgImageUrl) {
+      const overlay = tint < 0 ? `rgba(0,0,0,${Math.min(-tint, 50) / 100})` : `rgba(255,255,255,${Math.min(tint, 50) / 100})`;
+      document.documentElement.style.setProperty('--bg-tint-overlay', overlay);
+      document.documentElement.style.removeProperty('--bg-page');
+    } else if (prefs.bg_color) {
+      document.documentElement.style.setProperty('--bg-page', tintHex(prefs.bg_color, tint));
+    } else {
+      document.documentElement.style.removeProperty('--bg-page');
+    }
+  }, [prefs.bg_tint, prefs.bg_color, bgImageUrl]);
+
+  useEffect(() => {
+    if (prefs.card_border_gray == null) {
+      document.documentElement.style.removeProperty('--card-border-computed');
+      return;
+    }
+    const g = Math.max(0, Math.min(255, prefs.card_border_gray));
+    const hex = g.toString(16).padStart(2, '0');
+    document.documentElement.style.setProperty('--card-border-computed', `#${hex}${hex}${hex}`);
+  }, [prefs.card_border_gray]);
 
   const allowedItems = ALL_MENU_ITEMS.filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view'));
 
@@ -99,7 +159,12 @@ export default function UserApp({ theme, onToggleTheme }) {
       />
     );
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
-    mainContent = <UserAppProfile user={user} theme={theme} onToggleTheme={onToggleTheme} />;
+    mainContent = (
+      <UserAppProfile
+        user={user} theme={theme} onToggleTheme={onToggleTheme}
+        prefs={prefs} bgImageUrl={bgImageUrl} savePrefs={savePrefs} uploadBgImage={uploadBgImage}
+      />
+    );
   } else if (!isCurrentPageAllowed) {
     mainContent = <GateMessage icon="🚫" title="Нэвтрэх эрхгүй хуудас" />;
   } else {
@@ -108,6 +173,12 @@ export default function UserApp({ theme, onToggleTheme }) {
 
   return (
     <div className="userapp-root app-shell" data-theme={theme === 'dark' ? 'dark' : 'light'}>
+      {bgImageUrl && (
+        <div
+          className="app-bg-layer"
+          style={{ backgroundImage: `linear-gradient(var(--bg-tint-overlay), var(--bg-tint-overlay)), url(${bgImageUrl})`, filter: `blur(${prefs.bg_blur ?? 8}px)` }}
+        />
+      )}
       <div className="home-header">
         <div>
           <div className="app-title">{tenantName || 'COSMO'}</div>
