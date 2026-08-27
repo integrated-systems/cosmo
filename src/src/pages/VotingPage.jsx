@@ -11,7 +11,7 @@ import { useAccessRules } from '../hooks/useAccessRules';
 // 2 хэсгээс бүрдэнэ.
 const TYPE_LABELS = {
   poll: 'Санал асуулга',
-  rating: 'Үнэлгээ вгвх',
+  rating: 'Үнэлгээ өгөх',
   election: 'Ээлжит сонгууль',
   discussion: 'Хэлэлцүүлэг',
 };
@@ -36,12 +36,12 @@ export default function VotingPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  // 2026-08-19 hэрэглэгч олсон бодит цоорхойг засав: үмнв нь СТАТУС үл
+  // 2026-08-19 хэрэглэгч олсон бодит цоорхойг засав: өмнө нь СТАТУС үл
   // хамааран бүх зүйл ЗАСВАРЛАХ хуудас руу чиглүүлдэг байсан тул, admin
   // БИШ хүн (owner) ч гэсэн засах/устгах эрхтэй мэт UI-г хардаг байв.
-  // Одоо: "draft" (ноорог) зүйлийг зввхвн Засах эрхтэй (bypass) хүн л
+  // Одоо: "draft" (ноорог) зүйлийг зөвхөн Засах эрхтэй (bypass) хүн л
   // хардаг (owner-д ноорог ОГТ үзүүлэхгүй), нийтлэгдсэн (active/closed)
-  // зүйл дээр дарахад БүГД (admin ч гэсэн) зввхвн уншихад зориулсан
+  // зүйл дээр дарахад БүГД (admin ч гэсэн) зөвхөн уншихад зориулсан
   // VotingResultsPage.jsx руу л чиглүүлнэ.
   const canEditPoll = bypass || can('voting', 'edit');
 

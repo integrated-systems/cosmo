@@ -6,7 +6,7 @@ import EditTenantModal from '../components/EditTenantModal';
 import { useConfirm } from '../hooks/useConfirm';
 
 // SUPERSYSADMIN-ийн "Tenant Status" хуудас — Төлбөрийн 3-р алхмын
-// "Гараар (invoice)" горим: бодит твлбврийн шлюз (QPay/SocialPay г.м)
+// "Гараар (invoice)" горим: бодит төлбөрийн шлюз (QPay/SocialPay г.м)
 // хараахан холбогдоогүй тул SUPERSYSADMIN энд СӨХ бүрийн статусыг
 // (trial→active г.м) гараар өөрчилдөг. `tenants.status`+RLS UPDATE/DELETE
 // policy (0005/0006 migration) дээр суурилна.
@@ -116,7 +116,7 @@ export default function TenantStatus() {
   }
 
   // Approve: approval_status='approved' болгож, ШИНЭЭР 14 хоногийн
-  // Trial хугацаа эхлvулнэ (зөвшөөрсвн мөчээс л тоологдоно).
+  // Trial хугацаа эхлүулнэ (зөвшөөрсөн мөчээс л тоологдоно).
   async function handleApprove(tenantId) {
     setSavingId(tenantId);
     const now = new Date();

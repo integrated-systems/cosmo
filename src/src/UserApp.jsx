@@ -18,7 +18,7 @@ import './userapp.css';
 // зүгээр л дизайн/interaction кодыг л "аврч" авав.
 //
 // Одоогоор бодит Cosmo backend-тэй hолбогдсон модуль: news, voting, msgr.
-// Үлдсэн (Дашбоард-ийн санхүүгийн график, Твлбвр/QPay, Зочин урих,
+// Үлдсэн (Дашбоард-ийн санхүүгийн график, Төлбөр/QPay, Зочин урих,
 // Хэрэгцээт мэдээлэл г.м) — Cosmo-д тэдгээрийн backend hараахан
 // байгуулагдаагүй тул "Түн удахгүй" гэсэн placeholder-ээр үзүүлнэ.
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
@@ -26,7 +26,7 @@ const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
-  { key: 'payment', label: 'Твлбвр', icon: <PaymentIcon /> },
+  { key: 'payment', label: 'Төлбөр', icon: <PaymentIcon /> },
   { key: 'profile', label: 'Profile', icon: <ProfileIcon /> },
 ];
 
@@ -79,7 +79,7 @@ export default function UserApp({ theme, onToggleTheme }) {
     setBottomTab(key);
     if (key === 'home') navigate(`/${hoaId}`);
     else if (key === 'profile') navigate(`/${hoaId}/userapp-profile`);
-    else setComingSoonTitle('Твлбвр');
+    else setComingSoonTitle('Төлбөр');
   }
 
   let mainContent;
@@ -111,7 +111,7 @@ export default function UserApp({ theme, onToggleTheme }) {
       <div className="home-header">
         <div>
           <div className="app-title">{tenantName || 'COSMO'}</div>
-          <div className="user-greeting">{user?.email} · Сууц вмчлвгч</div>
+          <div className="user-greeting">{user?.email} · Сууц өмчлөгч</div>
         </div>
         <div className="header-actions">
           {isHome && (

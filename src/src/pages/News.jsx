@@ -14,7 +14,7 @@ import { useAlert } from '../hooks/useAlert';
 import { useAccessRules } from '../hooks/useAccessRules';
 
 // "Мэдээ, мэдээлэл" (/news) — 2 таб: Нийтлэгдсэн мэдээ / Мэдээний
-// агрегат. Сууц вмчлвгч гар утасны аппаараа үзэх тул responsive
+// агрегат. Сууц өмчлөгч гар утасны аппаараа үзэх тул responsive
 // (нэг багана, mobile/desktop ижил). Мэдээний жагсаалт mobile үед бүтэн
 // өргөн, desktop үед макс 720px (2026-08-19).
 //

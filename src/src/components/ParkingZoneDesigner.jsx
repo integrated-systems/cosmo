@@ -10,17 +10,17 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // байгуулаад НЭГ глобал "Хадгалах" товчоор snapshot save хийнэ) ГЭХДЭЭ
 // grid огт БИШ — 2026-08-19 хэрэглэгч тодорхой заасны дагуу энгийн
 // жагсаалт: Давхар(чөлөөт текст, "B1"/"F2" гэх мэт — тоот шиг заавал
-// давхарлаг тоо биш) → тус бvрд нь Бvс(тэмдэглэл+холбогч тэмдэг+
-// дугаарын хvрээ). ЯГ ИЖИЛ бvс+дугаар өөр өөр давхарт ДАВТАГДАЖ болно
+// давхарлаг тоо биш) → тус бүрд нь Бүс(тэмдэглэл+холбогч тэмдэг+
+// дугаарын хүрээ). ЯГ ИЖИЛ бүс+дугаар өөр өөр давхарт ДАВТАГДАЖ болно
 // (жиш "B1 давхрын G145" ба "B2 давхрын G145" тусдаа зогсоол).
 //
 // 2026-08-19 (2-р засвар): Бодит хотхонд "G186а" маягийн (тоо+кирилл
-// vсэг дагавартай, ГАНЦХАН тусгай дугаар) зогсоол олдсоны дагуу давхар
-// бvрд бvсийн хvрээнээс гадна "Тусгай дугаартай зогсоол" (нэг ширхэг,
-// suffix талбартай) жагсаалт нэмэв — хvрээ загвар ийм онцгой дугаарыг
-// илэрхийлэх боломжгvй тул.
+// үсэг дагавартай, ГАНЦХАН тусгай дугаар) зогсоол олдсоны дагуу давхар
+// бүрд бүсийн хүрээнээс гадна "Тусгай дугаартай зогсоол" (нэг ширхэг,
+// suffix талбартай) жагсаалт нэмэв — хүрээ загвар ийм онцгой дугаарыг
+// илэрхийлэх боломжгүй тул.
 //
-// Зогсоол tenant (хотхон) даяар НЭГ нийтлэг сан — байртай холбоогvй.
+// Зогсоол tenant (хотхон) даяар НЭГ нийтлэг сан — байртай холбоогүй.
 const SEPARATORS = [
   { value: '', label: 'үгүй' },
   { value: '-', label: '-' },
@@ -67,7 +67,7 @@ export default function ParkingZoneDesigner({ hoaId }) {
       if (!byFloor.has(row.floor_level)) byFloor.set(row.floor_level, { zones: new Map(), extras: [] });
       const floorEntry = byFloor.get(row.floor_level);
       if (row.suffix) {
-        // Тусгай (suffix-тэй) мвр — хvрээнд оруулахгvй, тусдаа extras жагсаалтад.
+        // Тусгай (suffix-тэй) мвр — хүрээнд оруулахгүй, тусдаа extras жагсаалтад.
         floorEntry.extras.push({ id: genId(), zoneLabel: row.zone_label, separator: row.separator, spotNo: row.spot_no, suffix: row.suffix });
         continue;
       }
@@ -100,7 +100,7 @@ export default function ParkingZoneDesigner({ hoaId }) {
     setFloors((fs) => [...fs, makeFloor()]);
   }
   async function removeFloor(floorId) {
-    if (!(await confirm('Энэ давхрыг үүнд байгаа бүх бvстэй нь устгах уу?'))) return;
+    if (!(await confirm('Энэ давхрыг үүнд байгаа бүх бүстэй нь устгах уу?'))) return;
     setFloors((fs) => fs.filter((f) => f.id !== floorId));
   }
   function setFloorLevel(floorId, value) {
@@ -134,11 +134,11 @@ export default function ParkingZoneDesigner({ hoaId }) {
       if (!f.floorLevel.trim()) { alert('Бүх давхрын нэрийг бөглөнө үү.'); return; }
       for (const z of f.zones) {
         if (!z.zoneLabel.trim()) { alert('Бүх бүсийн тэмдэглэлийг бөглөнө үү.'); return; }
-        if (Number(z.endNo) < Number(z.startNo)) { alert(`"${f.floorLevel}" давхрын "${z.zoneLabel}" бvсэд төгсгөл эхлэлээс бага байна.`); return; }
+        if (Number(z.endNo) < Number(z.startNo)) { alert(`"${f.floorLevel}" давхрын "${z.zoneLabel}" бүсэд төгсгөл эхлэлээс бага байна.`); return; }
       }
       for (const x of f.extras) {
-        if (!x.zoneLabel.trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугааруудын бvсийн тэмдэглэлийг бөглөнө vv.`); return; }
-        if (!String(x.suffix).trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугаарт дагавар (жиш "а") бөглөнө vv — vгvй бол энгийн бvс vvсгээрэй.`); return; }
+        if (!x.zoneLabel.trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугааруудын бүсийн тэмдэглэлийг бөглөнө vv.`); return; }
+        if (!String(x.suffix).trim()) { alert(`"${f.floorLevel}" давхрын тусгай дугаарт дагавар (жиш "а") бөглөнө vv — үгүй бол энгийн бүс үүсгээрэй.`); return; }
       }
     }
 
@@ -268,8 +268,8 @@ export default function ParkingZoneDesigner({ hoaId }) {
                 </button>
               </div>
 
-              {/* 2026-08-19: "G186а" маягийн ганц тусгай дугаар (хvрээнд
-                  багтахгvй, vсэг дагавартай) нэмэх хэсэг — бvсийн хvрээнээс
+              {/* 2026-08-19: "G186а" маягийн ганц тусгай дугаар (хүрээнд
+                  багтахгүй, үсэг дагавартай) нэмэх хэсэг — бүсийн хүрээнээс
                   тусдаа. */}
               <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol">
                 <div className="text-[11px] text-mutedtext mb-2">Тусгай дугаартай зогсоол (жиш: G186а)</div>

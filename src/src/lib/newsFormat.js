@@ -1,7 +1,7 @@
-// "Мэдээ, мэдээлэл" (/news) хуудасны мэдээний карт зvvн дээд буланд
+// "Мэдээ, мэдээлэл" (/news) хуудасны мэдээний карт зүүн дээд буланд
 // байрлах динамик мвр — [YYYY.MM.DD][Гарагийн нэр],[HH:MM:SS] — 2026-08-19
-// screenshot-оор vзvvлсэн формат (lib/format.js-ийн глобал YYYY/MM/DD-ээс
-// ЗОРИУДААР ялгаатай, зvвхvн энэ мэдээний карт дээр ашиглагдана).
+// screenshot-оор үзүүлсэн формат (lib/format.js-ийн глобал YYYY/MM/DD-ээс
+// ЗОРИУДААР ялгаатай, зүвхүн энэ мэдээний карт дээр ашиглагдана).
 const WEEKDAYS_MN = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
 
 export function formatNewsDateTime(date) {
@@ -18,7 +18,7 @@ export function formatViewCount(count) {
   return String(count ?? 0).padStart(3, '0');
 }
 
-// videoUrl талбарт хэрэглэгч бvтэн YouTube холбоос (embed эсвэл ердийн
+// videoUrl талбарт хэрэглэгч бүтэн YouTube холбоос (embed эсвэл ердийн
 // watch/youtu.be) оруулж болох тул videoId-г задлана.
 export function extractYoutubeId(url) {
   if (!url) return null;

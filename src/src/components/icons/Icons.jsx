@@ -172,7 +172,7 @@ export function AlertTriangleIcon({ width = 15, height = 15, ...props }) {
   );
 }
 
-// 2026-08-19: Topbar-ийн Твлбвр/Багц удирдлагын placeholder dropdown
+// 2026-08-19: Topbar-ийн Төлбөр/Багц удирдлагын placeholder dropdown
 // товчинд зориулав (арааны дүрстэй settings icon).
 export function SettingsIcon({ className = 'w-4 h-4', ...props }) {
   return (

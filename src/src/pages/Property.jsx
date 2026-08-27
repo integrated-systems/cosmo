@@ -162,8 +162,8 @@ export default function Property() {
   }).filter((c) => !q || c.code.toLowerCase().includes(q));
 
   // Зогсоол/Агуулах — Owners БОЛОН Clientele (ААН) хоёулангийн
-  // parkings/storages jsonb-ээс НИЙЛГЭЖ мвр vvсгэнэ. 2026-08-19: спот
-  // бvр {id,floorLevel,code} snapshot бvтэцтэй (unit_parking/unit_storage-
+  // parkings/storages jsonb-ээс НИЙЛГЭЖ мвр үүсгэнэ. 2026-08-19: спот
+  // бүр {id,floorLevel,code} snapshot бүтэцтэй (unit_parking/unit_storage-
   // аас сонгосон).
   function spotRows(field) {
     const rows = [];

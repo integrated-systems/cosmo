@@ -3,7 +3,7 @@
 // Clientele.jsx хоёуланд ижилхэн ашиглагддаг тул 2026-08-16 тусдаа
 // файл болгов (Rule of two). 2026-08-19: Зогсоол/Агуулах-ыг unit_parking/
 // unit_storage-аас сонгодог dropdown болгосны дагуу {floor,no} хуучин
-// чөлөөт бичвэрийн бvтцээс {id,floorLevel,code} snapshot бvтэц рvv шилжив.
+// чөлөөт бичвэрийн бүтцээс {id,floorLevel,code} snapshot бүтэц рүү шилжив.
 export function summarizeSpots(items) {
   if (!items || items.length === 0) return '—';
   return items.filter((it) => it.code).map((it) => `${it.floorLevel} ${it.code}`).join(', ') || '—';

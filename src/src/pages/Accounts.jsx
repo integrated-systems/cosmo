@@ -226,10 +226,10 @@ export default function Accounts() {
 
   // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: admin ролийг энд солих
   // боломжгүй (зввгүар Reassign үйлдлээр — user_roles-ийг ч мвн зввгүй
-  // hамт вврчилдэг). Мвн хэн ч (admin ч гэсэн) вврийн мврийг идэвхгүй
-  // болгож чадахгүй — санамсаргүй вврийгвв түгжихээс сэргийлнэ.
+  // hамт вврчилдэг). Мвн хэн ч (admin ч гэсэн) өврийн мврийг идэвхгүй
+  // болгож чадахгүй — санамсаргүй өврийгөө түгжихээс сэргийлнэ.
   // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: tenant_admin (SISADMIN)
-  // вврийгвв БОЛОН бусад admin ролийг идэвхгүй болгож чадахгүй. Харин
+  // өврийгөө БОЛОН бусад admin ролийг идэвхгүй болгож чадахгүй. Харин
   // SUPERSYSADMIN бүх SISADMIN-ийг идэвхгүй болгох эрхтэй (энгийн
   // tenant_admin-ийн эрхээс тусдаа, илүү өндвр эрх мэдэл) — үүнийг
   // үмнвх засвар буруугаар БүГДЭД адилхан хориглосон байсныг олж зассан.
@@ -285,7 +285,7 @@ export default function Accounts() {
                     <button
                       onClick={() => handleToggleStatus(r)}
                       disabled={(r.role === 'admin' && !isSuperSysAdmin) || r.user_id === user?.id}
-                      title={r.role === 'admin' && !isSuperSysAdmin ? 'Admin ролийг зввгвар SUPERSYSADMIN идэвхгүй болгож чадна' : r.user_id === user?.id ? 'вврийгвв идэвхгүй болгох боломжгүй' : ''}
+                      title={r.role === 'admin' && !isSuperSysAdmin ? 'Admin ролийг зөвхөн SUPERSYSADMIN идэвхгүй болгож чадна' : r.user_id === user?.id ? 'өврийгөө идэвхгүй болгох боломжгүй' : ''}
                       className={`text-[11px] px-2 py-0.5 rounded-full border disabled:opacity-50 disabled:cursor-not-allowed ${
                         r.status === 'active'
                           ? 'text-customGreen border-customGreen/30 bg-customGreen/10'

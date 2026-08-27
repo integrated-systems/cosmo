@@ -16,7 +16,7 @@ const MODULES = [
   { key: 'guest_invite', label: 'Зочин урих' },
   { key: 'voting', label: 'Сонгууль, санал асуулга' },
   { key: 'requests', label: 'Ирсэн санал, хүсэлт' },
-  { key: 'paid_services', label: 'Твлбврт үйлчилгээ' },
+  { key: 'paid_services', label: 'Төлбөрт үйлчилгээ' },
   { key: 'info', label: 'Хэрэгцээт мэдээлэл' },
   { key: 'emergency_phones', label: 'Онцгой хэрэгцээт утас' },
   { key: 'elevator_call', label: 'Лифт дуудах (түн удахгүй)' },
@@ -25,7 +25,7 @@ const MODULES = [
 
 const TABS = [
   { key: 'modules', label: 'Модуль тохиргоо' },
-  { key: 'paid', label: 'Твлбврт үйлчилгээ' },
+  { key: 'paid', label: 'Төлбөрт үйлчилгээ' },
   { key: 'contacts', label: 'Хэрэгцээт утас, мэйл' },
 ];
 
@@ -88,7 +88,7 @@ export default function UserAppConfig() {
           <div>
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Мобайл апп (userapp-react) модулийн тохиргоо</div>
             <div className="text-[11px] text-mutedtext mb-4 max-w-3xl">
-              Гар утасны дэлгэц жижиг, агуулга их модуль тохиромжгүй харагдаж болно. Энд идэвхжүүлсэн модулиуд ЗвВХвН тухайн хэрэглэгчийн эрхтэй
+              Гар утасны дэлгэц жижиг, агуулга их модуль тохиромжгүй харагдаж болно. Энд идэвхжүүлсэн модулиуд ЗӨВХӨН тухайн хэрэглэгчийн эрхтэй
               (Хандах эрхийн тохиргоо → Харах=Тийм/Өврийнхийг харах) үед л Мобайл апп-д товч болж харагдана — энэ тохиргоо нэмэлт шүүлтүүр,
               эрхийг орлохгүй.
             </div>
@@ -113,7 +113,7 @@ export default function UserAppConfig() {
         )}
 
         {tab === 'paid' && (
-          <div className="text-[12px] text-mutedtext">Твлбврт үйлчилгээний тохиргоо — удахгүй.</div>
+          <div className="text-[12px] text-mutedtext">Төлбөрт үйлчилгээний тохиргоо — удахгүй.</div>
         )}
 
         {tab === 'contacts' && (

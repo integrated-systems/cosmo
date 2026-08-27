@@ -4,9 +4,9 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 
 // 2026-08-19: EditOwnerModal/EditClientModal-ийн "Зогсоол"/"Агуулах"
 // талбарыг чөлөөт бичвэрээс (Давхар dropdown 1-5 hardcode+гар бичих
-// дугаар) "Хаягжилт тохиргоо" хуудсаар бодитоор vvсгэсэн unit_parking/
+// дугаар) "Хаягжилт тохиргоо" хуудсаар бодитоор үүсгэсэн unit_parking/
 // unit_storage-аас сонгодог dropdown болгов — давхардал, алдаатай
-// бичилт бvрмвсvн зайлсхийнэ.
+// бичилт бүрмвсүн зайлсхийнэ.
 function toDisplay(row) {
   return {
     id: row.id,
@@ -37,8 +37,8 @@ export function useUnitSpots(hoaId, kind) {
 
 // Tenant даяар аль хэдийн ЭЗЭМШИГДСЭН spot ID-нуудыг owners+clientele-ээс
 // цуглуулна (давхардлаас сэргийлнэ). excludeOwnerId/excludeClientId нь
-// одоо засварлаж буй мврийг тооцохоос хасна (тэдний vвлдвг сонголт
-// vргэлж vзэгдэх хэвээр байна).
+// одоо засварлаж буй мврийг тооцохоос хасна (тэдний үвлдвг сонголт
+// үргэлж үзэгдэх хэвээр байна).
 export async function fetchTakenSpotIds(hoaId, field, excludeOwnerId, excludeClientId) {
   const [{ data: owners }, { data: clientele }] = await Promise.all([
     fetchAllRows(() => supabase.from('owners').select(`id, ${field}`).eq('tenant_id', hoaId)),

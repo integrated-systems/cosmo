@@ -32,9 +32,9 @@ export function SimpleListField({ label, items, onChange, placeholder }) {
   );
 }
 
-// 2026-08-19: 1000+ spot-той vед энгийн <select> хэрэглэхэд бологvй
-// тул хайлттай combobox (текст бичихэд шvvж жагсаана, дээд тал нь 50
-// vр дvн л render хийнэ) болгож сольсон.
+// 2026-08-19: 1000+ spot-той үед энгийн <select> хэрэглэхэд бологүй
+// тул хайлттай combobox (текст бичихэд шүүж жагсаана, дээд тал нь 50
+// үр дүн л render хийнэ) болгож сольсон.
 function SpotCombobox({ value, onSelect, spots, takenIds, loading }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);

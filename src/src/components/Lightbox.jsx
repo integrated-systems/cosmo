@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 // Дахин ашиглагдах fullscreen Lightbox — зураг дээр дарахад томруулж
-// харуулна, зvvн/баруун сумаар (keyboard) эсвэл хуруугаар (touch swipe)
-// гvйлгэнэ, доороос дээш чирэхэд (mobile "pull-to-dismiss") хаагдана,
+// харуулна, зүүн/баруун сумаар (keyboard) эсвэл хуруугаар (touch swipe)
+// гүйлгэнэ, доороос дээш чирэхэд (mobile "pull-to-dismiss") хаагдана,
 // X товч эсвэл зурагны гадна талбар дээр дарахад хаагдана — 2026-08-19
-// хэрэглэгчийн заасан нийтлэг UI/UX дvрмvvд (News.jsx-ийн зургийн preview
+// хэрэглэгчийн заасан нийтлэг UI/UX дүрмүүд (News.jsx-ийн зургийн preview
 // дээр дарахад нээгдэнэ, гэхдээ энэ component нь News-ээс тусгаарлагдмал,
-// ирээдvйд өөр газар зурагны gallery хэрэгтэй бол дахин ашиглаж болно).
+// ирээдүйд өөр газар зурагны gallery хэрэгтэй бол дахин ашиглаж болно).
 const SWIPE_THRESHOLD = 50;
 
 export default function Lightbox({ images, initialIndex = 0, onClose }) {

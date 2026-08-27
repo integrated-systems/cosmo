@@ -22,8 +22,8 @@ import { useAlert } from '../hooks/useAlert';
 //   Admin-only тул энэ матрицад хамаарахгүй). Доод тал: сонгосон
 //   хуудасны үйлдэл(мвр) × роль(багана) матриц, Тийм/Үгүй dropdown.
 const ROLES = [
-  { key: 'board', label: 'Удирдах зввлвл' },
-  { key: 'supervisory_board', label: 'Хяналтын зввлвл' },
+  { key: 'board', label: 'Удирдах зөвлөл' },
+  { key: 'supervisory_board', label: 'Хяналтын зөвлөл' },
   { key: 'executive_director', label: 'Гүйцэтгэх захирал' },
   { key: 'accountant', label: 'Нягтлан бодогч' },
   { key: 'manager', label: 'Менежер' },
@@ -45,7 +45,7 @@ const SPECIAL_ACTIONS = [
   { key: 'calc_payroll', label: 'Сарын цалин тооцох', pages: ['payrollacc'] },
   { key: 'journal_invoice', label: 'Журналд нэхэмжлэх бүртгэх', pages: ['accounting', 'invoice'] },
   { key: 'send_notification', label: 'Мэдэгдэл илгээх', pages: ['anndunn', 'news'] },
-  { key: 'register_payment', label: 'Твлбвр бүртгэх', pages: ['payments', 'transactions'] },
+  { key: 'register_payment', label: 'Төлбөр бүртгэх', pages: ['payments', 'transactions'] },
 ];
 
 // СИСАДМИН бүлгийг хассан (Admin-only, энэ матрицад хамаарахгүй) бүх

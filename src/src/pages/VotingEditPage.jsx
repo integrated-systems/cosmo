@@ -6,13 +6,13 @@ import { DeleteIcon } from '../components/icons/Icons';
 
 // "Сонгууль, санал асуулга" > "Шинээр үүсгэх"/Засах — 2026-08-19
 // хэрэглэгч тодорхой заасны дагуу МОДАЛЬ БИШ, бүтэн ДЭД ХУУДАС хэлбэрээр
-// hийв (/voting/new, /voting/:id/edit). 4 тврлийн (Санал асуулга/Үнэлгээ/
+// хийв (/voting/new, /voting/:id/edit). 4 тврлийн (Санал асуулга/Үнэлгээ/
 // Ээлжит сонгууль/Хэлэлцүүлэг) сонголтоос хамаарч доод карт солигдоно.
 function genId() { return `tmp-${Math.random().toString(36).slice(2)}`; }
 
 const TYPES = [
-  { key: 'poll', label: 'Санал асуулга', subtitle: 'Саналаа вгвх' },
-  { key: 'rating', label: 'Үнэлгээ вгвх', subtitle: 'Одоор үнэлэх' },
+  { key: 'poll', label: 'Санал асуулга', subtitle: 'Саналаа өгөх' },
+  { key: 'rating', label: 'Үнэлгээ өгөх', subtitle: 'Одоор үнэлэх' },
   { key: 'election', label: 'Ээлжит сонгууль', subtitle: 'Нэр дэвшигч сонгох' },
   { key: 'discussion', label: 'Хэлэлцүүлэг', subtitle: 'Сэдэв хэлэлцэх' },
 ];
@@ -28,7 +28,7 @@ const TITLE_PLACEHOLDER = {
 
 // 2026-08-19 хэрэглэгч тодорхой заасны дагуу: native <input
 // type="datetime-local"> нь браузер/OS-ийн локал форматаар (mm/dd/yyyy)
-// л үзүүлдэг, hэрэглэгчийн шаардсан "YYYY/MM/DD HH:MM" форматыг
+// л үзүүлдэг, хэрэглэгчийн шаардсан "YYYY/MM/DD HH:MM" форматыг
 // шууд бүрдүүлэх боломжгүй тул, зүгээр текст талбар болгож, гараар
 // parse/validate хийдэг болгов.
 // 2026-08-19 (2-р засвар): хэрэглэгч тодорхой заасны дагуу native
@@ -37,7 +37,7 @@ const TITLE_PLACEHOLDER = {
 // хэрэглэгчид (санал асуулга зохиогч үзвлч гишүүд) буруу ойлгогдож,
 // алдаа гаргах эрсдэлтэй. Native calendar/цагийн сонголтын widget нь
 // эдгээр эрсдэлээс бүрэн сэргийлдэг, дэлгэцэн дээрх формат нь
-// браузер/OS-ийн локалиас хамаарах ч, звв үнэ цэнэтэй trade-off.
+// браузер/OS-ийн локалиас хамаарах ч, зөв үнэ цэнэтэй trade-off.
 function toDatetimeLocal(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -69,7 +69,7 @@ export default function VotingEditPage() {
   const [saving, setSaving] = useState(false);
 
   // 2026-08-19 хэрэглэгч тодорхой заасны дагуу: "Нэр дэвшигчийн нэр"
-  // талбарт бичиж эхэлмэгц "Сууц вмчлвгч бүртгэл" хүснэгэлээс тохирох
+  // талбарт бичиж эхэлмэгц "Сууц өмчлөгч бүртгэл" хүснэгэлээс тохирох
   // нэр (эхний үсгээр таарсан) autocomplete-ээр санал болгоно —
   // Accounts.jsx-ийн AddUserModal-той ижил зарчим.
   const [owners, setOwners] = useState([]);
@@ -79,7 +79,7 @@ export default function VotingEditPage() {
     if (!isEditing) return;
     (async () => {
       const { data: poll } = await supabase.from('voting_polls').select('*').eq('id', pollId).single();
-      // 2026-08-19 hэрэглэгч олсон бодит цоорхойг засах хамгаалалт: хэрэв
+      // 2026-08-19 хэрэглэгч олсон бодит цоорхойг засах хамгаалалт: хэрэв
       // хүн шууд URL бичиж НИЙТЛЭГДСЭН (draft биш) зүйлийн Засах хуудас
       // руу орохыг оролдвол, VotingPage.jsx-ийн жагсаалтын товшилтоос
       // гадуур ч мвн уншихад зориулсан хуудас руу автоматаар дахин
@@ -102,8 +102,12 @@ export default function VotingEditPage() {
       const { data: qs } = await supabase.from('voting_questions').select('*').eq('poll_id', pollId).order('order_index');
       setQuestions((qs ?? []).map((q) => ({ id: q.id, question_text: q.question_text, options: q.options || [] })));
       const { data: cands } = await supabase.from('voting_candidates').select('*').eq('poll_id', pollId).order('order_index');
-      setBoardCandidates((cands ?? []).filter((c) => c.council_type === 'board').map((c) => ({ id: c.id, fullname: c.fullname })));
-      setSupervisoryCandidates((cands ?? []).filter((c) => c.council_type === 'supervisory_board').map((c) => ({ id: c.id, fullname: c.fullname })));
+      // "Аль нь ч биш" candidate нь handleSave-ээр автоматаар нэмэгддэг
+      // системийн мөр тул засварлах жагсаалтад ОРУУЛАХГҮЙ (үгүй бол
+      // дахин хадгалахад давхардана).
+      const realCands = (cands ?? []).filter((c) => c.fullname !== 'Аль нь ч биш');
+      setBoardCandidates(realCands.filter((c) => c.council_type === 'board').map((c) => ({ id: c.id, fullname: c.fullname })));
+      setSupervisoryCandidates(realCands.filter((c) => c.council_type === 'supervisory_board').map((c) => ({ id: c.id, fullname: c.fullname })));
       setLoading(false);
     })();
   }, [isEditing, pollId]);
@@ -198,10 +202,26 @@ export default function VotingEditPage() {
         if (error) { setSaving(false); alert(error.message); return; }
       }
     } else if (type === 'election') {
+      // "Аль нь ч биш" нь системийн автомат мөр тул хэрэглэгч гараар
+      // ижил нэр оруулсан ч давхардуулахгүй.
+      const cleanBoard = boardCandidates.filter((c) => c.fullname.trim() && c.fullname.trim() !== 'Аль нь ч биш');
+      const cleanSupervisory = supervisoryCandidates.filter((c) => c.fullname.trim() && c.fullname.trim() !== 'Аль нь ч биш');
       const rows = [
-        ...boardCandidates.filter((c) => c.fullname.trim()).map((c, idx) => ({ poll_id: currentPollId, council_type: 'board', fullname: c.fullname.trim(), order_index: idx })),
-        ...supervisoryCandidates.filter((c) => c.fullname.trim()).map((c, idx) => ({ poll_id: currentPollId, council_type: 'supervisory_board', fullname: c.fullname.trim(), order_index: idx })),
+        ...cleanBoard.map((c, idx) => ({ poll_id: currentPollId, council_type: 'board', fullname: c.fullname.trim(), order_index: idx })),
+        ...cleanSupervisory.map((c, idx) => ({ poll_id: currentPollId, council_type: 'supervisory_board', fullname: c.fullname.trim(), order_index: idx })),
       ];
+      // 2026-08-20: UI дээр "'Аль нь ч биш' сонголт автоматаар нэмэгдэнэ."
+      // гэж амласан ч энэ автомат нэмэлт код дотор хэрэгжээгүй байсныг
+      // олж засав. Owner санал өгөх үед энэ candidate-ыг сонговол
+      // voting_responses.candidate_id=null (council_type-аар л
+      // ялгаатай) гэж бүртгэгдэнэ (VotingResultsPage.jsx-ийн санал
+      // өгөх маягтаас харна уу).
+      if (cleanBoard.length > 0) {
+        rows.push({ poll_id: currentPollId, council_type: 'board', fullname: 'Аль нь ч биш', order_index: 9999 });
+      }
+      if (cleanSupervisory.length > 0) {
+        rows.push({ poll_id: currentPollId, council_type: 'supervisory_board', fullname: 'Аль нь ч биш', order_index: 9999 });
+      }
       if (rows.length > 0) {
         const { error } = await supabase.from('voting_candidates').insert(rows);
         if (error) { setSaving(false); alert(error.message); return; }
@@ -323,7 +343,7 @@ export default function VotingEditPage() {
             placeholder="Хэлэлцүүлэх асуудлыг товч, тодорхой бичнэ уу (хэд хэдэн өгүүлбэр, 220 тэмдэгтээс хэтрэхгүй)"
           />
           <div className="text-[10px] text-mutedtext mt-2">
-            Сууц вмчлвгч бүр нэг удаа, 220 тэмдэгтээс хэтрэхгүй саналаа бичих боломжтой болно (OwnerApp бүтээгдсэний дараа идэвхжинэ).
+            Сууц өмчлөгч бүр нэг удаа, 220 тэмдэгтээс хэтрэхгүй саналаа бичих боломжтой.
           </div>
         </div>
       )}
@@ -332,13 +352,13 @@ export default function VotingEditPage() {
         <div className="ds-card p-4">
           <div className="grid grid-cols-2 gap-6">
             {[
-              { key: 'board', title: 'Удирдах зввлвлийн гишүүдийн сонгууль', votes: boardVotesAllowed, setVotes: setBoardVotesAllowed, cands: boardCandidates },
-              { key: 'supervisory_board', title: 'Хяналтын зввлвлийн гишүүдийн сонгууль', votes: supervisoryVotesAllowed, setVotes: setSupervisoryVotesAllowed, cands: supervisoryCandidates },
+              { key: 'board', title: 'Удирдах зөвлөлийн гишүүдийн сонгууль', votes: boardVotesAllowed, setVotes: setBoardVotesAllowed, cands: boardCandidates },
+              { key: 'supervisory_board', title: 'Хяналтын зөвлөлийн гишүүдийн сонгууль', votes: supervisoryVotesAllowed, setVotes: setSupervisoryVotesAllowed, cands: supervisoryCandidates },
             ].map((col) => (
               <div key={col.key}>
                 <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">{col.title}</div>
                 <div className="mb-3">
-                  <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">вгвх саналын тоо:</label>
+                  <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">өгөх саналын тоо:</label>
                   <input
                     type="number" min="1" className="ds-input w-[100px]"
                     value={col.votes} onChange={(e) => col.setVotes(Number(e.target.value) || 1)}

@@ -5,12 +5,12 @@
 
 export { summarizeSpots, summarizeVehicles } from './spotVehicleFormat';
 
-// 2026-08-19 хэрэглэгчийн тодорхой заасан дvрэм: Байр-Давхар-Тоот
-// (structure_type='floor') vед ДАВХАР 2 оронтой + ТООТ 2 оронтой.
-// Байр-Орц-Тоот (structure_type='entrance') vед ОРЦ 2 оронтой + ТООТ
-// 3 оронтой — учир нь тоот нь 1-р орцны 1-р давхрын зvvн эхний
-// хаалганаас сvvлчийн орцны дээд давхрын баруун сvvлчийн хаалга хvртэл
-// БvХ БАЙРААР дараалж тоологддог тул илvv их орон зай шаардана.
+// 2026-08-19 хэрэглэгчийн тодорхой заасан дүрэм: Байр-Давхар-Тоот
+// (structure_type='floor') үед ДАВХАР 2 оронтой + ТООТ 2 оронтой.
+// Байр-Орц-Тоот (structure_type='entrance') үед ОРЦ 2 оронтой + ТООТ
+// 3 оронтой — учир нь тоот нь 1-р орцны 1-р давхрын зүүн эхний
+// хаалганаас сүүлчийн орцны дээд давхрын баруун сүүлчийн хаалга хүртэл
+// БүХ БАЙРААР дараалж тоологддог тул илүү их орон зай шаардана.
 export function formatStructureValue(value) {
   if (value == null) return '—';
   return String(value).padStart(2, '0');
@@ -22,15 +22,15 @@ export function formatDoorNo(doorNo, structureType) {
   return String(doorNo).padStart(width, '0');
 }
 
-// Байр+Давхар/Орц+Тоот-ыг НЭГ кодонд нийлvvлнэ (EditOwnerModal-ийн
+// Байр+Давхар/Орц+Тоот-ыг НЭГ кодонд нийлүүлнэ (EditOwnerModal-ийн
 // Тоот dropdown, Property.jsx-ийн UnitGridCard, OwnerInfoModal-д ижил
 // ашиглагдана — Rule of two). 2026-08-19 хэрэглэгчийн тодорхой заасан
 // зааглалт: Байр-Давхар-Тоот = "[Байр] [Давхар2+Тоот2 залгаа]" (space-
 // ээр зааглана, давхар+тоот хоорондоо залгаастай); Байр-Орц-Тоот =
 // "[Байр]-[Орц2]-[Тоот3]" (зураасаар зааглана). buildingNo-г raw
-// орж ирсэн ч гэсэн (жиш нь DB-д санамсаргvй trailing space орсон ч)
+// орж ирсэн ч гэсэн (жиш нь DB-д санамсаргүй trailing space орсон ч)
 // эхлээд trim хийж, зөвхөн ЭНЭ функц дотор зориудаар нэмсэн space/
-// зураасанд найдна — санамсаргvй өгөгдлийн зайд бvv найд.
+// зураасанд найдна — санамсаргүй өгөгдлийн зайд бүү найд.
 export function formatUnitCode(buildingNo, structureType, floor, entranceNo, doorNo) {
   const b = String(buildingNo ?? '').trim();
   if (structureType === 'entrance') {
