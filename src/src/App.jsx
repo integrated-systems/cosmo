@@ -176,8 +176,17 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={`/${rootTenantId}/dashboard`} replace />} />
+      <Route path="/" element={<Navigate to={`/${rootTenantId}`} replace />} />
       <Route path="/:hoaId" element={<TenantShell theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
+        {/* 2026-08-28: ОЛСОН БОДИТ АЛДАА — "/" рүү орход үүргүй шууд
+            "/hoaId/dashboard" (админы Хянах самбар) руу чиглүүлдэг
+            байсан тул OwnerApp хүртэл (Outlet-ээр) admin-ий Dashboard
+            компонентыг шууд харуулдаг байв. Одоо ЗӨВХӨН tenant root
+            рүү чиглүүлж, admin-д зориулсан "index" route (доор) нь
+            зөвхөн admin Layout-ийн Outlet хэсэгт л хүрнэ — учир нь
+            UserApp.jsx-ийн isHome шалгалт үүнээс ӨМНӨ таслан зогсоож,
+            owner-д зориулсан TileGrid-ыг шууд үзүүлдэг. */}
+        <Route index element={<Dashboard />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="userapp-profile" element={null} />
         <Route path="userapp-dashboard" element={null} />

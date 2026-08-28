@@ -20,7 +20,7 @@ import { useAccessRules } from '../hooks/useAccessRules';
 //
 // 2026-08-19: Supabase `news` хүснэгэлтэй холбогдов (migration 0014).
 // Зураг Supabase Storage("news-images" bucket, migration 0015)-д бодитоор
-// upload хийгдэнэ. "Паблик мэдээ" функц бүрмвсүн арилгагдсан (/news
+// upload хийгдэнэ. "Паблик мэдээ" функц бүрмөсөн арилгагдсан (/news
 // хуудсыг зөвхөн дотоод tenant-ийн гишүүдэд зориулна). PDF upload
 // хараахан TODO хэвээр.
 const TABS = [
@@ -70,7 +70,7 @@ export default function NewsPage() {
   // засах/устгах) л can()-ээр хаагдсан байв, харин ТАБ/ЖАГСААЛТ ӨӨРӨӨ
   // (ноорог зүйл ч оролцуулан) харагдсаар байсан. Одоо: удирдах эрхгүй
   // хүнд (owner) ЗӨВХӨН нийтлэгдсэн мэдээний уншихад зориулсан жагсаалт
-  // л харагдана, аггрегат таб бүрмвсвн нуугдана.
+  // л харагдана, аггрегат таб бүрмөсөн нуугдана.
   const isStaffViewer = bypass || can('news', 'add') || can('news', 'edit') || can('news', 'delete');
   const [tab, setTab] = useState('published');
   const [category, setCategory] = useState('');

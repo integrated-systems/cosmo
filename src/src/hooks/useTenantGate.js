@@ -5,7 +5,7 @@ import { useAuth } from '../lib/AuthContext';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 
 // 2026-08-19: Layout.jsx (admin) БОЛОН UserApp.jsx (резидент) хоёулаа
-// хуваалцдаг tenant-ийн ерөнхий шалгалт — "Хүлээн зөвшөөрсвн"
+// хуваалцдаг tenant-ийн ерөнхий шалгалт — "Хүлээн зөвшөөрсөн"
 // (approval_status) болон хэрэглэгчийн "Идэвхгүй" (tenant_users.status)
 // эсэхийг шалгана. Ирээдүйд UserApp.jsx-ийг бүрэн тусдаа project
 // болгож "гарган авах" үед энэ hook-ыг ч хамт амархан зввж авч болно.

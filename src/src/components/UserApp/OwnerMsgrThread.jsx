@@ -8,7 +8,7 @@ import { SendIcon } from '../icons/Icons';
 // удирдлагын dashboard)-г шууд харж байсан. Энэ нь зөвхөн зохисгүй
 // байдлаас гадна аюулгүй байдлын хувьд ч буруу (бусад хүний харилцан
 // яриаг харах гэсэн UI). Одоо OwnerApp-д зориулсан ЭНЭ тусдаа, энгийн
-// thread-only компонент ашиглагдана — owner зөвхөн ӨӨРИЙН СүХ-тэй
+// thread-only компонент ашиглагдана — owner зөвхөн ӨӨРИЙН СӨХ-тэй
 // хийсэн харилцан ярианыхаа мессежүүдийг харж, шинэ зурвас бичиж болно.
 //
 // 2026-08-28: ОЛСОН БОДИТ АЛДАА (бичээд илгээхэд огт илгээгдэхгүй
@@ -78,7 +78,7 @@ export default function OwnerMsgrThread({ hoaId }) {
           <div className="content-page-title">Мессенжер</div>
         </div>
         <div className="pool-empty">
-          Таны сууц өмчлөгчийн бүртгэл дутуу тул мессенжер ашиглах боломжгүй байна. СүХ-ийн ажилтантай холбогдож бүртгэлээ бүрдүүлнэ vv.
+          Таны сууц өмчлөгчийн бүртгэл дутуу тул мессенжер ашиглах боломжгүй байна. СӨХ-ийн ажилтантай холбогдож бүртгэлээ бүрдүүлнэ vv.
         </div>
       </div>
     );
@@ -96,7 +96,7 @@ export default function OwnerMsgrThread({ hoaId }) {
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
         {messages.length === 0 && (
-          <div className="pool-empty">СүХ-ийн ажилтантай холбогдохын тулд доор зурвас бичнэ vv.</div>
+          <div className="pool-empty">СӨХ-ийн ажилтантай холбогдохын тулд доор зурвас бичнэ vv.</div>
         )}
         {messages.map((m) => (
           <div key={m.id} style={{ alignSelf: m.dir === 'out' ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>

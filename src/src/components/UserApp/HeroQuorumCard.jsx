@@ -4,10 +4,16 @@ import { supabase } from '../../lib/supabaseClient';
 
 // 2026-08-27: OwnerApp Bento дэлгэцийн "гэрч" (hero) карт — variant 1
 // (хэрэглэгчийн сонгосон хувилбар) санааг бодит Cosmo дататай холбов.
-// Тухайн СүХ-ийн ХАМГИЙН ЯАРАЛТАЙ (дуусах хугацаа хамгийн ойрхон)
+// Тухайн СӨХ-ийн ХАМГИЙН ЯАРАЛТАЙ (дуусах хугацаа хамгийн ойрхон)
 // идэвхтэй санал асуулгыг олж, get_voting_results()-ийн turnout блокоор
 // лайв кворум ring үзүүлнэ. Идэвхтэй санал асуулга үгүй бол ЮУ Ч
 // үзүүлэхгүй (хоосон карт биш).
+//
+// 2026-08-28: ГүЙЦЭТГЭЛИЙН ЗАСВАР — үмнв нь ХОС дараалсан (waterfall)
+// дуудлага (эхлээд poll хайх, дараа нь get_voting_results) хийдэг
+// байсан тул Hero карт ХОЁР ДАХИН ачаалж, зарим үед "нэг алга болоод
+// дахин гарч ирдэг" мэт харагддаг байв (0061 migration-ий
+// get_home_hero() RPC-г ашиглан ЦОРЫН ГАНЦ дуудлага болгов).
 export default function HeroQuorumCard({ hoaId }) {
   const navigate = useNavigate();
   const [poll, setPoll] = useState(null);
@@ -16,21 +22,11 @@ export default function HeroQuorumCard({ hoaId }) {
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
-    (async () => {
-      const { data: p } = await supabase
-        .from('voting_polls')
-        .select('id, title, end_at')
-        .eq('tenant_id', hoaId)
-        .eq('status', 'active')
-        .order('end_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (cancelled) return;
-      if (!p) { setPoll(null); return; }
-      setPoll(p);
-      const { data: r } = await supabase.rpc('get_voting_results', { p_poll_id: p.id });
-      if (!cancelled) setTurnout(r?.turnout || null);
-    })();
+    supabase.rpc('get_home_hero', { p_tenant_id: hoaId }).then(({ data, error }) => {
+      if (cancelled || error) return;
+      setPoll(data?.poll || null);
+      setTurnout(data?.turnout || null);
+    });
     return () => { cancelled = true; };
   }, [hoaId]);
 

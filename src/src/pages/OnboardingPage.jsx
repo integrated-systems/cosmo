@@ -102,7 +102,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="mb-6 px-4 py-3 bg-blue-500/10 border border-blue-500/30 rounded-md">
-          <div className="text-sm text-text">СүХ үүссэний дараа <span className="font-semibold">14 хоногийн Trial үе</span> автоматаар эхэлнэ.</div>
+          <div className="text-sm text-text">СӨХ үүссэний дараа <span className="font-semibold">14 хоногийн Trial үе</span> автоматаар эхэлнэ.</div>
           <div className="text-xs text-mutedtext mt-1">SuperSysAdmin бүртгэлийг хүлээн зөвшөөрсний дараа үйлчилгээ идэвхжинэ.</div>
         </div>
 

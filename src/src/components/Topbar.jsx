@@ -93,7 +93,7 @@ export default function Topbar({ theme, onToggleTheme }) {
       </button>
 
       {/* 2026-08-19: Багц ахиулах/сунгах placeholder — одоогоор бодит
-          твлбврийн логик хүлээгдэж буй, зүгээр dropdown үзүүлнэ.
+          төлбөрийн логик хүлээгдэж буй, зүгээр dropdown үзүүлнэ.
           Дараа хвгжүүлнэ. */}
       <div className="relative">
         <button

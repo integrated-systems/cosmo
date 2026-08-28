@@ -62,7 +62,7 @@ export default function ProfileModal({ open, onClose }) {
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">И-мэйл</label>
           <input className="ds-input w-full" value={user?.email || ''} disabled />
           <div className="text-[10px] text-mutedtext mt-1">
-            Имэйл үүгээр солигдохгүй — шаардлагатай бол СүХ-д биеэр ирж SISADMIN-аар сольж үзнэ vv.
+            Имэйл үүгээр солигдохгүй — шаардлагатай бол СӨХ-д биеэр ирж SISADMIN-аар сольж үзнэ vv.
           </div>
         </div>
         <div>

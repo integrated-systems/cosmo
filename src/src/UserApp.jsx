@@ -302,7 +302,15 @@ export default function UserApp({ theme, onToggleTheme }) {
         </div>
       </div>
 
-      <div className="content-body content-body-transition" key={pathAfterHoa}>{mainContent}</div>
+      {/* 2026-08-28: ОЛСОН БОДИТ АЛДАА — "content-body-transition" +
+          key={pathAfterHoa} нь хуудас солигдох БүРД (Home→бусад→Home
+          гэх мэт) БүХ дэд компонентыг (Hero, TileGrid, badges) ШИНЭЭР
+          mount хийж, ДАТАГ ДАХИН АЧААЛУУЛДАГ байсан — яг энэ нь "Hero
+          алга болчихоод дахин гарч ирдэг", "товч дарахад гацалт
+          ажиглагдах", "апп удаан ачаалагдах" гэсэн 3 тайлбарласан
+          зүйлийн НЭГ л үндсэн шалтгаан байв. Хүнгэн шилжилтийн
+          "мэдрэмж" нь ЭНЭ үнэ цэнэтэй биш тул зүгээр арилгав. */}
+      <div className="content-body">{mainContent}</div>
 
       {comingSoonTitle && (
         <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && setComingSoonTitle(null)}>

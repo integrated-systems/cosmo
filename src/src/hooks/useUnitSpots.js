@@ -6,7 +6,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // талбарыг чөлөөт бичвэрээс (Давхар dropdown 1-5 hardcode+гар бичих
 // дугаар) "Хаягжилт тохиргоо" хуудсаар бодитоор үүсгэсэн unit_parking/
 // unit_storage-аас сонгодог dropdown болгов — давхардал, алдаатай
-// бичилт бүрмвсүн зайлсхийнэ.
+// бичилт бүрмөсөн зайлсхийнэ.
 function toDisplay(row) {
   return {
     id: row.id,

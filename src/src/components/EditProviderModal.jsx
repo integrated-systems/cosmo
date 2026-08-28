@@ -89,7 +89,7 @@ export default function EditProviderModal({ open, onClose, provider, onSave }) {
 
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гэрээ №</label>
-        <input className="ds-input w-full" placeholder="СүХ-2026-001" value={form.contractNo} onChange={(e) => set('contractNo', e.target.value)} />
+        <input className="ds-input w-full" placeholder="СӨХ-2026-001" value={form.contractNo} onChange={(e) => set('contractNo', e.target.value)} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-4">
