@@ -37,16 +37,16 @@ export default function HeroQuorumCard({ hoaId }) {
   if (!poll) return null;
 
   const pct = turnout?.turnout_percent ?? 0;
-  const r = 28, circumference = 2 * Math.PI * r;
+  const r = 33, circumference = 2 * Math.PI * r;
   const offset = circumference - Math.min(pct, 100) / 100 * circumference;
   const daysLeft = poll.end_at ? Math.max(0, Math.ceil((new Date(poll.end_at) - new Date()) / 86400000)) : null;
 
   return (
     <div className="hero-quorum-card" onClick={() => navigate(`/${hoaId}/voting/${poll.id}/results`)}>
       <div className="hero-ring-wrap">
-        <svg width="66" height="66" viewBox="0 0 66 66">
-          <circle className="hero-ring-track" cx="33" cy="33" r={r} />
-          <circle className="hero-ring-fill" cx="33" cy="33" r={r} style={{ strokeDasharray: circumference, strokeDashoffset: offset }} />
+        <svg width="78" height="78" viewBox="0 0 78 78">
+          <circle className="hero-ring-track" cx="39" cy="39" r={r} />
+          <circle className="hero-ring-fill" cx="39" cy="39" r={r} style={{ strokeDasharray: circumference, strokeDashoffset: offset }} />
         </svg>
         <div className="hero-ring-center">
           <div className="hero-ring-pct">{Math.round(pct)}%</div>

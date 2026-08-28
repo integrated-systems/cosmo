@@ -68,9 +68,11 @@ export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddMo
         {shown.map((t) => {
           const badgeCount = badges[t.key] || 0;
           // 2026-08-27: Bento дэлгэц (variant 1, хэрэглэгчийн сонгосон
-          // хувилбар) — Мессенжер (хамгийн их хэрэглэдэг) үргэлж өргөн,
-          // мвн шинэ зүйлтэй (badge) tile анхаарал татахын тулд өргөн.
-          const wide = t.key === 'msgr' || badgeCount > 0;
+          // хувилбар) — эхэндээ Мессенжерийг үргэлж өргөн болгосон ч,
+          // хэрэглэгч "энгийн бусад tile шиг байх ёстой" гэж заасны дагуу
+          // арилгав. Одоо ЗӨВХӨН шинэ зүйлтэй (badge>0) tile л анхаарал
+          // татахын тулд өргөн болно.
+          const wide = badgeCount > 0;
           return (
             <Tile key={t.key} tile={t} wide={wide} showHideBtn={showHideBtnFor === t.key}
               onOpen={() => onOpenTile(t)} onLongPress={() => setShowHideBtnFor(t.key)}
