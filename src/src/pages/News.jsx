@@ -62,7 +62,16 @@ function toTableRow(row) {
 
 export default function NewsPage() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
-  const { can } = useAccessRules(hoaId);
+  const { can, bypass } = useAccessRules(hoaId);
+  // 2026-08-27: ОЛСОН БОДИТ ЦООРХОЙ — "Мэдээний агрегат" таб (админы
+  // удирдлагын жагсаалт: ноорог/устгах/нийтлэх/арилгах г.м) ӨМНӨ НЬ
+  // РОЛЬ үл харгалзан БүГДЭД (тэр тоонд OwnerApp-аар нэвтэрсэн ердийн
+  // 'owner'-т ч) харагддаг байсан — зөвхөн доторх ТОВЧнУУД (нэмэх/
+  // засах/устгах) л can()-ээр хаагдсан байв, харин ТАБ/ЖАГСААЛТ ӨӨРӨӨ
+  // (ноорог зүйл ч оролцуулан) харагдсаар байсан. Одоо: удирдах эрхгүй
+  // хүнд (owner) ЗӨВХӨН нийтлэгдсэн мэдээний уншихад зориулсан жагсаалт
+  // л харагдана, аггрегат таб бүрмвсвн нуугдана.
+  const isStaffViewer = bypass || can('news', 'add') || can('news', 'edit') || can('news', 'delete');
   const [tab, setTab] = useState('published');
   const [category, setCategory] = useState('');
   const [rows, setRows] = useState([]);
@@ -183,18 +192,20 @@ export default function NewsPage() {
       <NewsToolbar
         category={category}
         onCategoryChange={setCategory}
-        onCreateClick={tab === 'aggregate' && can('news', 'add') ? () => setCreating(true) : undefined}
+        onCreateClick={isStaffViewer && tab === 'aggregate' && can('news', 'add') ? () => setCreating(true) : undefined}
       />
 
-      <div className="flex gap-2">
-        {TABS.map((t) => (
-          <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
-            {t.label}
-          </TabButton>
-        ))}
-      </div>
+      {isStaffViewer && (
+        <div className="flex gap-2">
+          {TABS.map((t) => (
+            <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
+              {t.label}
+            </TabButton>
+          ))}
+        </div>
+      )}
 
-      {tab === 'published' && (
+      {(tab === 'published' || !isStaffViewer) && (
         <div className="flex flex-col gap-2.5 w-full max-w-[720px] mx-auto">
           {loading && <div className="ds-card p-8 text-center text-darktext text-sm">Ачаалж байна...</div>}
           {!loading && items.length === 0 && (
@@ -206,7 +217,7 @@ export default function NewsPage() {
         </div>
       )}
 
-      {tab === 'aggregate' && (
+      {isStaffViewer && tab === 'aggregate' && (
         <NewsAggregateTable
           rows={aggregateRows}
           loading={loading}

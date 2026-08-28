@@ -11,6 +11,7 @@ import TileGrid from './components/UserApp/TileGrid';
 import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
+import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
@@ -162,6 +163,14 @@ export default function UserApp({ theme, onToggleTheme }) {
     : false;
 
   function handleOpenTile(item) {
+    if (item.key === 'msgr') {
+      // ОЛСОН ЦООРХОЙ: 'msgr' нь admin-ийн /msgr (staff БүХ харилцан
+      // ярианы удирдлагын dashboard) руу шууд чиглүүлдэг байсан тул
+      // owner бусдын харилцан ярааг ч харж чадах эрсдэлтэй байв. Одоо
+      // OwnerMsgrThread (зөвхөн ӨӨРИЙН харилцан яриа) руу чиглүүлнэ.
+      navigate(`/${hoaId}/userapp-msgr`);
+      return;
+    }
     if (item.key === 'news') {
       // Мэдээ уншсаны дараа badge тоолуурыг арилгана.
       localStorage.setItem(`cosmo_userapp_news_seen_${hoaId}`, new Date().toISOString());
@@ -208,6 +217,8 @@ export default function UserApp({ theme, onToggleTheme }) {
     );
   } else if (pathAfterHoa.startsWith('/userapp-dashboard')) {
     mainContent = <OwnerDashboard hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/userapp-msgr')) {
+    mainContent = <OwnerMsgrThread hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile
