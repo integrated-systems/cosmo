@@ -16,6 +16,33 @@ import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
+// 2026-08-28: Хуучин "suh" (userapp-react) App.jsx-ийн header 3 SVG
+// товчийг (Мэдэгдэл/Bell, Нуусан tile сэргээх/Plus, Гарах/Logout) ЯГ
+// ИЖИЛ шилжүүлэв — хэрэглэгчийн 2026-08-28 хүсэлт: "хуучин userapp-аас
+// эдгээр svg товчнуудыг сэргээе".
+function BellIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function LogoutIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
 // hex өнгийг [r,g,b] массив руу хувиргана — 2026-08-27, зурган хүснэгэсээр
 // баталгаажсан "5 леир, 5 слайдер" систем (Леир 4-ийн custom өнгийг
 // opacity-той хольж нэг CSS хувьсагч болгоход ашиглана).
@@ -61,6 +88,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   const bgImageUrl = presetBackgroundUrl(prefs.bg_preset);
   const [userappEnabled, setUserappEnabled] = useState({});
   const [badges, setBadges] = useState({});
+  const [ownerUnit, setOwnerUnit] = useState(null); // "Байр, Тоот" формат (2026-08-28)
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
@@ -91,10 +119,14 @@ export default function UserApp({ theme, onToggleTheme }) {
     let cancelled = false;
     (async () => {
       const [{ data: ownerRow }, { data: newsRows }] = await Promise.all([
-        supabase.from('owners').select('id').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
+        supabase.from('owners').select('id, building_no, floor, door_no').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
         supabase.from('news').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
       ]);
       if (cancelled) return;
+      if (ownerRow) {
+        const unitParts = [ownerRow.building_no, ownerRow.door_no].filter((v) => v != null && v !== '');
+        setOwnerUnit(unitParts.length ? unitParts.join(', ') : null);
+      }
       const next = {};
       if (ownerRow) {
         const { data: msgrRow } = await supabase.from('msgr_list').select('unread_count').eq('owner_id', ownerRow.id).eq('tenant_id', hoaId).maybeSingle();
@@ -259,13 +291,14 @@ export default function UserApp({ theme, onToggleTheme }) {
       <div className="home-header">
         <div>
           <div className="app-title">{tenantName || 'COSMO'}</div>
-          <div className="user-greeting">{user?.email} · Сууц өмчлөгч</div>
+          <div className="user-greeting">{ownerUnit || `${user?.email} · Сууц өмчлөгч`}</div>
         </div>
         <div className="header-actions">
+          <button className="icon-btn" onClick={() => navigate(`/${hoaId}/userapp-msgr`)} aria-label="Мэдэгдэл"><BellIcon /></button>
           {isHome && (
-            <button className="icon-btn" onClick={() => setShowAddModal(true)} aria-label="Нуусан товч">+</button>
+            <button className="icon-btn" onClick={() => setShowAddModal(true)} aria-label="Нуусан товч"><PlusIcon /></button>
           )}
-          <button className="icon-btn" onClick={() => supabase.auth.signOut()} aria-label="Гарах">⎋</button>
+          <button className="icon-btn" onClick={() => supabase.auth.signOut()} aria-label="Гарах"><LogoutIcon /></button>
         </div>
       </div>
 
