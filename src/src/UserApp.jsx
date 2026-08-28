@@ -15,19 +15,15 @@ import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
-// hex өнгийг хар/цагаан руу шугаман хольж тодорхой хувиар харлуулах/
-// цайруулах — хуучин "suh" (userapp-react) App.jsx-ийн tintHex()-тэй
-// ЯГ ИЖИЛ (2026-08-27, Профайл/Интерфейс тохиргоог Cosmo-д шилжүүлэх
-// үед хамт авав).
-function tintHex(hex, tint) {
-  const h = (hex || '#000000').replace('#', '');
-  let r = parseInt(h.substr(0, 2), 16) || 0, g = parseInt(h.substr(2, 2), 16) || 0, b = parseInt(h.substr(4, 2), 16) || 0;
-  const amt = Math.min(Math.abs(tint || 0), 50) / 50;
-  const mixTo = tint < 0 ? 0 : 255;
-  r = Math.round(r + (mixTo - r) * amt);
-  g = Math.round(g + (mixTo - g) * amt);
-  b = Math.round(b + (mixTo - b) * amt);
-  return `rgb(${r},${g},${b})`;
+// hex өнгийг [r,g,b] массив руу хувиргана — 2026-08-27, зурган хүснэгэсээр
+// баталгаажсан "5 леир, 5 слайдер" систем (Леир 4-ийн custom өнгийг
+// opacity-той хольж нэг CSS хувьсагч болгоход ашиглана).
+function hexToRgb(hex) {
+  if (!hex) return null;
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+  if ([r, g, b].some(Number.isNaN)) return null;
+  return [r, g, b];
 }
 
 // 2026-08-19: резидент (owner) shell — the2m26/suh (GitHub: userapp-react)
@@ -114,35 +110,27 @@ export default function UserApp({ theme, onToggleTheme }) {
     return () => { cancelled = true; };
   }, [hoaId, user?.id]);
 
-  // 2026-08-27: хуучин "suh" App.jsx-ийн 4 CSS хувьсагч тооцоолох
-  // useEffect-үүдийг ЯГ ИЖИЛ шилжүүлэв (--card-tint-overlay,
-  // --card-bg-computed, --bg-page/--bg-tint-overlay, --card-border-computed).
-  useEffect(() => {
-    const tint = prefs.card_tint ?? 0;
-    const overlay = tint < 0 ? `rgba(0,0,0,${Math.min(-tint, 50) / 100})` : `rgba(255,255,255,${Math.min(tint, 50) / 100})`;
-    document.documentElement.style.setProperty('--card-tint-overlay', overlay);
-  }, [prefs.card_tint]);
+  // 2026-08-27: зурган хүснэгэсээр баталгаажсан "5 леир, 5 слайдер"
+  // систем — доод → дээш: Леир1(bg)→Леир2(хар,slider1)→Леир3(blur,
+  // slider2)→[агуулга]→Леир4(картны өнгө,slider3)→Леир5(картны хар
+  // wash,slider4)→(хүүрээ,slider5).
 
+  // Леир 4 (Слайдер 3): тайл/картны background өнгө + опаситиг нэг
+  // хувьсагчид нэгтгэнэ (custom өнгөгүй бол theme-ийн анхны өнгө).
   useEffect(() => {
-    const transparency = prefs.card_transparency ?? 0;
-    const alpha = 1 - Math.min(transparency, 90) / 100;
-    const [r, g, b] = theme === 'light' ? [255, 255, 255] : [22, 36, 64];
-    document.documentElement.style.setProperty('--card-bg-computed', `rgba(${r},${g},${b},${alpha})`);
-  }, [prefs.card_transparency, theme]);
+    const opacity = Math.max(0, Math.min(100, prefs.card_fill_opacity ?? 100)) / 100;
+    const themeDefaultRgb = theme === 'light' ? [255, 255, 255] : [22, 36, 64];
+    const [r, g, b] = hexToRgb(prefs.card_color) || themeDefaultRgb;
+    document.documentElement.style.setProperty('--card-bg-computed', `rgba(${r},${g},${b},${opacity})`);
+  }, [prefs.card_color, prefs.card_fill_opacity, theme]);
 
+  // Леир 5 (Слайдер 4): ЗӨВХӨН тайл/картыг бүүрхсэн хар wash.
   useEffect(() => {
-    const tint = prefs.bg_tint ?? 0;
-    if (bgImageUrl) {
-      const overlay = tint < 0 ? `rgba(0,0,0,${Math.min(-tint, 50) / 100})` : `rgba(255,255,255,${Math.min(tint, 50) / 100})`;
-      document.documentElement.style.setProperty('--bg-tint-overlay', overlay);
-      document.documentElement.style.removeProperty('--bg-page');
-    } else if (prefs.bg_color) {
-      document.documentElement.style.setProperty('--bg-page', tintHex(prefs.bg_color, tint));
-    } else {
-      document.documentElement.style.removeProperty('--bg-page');
-    }
-  }, [prefs.bg_tint, prefs.bg_color, bgImageUrl]);
+    const opacity = Math.max(0, Math.min(100, prefs.card_wash_opacity ?? 0)) / 100;
+    document.documentElement.style.setProperty('--card-tint-overlay', `rgba(0,0,0,${opacity})`);
+  }, [prefs.card_wash_opacity]);
 
+  // Слайдер 5: тайл/картны хүүрээний өнгө хар(0)→цагаан(255).
   useEffect(() => {
     if (prefs.card_border_gray == null) {
       document.documentElement.style.removeProperty('--card-border-computed');
@@ -152,6 +140,18 @@ export default function UserApp({ theme, onToggleTheme }) {
     const hex = g.toString(16).padStart(2, '0');
     document.documentElement.style.setProperty('--card-border-computed', `#${hex}${hex}${hex}`);
   }, [prefs.card_border_gray]);
+
+  // Леир 2 (Слайдер 1): дэлгэцийг бүүрхэх хар давхаргын opacity.
+  useEffect(() => {
+    const opacity = Math.max(0, Math.min(100, prefs.bg_tint ?? 0)) / 100;
+    document.documentElement.style.setProperty('--bg-l2-opacity', opacity);
+  }, [prefs.bg_tint]);
+
+  // Леир 3 (Слайдер 2): дэлгэцийг бүүрхэх өнгөгүүй blur давхаргын хэмжээ.
+  useEffect(() => {
+    const pct = Math.max(0, Math.min(100, prefs.bg_blur ?? 0));
+    document.documentElement.style.setProperty('--bg-l3-blur', `${(pct / 100) * 24}px`);
+  }, [prefs.bg_blur]);
 
   const allowedItems = ALL_MENU_ITEMS.filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view'));
 
@@ -234,12 +234,19 @@ export default function UserApp({ theme, onToggleTheme }) {
 
   return (
     <div className="userapp-root app-shell" data-theme={theme === 'dark' ? 'dark' : 'light'}>
-      {bgImageUrl && (
-        <div
-          className="app-bg-layer"
-          style={{ backgroundImage: `linear-gradient(var(--bg-tint-overlay), var(--bg-tint-overlay)), url(${bgImageUrl})`, filter: `blur(${prefs.bg_blur ?? 8}px)` }}
-        />
-      )}
+      {/* 2026-08-27: Леир 1/2/3 — үүргэлж БүүРЭН тусад нь оршдог 3
+          давхарга (тодорхойлолтоор үүлдэн бүүрхэх). Custom өнгө/зураг
+          сонгоогүй үед Леир 1 тунгалаг үлдэж, доорх theme-ийн анхны
+          дэвсгэр (--bg-page) харагдана. */}
+      <div
+        className="app-bg-l1"
+        style={{
+          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
+          backgroundColor: !bgImageUrl && prefs.bg_color ? prefs.bg_color : undefined,
+        }}
+      />
+      <div className="app-bg-l2" style={{ opacity: 'var(--bg-l2-opacity, 0)' }} />
+      <div className="app-bg-l3" />
       <div className="home-header">
         <div>
           <div className="app-title">{tenantName || 'COSMO'}</div>

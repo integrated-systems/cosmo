@@ -5,14 +5,29 @@ import { supabase } from '../lib/supabaseClient';
 // Тохиргоо (Интерфейс) хэсгийг Cosmo стандартад (tenant_id, RLS) нийцүүлж
 // шилжүүлэв — device-local localStorage биш, СЕРВЕР талд хадгалж,
 // төхөөрөмж хооронд синк хийгддэг.
+//
+// ЭЦСИЙН БАТАЛГААЖСАН "5 ЛЕИР, 5 СЛАЙДЕР" СИСТЕМ (доод → дээш):
+//   Леир 1 (хамгийн доод) — дэлгэцийг 100% бүүрхэх, хамгийн арын фон
+//                            (bg_color ЭСВЭЛ bg_image_path)
+//   Леир 2 — дэлгэцийг 100% бүүрхэх ХАР давхарга, 100%→0% тунгалаг
+//            — Слайдер 1 (хамгийн дээд): bg_tint
+//   Леир 3 — дэлгэцийг 100% бүүрхэх ӨНГӨГүүй blur давхарга,
+//            100%→0% blur — Слайдер 2: bg_blur
+//   Леир 4 — тайл/картны background өнгө, custom өнгөнөөс сонгоно,
+//            100%→0% тунгалаг — Слайдер 3: card_color + card_fill_opacity
+//   Леир 5 (хамгийн дээд) — ЗӨВХӨН тайл/картуудыг бүүрхсэн ХАР
+//            давхарга, 100%→0% тунгалаг — Слайдер 4: card_wash_opacity
+//   (нэмэлт) — тайл/картны хүүрээний өнгө 100%(хар)→100%(цагаан)
+//            — Слайдер 5 (хамгийн доод): card_border_gray (0-255)
 const DEFAULTS = {
   theme: 'dark',
   bg_image_path: null,
   bg_color: null,
-  bg_blur: 8,
   bg_tint: 0,
-  card_tint: 0,
-  card_transparency: 0,
+  bg_blur: 0,
+  card_color: null,
+  card_fill_opacity: 100,
+  card_wash_opacity: 0,
   card_border_gray: null,
 };
 
@@ -51,10 +66,11 @@ export function useUserAppPrefs(userId, tenantId) {
       theme: next.theme,
       bg_image_path: next.bg_image_path,
       bg_color: next.bg_color,
-      bg_blur: next.bg_blur,
       bg_tint: next.bg_tint,
-      card_tint: next.card_tint,
-      card_transparency: next.card_transparency,
+      bg_blur: next.bg_blur,
+      card_color: next.card_color,
+      card_fill_opacity: next.card_fill_opacity,
+      card_wash_opacity: next.card_wash_opacity,
       card_border_gray: next.card_border_gray,
       updated_at: new Date().toISOString(),
     });

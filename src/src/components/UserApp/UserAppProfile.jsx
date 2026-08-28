@@ -149,6 +149,7 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uplo
         </div>
         {bgOpen && (
           <div className="profile-bg-panel">
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Леир 1 — Дэвсгэр (өнгө/зураг)</div>
             <div className="profile-bg-swatch-row">
               {BG_COLORS.map((hex) => (
                 <button key={hex} className={`profile-bg-swatch ${prefs.bg_color === hex ? 'active' : ''}`}
@@ -159,33 +160,50 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uplo
                 <CameraIcon />
               </button>
             </div>
-            {prefs.bg_image_path && (
-              <div className="profile-card-tint-row">
-                <span className="tint-dot tint-dot-sharp" />
-                <input type="range" min="0" max="20" value={prefs.bg_blur ?? 8} onChange={(e) => savePrefs({ bg_blur: +e.target.value })} />
-                <span className="tint-dot tint-dot-blurred" />
-              </div>
-            )}
             {(prefs.bg_image_path || prefs.bg_color) && (
               <button className="profile-bg-remove-btn" onClick={() => savePrefs({ bg_image_path: null, bg_color: null })}>Дэвсгэрийг арилгах</button>
             )}
-            {(prefs.bg_image_path || prefs.bg_color) && (
-              <div className="profile-card-tint-row">
-                <span className="tint-dot tint-dot-black" />
-                <input type="range" className="range-bw" min="-50" max="50" value={prefs.bg_tint ?? 0} onChange={(e) => savePrefs({ bg_tint: +e.target.value })} />
-                <span className="tint-dot tint-dot-white" />
-              </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 1 — Дэвсгэр дээрх хар давхарга</div>
+            <div className="profile-card-tint-row">
+              <span className="tint-dot tint-dot-sharp" />
+              <input type="range" className="range-bt" min="0" max="100" value={prefs.bg_tint ?? 0} onChange={(e) => savePrefs({ bg_tint: +e.target.value })} />
+              <span className="tint-dot" style={{ background: '#000000' }} />
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 2 — Дэвсгэрийн blur</div>
+            <div className="profile-card-tint-row">
+              <span className="tint-dot tint-dot-sharp" />
+              <input type="range" className="range-bt" min="0" max="100" value={prefs.bg_blur ?? 0} onChange={(e) => savePrefs({ bg_blur: +e.target.value })} />
+              <span className="tint-dot tint-dot-blurred" />
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '18px 0 4px' }}>Леир 4 — Тайл/картны өнгө</div>
+            <div className="profile-bg-swatch-row">
+              {BG_COLORS.map((hex) => (
+                <button key={hex} className={`profile-bg-swatch ${prefs.card_color === hex ? 'active' : ''}`}
+                  style={{ background: hex }} onClick={() => savePrefs({ card_color: hex })} aria-label={hex} />
+              ))}
+            </div>
+            {prefs.card_color && (
+              <button className="profile-bg-remove-btn" onClick={() => savePrefs({ card_color: null })}>Тайлын өнгийг арилгах</button>
             )}
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 3 — Тайл/картны өнгөний тунгалагшил</div>
             <div className="profile-card-tint-row">
-              <span className="tint-dot tint-dot-black" />
-              <input type="range" className="range-bw" min="-50" max="50" value={prefs.card_tint ?? 0} onChange={(e) => savePrefs({ card_tint: +e.target.value })} />
-              <span className="tint-dot tint-dot-white" />
-            </div>
-            <div className="profile-card-tint-row">
-              <span className="tint-dot tint-dot-solid" />
-              <input type="range" className="range-bt" min="0" max="90" value={prefs.card_transparency ?? 0} onChange={(e) => savePrefs({ card_transparency: +e.target.value })} />
               <span className="tint-dot tint-dot-hollow" />
+              <input type="range" className="range-bt" min="0" max="100" value={prefs.card_fill_opacity ?? 100} onChange={(e) => savePrefs({ card_fill_opacity: +e.target.value })} />
+              <span className="tint-dot tint-dot-solid" />
             </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 4 — Тайл/картны хар давхарга</div>
+            <div className="profile-card-tint-row">
+              <span className="tint-dot tint-dot-hollow" />
+              <input type="range" className="range-bt" min="0" max="100" value={prefs.card_wash_opacity ?? 0} onChange={(e) => savePrefs({ card_wash_opacity: +e.target.value })} />
+              <span className="tint-dot" style={{ background: '#000000' }} />
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 5 — Тайл/картны хүрээний өнгө</div>
             <div className="profile-card-tint-row">
               <span className="tint-dot" style={{ background: '#000000' }} />
               <input type="range" className="range-bw" min="0" max="255" value={prefs.card_border_gray ?? 30} onChange={(e) => savePrefs({ card_border_gray: +e.target.value })} />
