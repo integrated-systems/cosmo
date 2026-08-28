@@ -40,6 +40,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   const [saving, setSaving] = useState(false);
   const [owners, setOwners] = useState([]);
   const [suggestOpen, setSuggestOpen] = useState(false);
+  const [pickedOwnerId, setPickedOwnerId] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +49,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
     setEmail(editing?.email || '');
     setAddress(editing?.address || '');
     setPassword('');
+    setPickedOwnerId(null);
   }, [open, editing]);
 
   // 2026-08-19 хэрэглэгч тодорхой заасан: "Роль" нь "Сууц өмчлөгч" үед,
@@ -57,7 +59,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   // tenant-ийн хэмжээ жижиг тул client талд шүүх нь хялбар бвгввд хурдан.
   useEffect(() => {
     if (role !== 'owner' || !hoaId || owners.length > 0) return;
-    supabase.from('owners').select('id,firstname,lastname,building_no,floor,door_no').eq('tenant_id', hoaId).then(({ data }) => {
+    supabase.from('owners').select('id,firstname,lastname,building_no,floor,door_no,emails').eq('tenant_id', hoaId).then(({ data }) => {
       setOwners(data ?? []);
     });
   }, [role, hoaId, owners.length]);
@@ -71,12 +73,20 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   function pickOwner(o) {
     setFullname(`${o.firstname || ''} ${o.lastname || ''}`.trim());
     setAddress(formatUnitCode(o.building_no, null, o.floor, null, o.door_no));
+    // 2026-08-28 хэрэглэгчийн олсон ноцтой цоорхой: сууц өмчлөгчийг
+    // жагсаалтаас сонгоход имэйл автоматаар дүүргэгддэггүй, мвн гараар
+    // сольж бичих боломжтой байсан тул үр дүнд нь "Хэрэглэгч нэмэх"-ээр
+    // үүсгэсэн нэвтрэх эрх нь ямар ч owners мвртэй холбогддоггүй байв
+    // (owners.user_id хэзээ ч бичигдээгүй). Одоо: имэйл автоматаар
+    // дүүргэгдэж, READ-ONLY болно (доорх emailLocked/pickedOwnerId).
+    setEmail((o.emails && o.emails[0]) || '');
+    setPickedOwnerId(o.id);
     setSuggestOpen(false);
   }
 
   async function submit() {
     setSaving(true);
-    await onSave({ role, fullname, email, address, password });
+    await onSave({ role, fullname, email, address, password, ownerId: pickedOwnerId });
     setSaving(false);
   }
 
@@ -129,8 +139,18 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
         )}
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">И-мэйл</label>
-          <input className="ds-input w-full" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!editing} />
+          <input
+            className="ds-input w-full" placeholder="email@example.com" value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!!editing || !!pickedOwnerId}
+          />
           {editing && <div className="text-[10px] text-mutedtext mt-1">И-мэйл үүсгэсний дараа солигдохгүй.</div>}
+          {!editing && pickedOwnerId && (
+            <div className="text-[10px] text-mutedtext mt-1 flex items-center gap-1.5">
+              Сууц өмчлөгчийн бүртгэлтэй имэйл — гараар засах боломжгүй.
+              <button type="button" className="underline" onClick={() => { setPickedOwnerId(null); setEmail(''); }}>ҮҮнийг арилгах</button>
+            </div>
+          )}
           {!editing && role === 'owner' && (
             <div className="text-[10px] text-customOrange mt-1">
               ⚠️ Сууц өмчлөгчийн хувьд БОДИТ, хандах боломжтой имэйл байх ёстой — нууц үг мартвал зөвхөн энэ имэйлээр л сэргээх боломжтой.
@@ -214,7 +234,7 @@ export default function Accounts() {
       }
     } else {
       const { data: result, error } = await supabase.functions.invoke('manage-tenant-user', {
-        body: { action: 'create', tenantId: hoaId, email: form.email, password: form.password, fullname: form.fullname, role: form.role, address: form.address || null },
+        body: { action: 'create', tenantId: hoaId, email: form.email, password: form.password, fullname: form.fullname, role: form.role, address: form.address || null, ownerId: form.ownerId || null },
       });
       if (error || result?.error) { alert(result?.error || error.message); return; }
       setRows((rs) => [result.data, ...rs]);
@@ -225,9 +245,9 @@ export default function Accounts() {
   }
 
   // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: admin ролийг энд солих
-  // боломжгүй (зввгүар Reassign үйлдлээр — user_roles-ийг ч мвн зввгүй
-  // hамт вврчилдэг). Мвн хэн ч (admin ч гэсэн) өврийн мврийг идэвхгүй
-  // болгож чадахгүй — санамсаргүй өврийгөө түгжихээс сэргийлнэ.
+  // боломжгүй (зөвхөн Reassign үйлдлээр — user_roles-ийг ч мөн зэрэг
+  // хамт өөрчилдэг). Мөн хэн ч (admin ч гэсэн) өөрийн мөрийг идэвхгүй
+  // болгож чадахгүй — санамсаргүй өөрийгөө түгжихээс сэргийлнэ.
   // 2026-08-19 хэрэглэгчтэй тохиролцсон бодлого: tenant_admin (SISADMIN)
   // өврийгөө БОЛОН бусад admin ролийг идэвхгүй болгож чадахгүй. Харин
   // SUPERSYSADMIN бүх SISADMIN-ийг идэвхгүй болгох эрхтэй (энгийн

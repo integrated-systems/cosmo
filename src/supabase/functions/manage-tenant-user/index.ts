@@ -50,11 +50,11 @@ Deno.serve(async (req) => {
     const { action, tenantId } = body;
 
     if (!(await isAuthorized(callerClient, tenantId))) {
-      return json({ error: 'Энэ үйлдлийг зөвхөн СөХ-ийн Админ эсвэл SuperSysAdmin хийж чадна.' }, 403);
+      return json({ error: 'Энэ үйлдлийг зөвхөн СӨХ-ийн Админ эсвэл SuperSysAdmin хийж чадна.' }, 403);
     }
 
     if (action === 'create') {
-      const { email, password, fullname, role, address } = body;
+      const { email, password, fullname, role, address, ownerId } = body;
       if (!email || !password || password.length < 6) {
         return json({ error: 'Имэйл болон хамгийн багадаа 6 тэмдэгттэй нууц үг шаардлагатай.' }, 400);
       }
@@ -72,6 +72,19 @@ Deno.serve(async (req) => {
         .insert({ tenant_id: tenantId, user_id: userId, role, fullname, email, address: address || null })
         .select().single();
       if (rowErr) return json({ error: rowErr.message }, 400);
+
+      // 2026-08-28 хэрэглэгчийн олсон ноцтой цоорхой: "Сууц өмчлөгч"
+      // жагсаалтаас сонгож үүсгэсэн ч гэсэн owners.user_id хэзээ ч
+      // бичигдээгүй байсан тул OwnerApp-д "бүртгэл дутуу" гэсэн алдаа
+      // үзүүлдэг байв. Одоо role='owner' үед сонгосон ownerId-г шууд
+      // холбоно (алдаа гарвал бүхэл үйлдлийг rollback хийхгүй — ownerId
+      // холбохгүй ч гэсэн нэвтрэх эрх ажиллах ёстой тул зүгээр анхааруулна).
+      if (role === 'owner' && ownerId) {
+        const { error: linkErr } = await admin.from('owners').update({ user_id: userId }).eq('id', ownerId).eq('tenant_id', tenantId);
+        if (linkErr) {
+          return json({ data: rowData, warning: `Хэрэглэгч үүсгэгдсэн ч Сууц өмчлөгчийн бүртгэлтэй холбоход алдаа гарлаа: ${linkErr.message}` });
+        }
+      }
 
       return json({ data: rowData });
     }
