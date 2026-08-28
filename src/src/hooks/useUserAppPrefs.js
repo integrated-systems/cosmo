@@ -6,9 +6,16 @@ import { supabase } from '../lib/supabaseClient';
 // шилжүүлэв — device-local localStorage биш, СЕРВЕР талд хадгалж,
 // төхөөрөмж хооронд синк хийгддэг.
 //
-// ЭЦСИЙН БАТАЛГААЖСАН "5 ЛЕИР, 5 СЛАЙДЕР" СИСТЕМ (доод → дээш):
+// 2026-08-28: Хэрэглэгчийн хүсэлтээр дэвсгэр зургийг ГАДНААС IMPORT
+// хийх боломжийг (upload/storage download) БүРМВСВН хаав — зөвхөн
+// программд БАГТААСАН 6 бэлэн зургаас (bg_preset, src/config/
+// presetBackgrounds.js) сонгодог боллоо. ҮҮнээс болж storage
+// download()/blob URL-ийн логик хэрэггүй болсон (энгийн, хүнгэн static
+// URL шууд ашиглана).
+//
+// ЭЦСИЙН БАТАЛГААЖСАН "5 ЛЕИР, 6 СЛАЙДЕР" СИСТЕМ (доод → дээш):
 //   Леир 1 (хамгийн доод) — дэлгэцийг 100% бүүрхэх, хамгийн арын фон
-//                            (bg_color ЭСВЭЛ bg_image_path)
+//                            (bg_color ЭСВЭЛ bg_preset)
 //   Леир 2 — дэлгэцийг 100% бүүрхэх ХАР давхарга, 100%→0% тунгалаг
 //            — Слайдер 1 (хамгийн дээд): bg_tint
 //   Леир 3 — дэлгэцийг 100% бүүрхэх ӨНГӨГүүй blur давхарга,
@@ -17,11 +24,12 @@ import { supabase } from '../lib/supabaseClient';
 //            100%→0% тунгалаг — Слайдер 3: card_color + card_fill_opacity
 //   Леир 5 (хамгийн дээд) — ЗӨВХӨН тайл/картуудыг бүүрхсэн ХАР
 //            давхарга, 100%→0% тунгалаг — Слайдер 4: card_wash_opacity
-//   (нэмэлт) — тайл/картны хүүрээний өнгө 100%(хар)→100%(цагаан)
-//            — Слайдер 5 (хамгийн доод): card_border_gray (0-255)
+//   Слайдер 5 — тайл/картны хүүрээний өнгө хар(0)→цагаан(255)
+//            (card_border_gray)
+//   Слайдер 6 — тайл/карт/Hero-ийн border-radius 4-30px (card_radius)
 const DEFAULTS = {
   theme: 'dark',
-  bg_image_path: null,
+  bg_preset: null,
   bg_color: null,
   bg_tint: 0,
   bg_blur: 0,
@@ -34,15 +42,7 @@ const DEFAULTS = {
 
 export function useUserAppPrefs(userId, tenantId) {
   const [prefs, setPrefs] = useState(DEFAULTS);
-  const [bgImageUrl, setBgImageUrl] = useState(null); // blob URL, зөвхөн энэ session-д хүчинтэй
   const [loading, setLoading] = useState(true);
-
-  const loadBgImage = useCallback(async (path) => {
-    if (!path) { setBgImageUrl((old) => { if (old) URL.revokeObjectURL(old); return null; }); return; }
-    const { data, error } = await supabase.storage.from('userapp-backgrounds').download(path);
-    if (error || !data) return;
-    setBgImageUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(data); });
-  }, []);
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
@@ -51,21 +51,19 @@ export function useUserAppPrefs(userId, tenantId) {
       if (cancelled) return;
       const merged = data ? { ...DEFAULTS, ...data } : DEFAULTS;
       setPrefs(merged);
-      if (merged.bg_image_path) loadBgImage(merged.bg_image_path);
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [userId, loadBgImage]);
+  }, [userId]);
 
   const savePrefs = useCallback(async (patch) => {
     const next = { ...prefs, ...patch };
     setPrefs(next);
-    if (patch.bg_image_path !== undefined) loadBgImage(patch.bg_image_path);
     const { error } = await supabase.from('userapp_prefs').upsert({
       user_id: userId,
       tenant_id: tenantId,
       theme: next.theme,
-      bg_image_path: next.bg_image_path,
+      bg_preset: next.bg_preset,
       bg_color: next.bg_color,
       bg_tint: next.bg_tint,
       bg_blur: next.bg_blur,
@@ -77,14 +75,7 @@ export function useUserAppPrefs(userId, tenantId) {
       updated_at: new Date().toISOString(),
     });
     return { error };
-  }, [prefs, userId, tenantId, loadBgImage]);
+  }, [prefs, userId, tenantId]);
 
-  async function uploadBgImage(file) {
-    const path = `${userId}/background.jpg`;
-    const { error } = await supabase.storage.from('userapp-backgrounds').upload(path, file, { upsert: true, contentType: file.type });
-    if (error) return { error };
-    return savePrefs({ bg_image_path: path, bg_color: null });
-  }
-
-  return { prefs, bgImageUrl, loading, savePrefs, uploadBgImage };
+  return { prefs, loading, savePrefs };
 }

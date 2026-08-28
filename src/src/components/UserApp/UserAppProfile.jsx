@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { DEFAULT_TENANT_ID } from '../../config/tenant';
+import { PRESET_BACKGROUNDS } from '../../config/presetBackgrounds';
 
 // 2026-08-27: Хуучин "suh" (userapp-react) төслийн Профайл хуудсыг
 // Cosmo стандартад (tenant_id, RLS, useUserAppPrefs) нийцүүлж бүрэн
@@ -12,30 +13,23 @@ import { DEFAULT_TENANT_ID } from '../../config/tenant';
 //
 // Хуучин кодоос НЭГ чухал аюулгүй байдлын сайжруулалт нэмэв: нууц үг
 // солихдоо ОДООГИЙН нууц үгийг эхлээд баталгаажуулдаг (signInWithPassword)
-// болгосон — өмнөх Cosmo хувилбар үүнийг шалгадаггүй байсан тул хэн нэг
+// болгосон — өмнвх Cosmo хувилбар үүнийг шалгадаггүй байсан тул хэн нэг
 // нэвтэрсэн session-ыг булаавал (жиш нь: халаасанд орхисон нээлттэй
-// утас) шинэ нууц үг тавьж бүрмвсүн эзэмшлээс нь салгаж чадах эрсдэлтэй
+// утас) шинэ нууц үг тавьж бүрмөсөн эзэмшлээс нь салгаж чадах эрсдэлтэй
 // байв.
+//
+// 2026-08-28: Дэвсгэр зургийг ГАДНААС IMPORT хийх боломжийг (upload
+// товч, файл сонгогч) хэрэглэгчийн хүсэлтээр бүрмөсөн хаав — зөвхөн
+// программд БАГТААСАН 6 бэлэн зургаас сонгодог болов (PRESET_BACKGROUNDS).
 const BG_COLORS = [
   '#000000', '#af2c58', '#992c76', '#623396', '#3c3d92',
   '#016397', '#0559af', '#2f8b67', '#ff8a2b', '#78bd57',
   '#ffffff',
 ];
 
-function CameraIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
-export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uploadBgImage, savePrefs }) {
+export default function UserAppProfile({ user, theme, onToggleTheme, prefs, savePrefs }) {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { supported: pushSupported, subscribed, subscribe, unsubscribe } = usePushNotifications(hoaId);
-  const fileInputRef = useRef(null);
 
   const [owner, setOwner] = useState(null);
   const [loadingOwner, setLoadingOwner] = useState(true);
@@ -53,14 +47,6 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uplo
   async function toggleTheme() {
     onToggleTheme();
     await savePrefs({ theme: theme === 'dark' ? 'light' : 'dark' });
-  }
-
-  async function onPickImage(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const { error } = await uploadBgImage(file);
-    if (error) alert('Зураг байршуулахад алдаа гарлаа: ' + error.message);
-    e.target.value = '';
   }
 
   const phones = Array.isArray(owner?.phones) ? owner.phones.filter(Boolean) : [];
@@ -150,19 +136,27 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uplo
         </div>
         {bgOpen && (
           <div className="profile-bg-panel">
-            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Леир 1 — Дэвсгэр (өнгө/зураг)</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Леир 1 — Дэвсгэр зураг</div>
+            <div className="profile-bg-swatch-row">
+              {PRESET_BACKGROUNDS.map((bg) => (
+                <button
+                  key={bg.id}
+                  className={`profile-bg-swatch ${prefs.bg_preset === bg.id ? 'active' : ''}`}
+                  style={{ backgroundImage: `url(/cosmo/backgrounds/${bg.file})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  onClick={() => savePrefs({ bg_preset: bg.id, bg_color: null })}
+                  aria-label={bg.label}
+                />
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Леир 1 — Дэвсгэр өнгө</div>
             <div className="profile-bg-swatch-row">
               {BG_COLORS.map((hex) => (
                 <button key={hex} className={`profile-bg-swatch ${prefs.bg_color === hex ? 'active' : ''}`}
-                  style={{ background: hex }} onClick={() => savePrefs({ bg_color: hex, bg_image_path: null })} aria-label={hex} />
+                  style={{ background: hex }} onClick={() => savePrefs({ bg_color: hex, bg_preset: null })} aria-label={hex} />
               ))}
-              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickImage} />
-              <button className="profile-bg-photo-btn" onClick={() => fileInputRef.current?.click()} aria-label="Альбомоос зураг сонгох">
-                <CameraIcon />
-              </button>
             </div>
-            {(prefs.bg_image_path || prefs.bg_color) && (
-              <button className="profile-bg-remove-btn" onClick={() => savePrefs({ bg_image_path: null, bg_color: null })}>Дэвсгэрийг арилгах</button>
+            {(prefs.bg_preset || prefs.bg_color) && (
+              <button className="profile-bg-remove-btn" onClick={() => savePrefs({ bg_preset: null, bg_color: null })}>Дэвсгэрийг арилгах</button>
             )}
 
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 1 — Дэвсгэр дээрх хар давхарга</div>

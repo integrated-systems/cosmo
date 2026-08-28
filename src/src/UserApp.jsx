@@ -5,6 +5,7 @@ import { useAuth } from './lib/AuthContext';
 import { useAccessRules } from './hooks/useAccessRules';
 import { useTenantGate } from './hooks/useTenantGate';
 import { useUserAppPrefs } from './hooks/useUserAppPrefs';
+import { presetBackgroundUrl } from './config/presetBackgrounds';
 import { DEFAULT_TENANT_ID } from './config/tenant';
 import { MENU_SECTIONS } from './config/menu';
 import TileGrid from './components/UserApp/TileGrid';
@@ -56,7 +57,8 @@ export default function UserApp({ theme, onToggleTheme }) {
   const navigate = useNavigate();
   const { isPending, isRejected, isDeactivated } = useTenantGate();
   const { can, loading: accessLoading } = useAccessRules(hoaId);
-  const { prefs, bgImageUrl, savePrefs, uploadBgImage } = useUserAppPrefs(user?.id, hoaId);
+  const { prefs, savePrefs } = useUserAppPrefs(user?.id, hoaId);
+  const bgImageUrl = presetBackgroundUrl(prefs.bg_preset);
   const [userappEnabled, setUserappEnabled] = useState({});
   const [badges, setBadges] = useState({});
   const [tenantName, setTenantName] = useState('');
@@ -230,7 +232,7 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = (
       <UserAppProfile
         user={user} theme={theme} onToggleTheme={onToggleTheme}
-        prefs={prefs} bgImageUrl={bgImageUrl} savePrefs={savePrefs} uploadBgImage={uploadBgImage}
+        prefs={prefs} savePrefs={savePrefs}
       />
     );
   } else if (!isCurrentPageAllowed) {
