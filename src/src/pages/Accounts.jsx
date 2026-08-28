@@ -18,7 +18,7 @@ import { useAuth } from '../lib/AuthContext';
 // бодит нэвтрэх эрх (auth.admin.createUser) үүсгэж, user_roles-т
 // ролийг нь бичнэ. Устгахад Auth-аас ч хамт хасна. Нууц үг сэргээх
 // боломжтой (Засах модальд шинэ нууц үг бичвэл л шинэчлэгдэнэ, хоосон
-// үлдээвэл өвчлвгдвхгүй).
+// үлдээвэл хүчинтэй хэвээр үлдэнэ).
 const ROLE_LABELS = {
   admin: 'Админ',
   board: 'Удирдах зөвлөл',
@@ -56,7 +56,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   // "Овог нэр" талбарт бичиж эхэлмэгц Owners хүснэгэлээс тохирох нэр
   // санал болгож, сонгоход "Тоот" талбар автоматаар дүүргэгддэг болов.
   // owners жагсаалтыг зүгээр НЭГ удаа (role='owner' болмогц) татна —
-  // tenant-ийн хэмжээ жижиг тул client талд шүүх нь хялбар бвгввд хурдан.
+  // tenant-ийн хэмжээ жижиг тул client талд шүүх нь хялбар бөгөөд хурдан.
   useEffect(() => {
     if (role !== 'owner' || !hoaId || owners.length > 0) return;
     supabase.from('owners').select('id,firstname,lastname,building_no,floor,door_no,emails').eq('tenant_id', hoaId).then(({ data }) => {
@@ -111,7 +111,19 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
             className="ds-input w-full"
             placeholder="Овог Нэр"
             value={fullname}
-            onChange={(e) => { setFullname(e.target.value); setSuggestOpen(true); }}
+            onChange={(e) => {
+              // 2026-08-28 хэрэглэгчийн тодруулсан зарчим: Сууц өмчлөгчийн
+              // бүртгэлтэй имэйл нь ЦОРЫН ГАНЦ эх сурвалж (Owners хуудас)
+              // — энэ модальд ХЭЗЭЭ Ч гараар засаж үл болно. Овог нэрийг
+              // дахин бичих (өмнвх сонголтоос холдох) бол сонголт бүрэн
+              // цуцлагдаж, шинэ жагсаалтаас дахин сонгосны дараа л имэйл
+              // дүүрнэ — "тусгайлан арилгах" товч огт хэрэггүй. Зөвхөн
+              // role='owner' үед л үйлчилнэ (staff-ийн и-мэйл үргэлж
+              // чөлөвтэй).
+              setFullname(e.target.value);
+              if (role === 'owner') { setPickedOwnerId(null); setEmail(''); }
+              setSuggestOpen(true);
+            }}
             onFocus={() => setSuggestOpen(true)}
             onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
           />
@@ -146,9 +158,8 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
           />
           {editing && <div className="text-[10px] text-mutedtext mt-1">И-мэйл үүсгэсний дараа солигдохгүй.</div>}
           {!editing && pickedOwnerId && (
-            <div className="text-[10px] text-mutedtext mt-1 flex items-center gap-1.5">
-              Сууц өмчлөгчийн бүртгэлтэй имэйл — гараар засах боломжгүй.
-              <button type="button" className="underline" onClick={() => { setPickedOwnerId(null); setEmail(''); }}>ҮҮнийг арилгах</button>
+            <div className="text-[10px] text-mutedtext mt-1">
+              Сууц өмчлөгчийн бүртгэлтэй имэйл — ЭНД гараар засах, арилгах боломжгүй (Owners хуудас цорын ганц эх сурвалж). Өөр өмчлөгч сонгохын тулд дээрх Овог нэрийг дахин бичнэ vv.
             </div>
           )}
           {!editing && role === 'owner' && (
