@@ -141,6 +141,13 @@ export default function UserApp({ theme, onToggleTheme }) {
     document.documentElement.style.setProperty('--card-border-computed', `#${hex}${hex}${hex}`);
   }, [prefs.card_border_gray]);
 
+  // Слайдер 6: тайл/карт/Hero-ийн border-radius (4-30px) — гурвыг нь
+  // ижил бүлэг мэт харагдуулна.
+  useEffect(() => {
+    const r = Math.max(4, Math.min(30, prefs.card_radius ?? 20));
+    document.documentElement.style.setProperty('--card-radius-computed', `${r}px`);
+  }, [prefs.card_radius]);
+
   // Леир 2 (Слайдер 1): дэлгэцийг бүүрхэх хар давхаргын opacity.
   useEffect(() => {
     const opacity = Math.max(0, Math.min(100, prefs.bg_tint ?? 0)) / 100;

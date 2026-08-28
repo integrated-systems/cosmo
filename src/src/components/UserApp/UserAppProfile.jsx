@@ -17,8 +17,9 @@ import { DEFAULT_TENANT_ID } from '../../config/tenant';
 // утас) шинэ нууц үг тавьж бүрмвсүн эзэмшлээс нь салгаж чадах эрсдэлтэй
 // байв.
 const BG_COLORS = [
-  '#4a4a4a', '#af2c58', '#992c76', '#623396', '#3c3d92',
+  '#000000', '#af2c58', '#992c76', '#623396', '#3c3d92',
   '#016397', '#0559af', '#2f8b67', '#ff8a2b', '#78bd57',
+  '#ffffff',
 ];
 
 function CameraIcon() {
@@ -208,6 +209,13 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, uplo
               <span className="tint-dot" style={{ background: '#000000' }} />
               <input type="range" className="range-bw" min="0" max="255" value={prefs.card_border_gray ?? 30} onChange={(e) => savePrefs({ card_border_gray: +e.target.value })} />
               <span className="tint-dot" style={{ background: '#ffffff', border: '1px solid var(--border-card)' }} />
+            </div>
+
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '14px 0 4px' }}>Слайдер 6 — Тайл/карт/Hero-ийн булангийн радиус</div>
+            <div className="profile-card-tint-row">
+              <span className="tint-dot" style={{ borderRadius: 3, background: 'var(--border-card)' }} />
+              <input type="range" min="4" max="30" value={prefs.card_radius ?? 20} onChange={(e) => savePrefs({ card_radius: +e.target.value })} />
+              <span className="tint-dot" style={{ borderRadius: '50%', background: 'var(--border-card)' }} />
             </div>
           </div>
         )}

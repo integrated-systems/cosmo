@@ -29,6 +29,7 @@ const DEFAULTS = {
   card_fill_opacity: 100,
   card_wash_opacity: 0,
   card_border_gray: null,
+  card_radius: 20,
 };
 
 export function useUserAppPrefs(userId, tenantId) {
@@ -72,6 +73,7 @@ export function useUserAppPrefs(userId, tenantId) {
       card_fill_opacity: next.card_fill_opacity,
       card_wash_opacity: next.card_wash_opacity,
       card_border_gray: next.card_border_gray,
+      card_radius: next.card_radius,
       updated_at: new Date().toISOString(),
     });
     return { error };
