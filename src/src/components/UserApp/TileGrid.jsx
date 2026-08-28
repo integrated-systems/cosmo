@@ -40,7 +40,7 @@ function Tile({ tile, wide, showHideBtn, onOpen, onLongPress, onHide, badgeCount
   );
 }
 
-export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddModal, newsUnreadCount = 0 }) {
+export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddModal, badges = {} }) {
   const [hidden, setHidden] = useState(getHiddenTiles());
   const [showHideBtnFor, setShowHideBtnFor] = useState(null);
 
@@ -66,7 +66,7 @@ export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddMo
     <div onClick={() => showHideBtnFor && setShowHideBtnFor(null)}>
       <div className="tile-grid">
         {shown.map((t) => {
-          const badgeCount = t.key === 'news' ? newsUnreadCount : 0;
+          const badgeCount = badges[t.key] || 0;
           // 2026-08-27: Bento дэлгэц (variant 1, хэрэглэгчийн сонгосон
           // хувилбар) — Мессенжер (хамгийн их хэрэглэдэг) үргэлж өргөн,
           // мвн шинэ зүйлтэй (badge) tile анхаарал татахын тулд өргөн.

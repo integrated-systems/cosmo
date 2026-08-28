@@ -61,6 +61,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   const { can, loading: accessLoading } = useAccessRules(hoaId);
   const { prefs, bgImageUrl, savePrefs, uploadBgImage } = useUserAppPrefs(user?.id, hoaId);
   const [userappEnabled, setUserappEnabled] = useState({});
+  const [badges, setBadges] = useState({});
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
@@ -80,6 +81,37 @@ export default function UserApp({ theme, onToggleTheme }) {
     });
     return () => { cancelled = true; };
   }, [hoaId]);
+
+  useEffect(() => {
+    // 2026-08-27: Bento tile badge-үүд — msgr бол БОДИТ unread_count
+    // (msgr_list, RLS-ээр зөвхөн ӨӨРИЙН мвр), news бол backend-д
+    // per-user "уншсан эсэх" хүснэгэл байхгүй тул localStorage-д
+    // хадгалсан "сүүлд үзсэн" огноогоос хойших шинэ мэдээний тоог
+    // тооцоолно (хүнгэн, нэмэлт хүснэгэлгүй).
+    if (!hoaId || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: ownerRow }, { data: newsRows }] = await Promise.all([
+        supabase.from('owners').select('id').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
+        supabase.from('news').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
+      ]);
+      if (cancelled) return;
+      const next = {};
+      if (ownerRow) {
+        const { data: msgrRow } = await supabase.from('msgr_list').select('unread_count').eq('owner_id', ownerRow.id).eq('tenant_id', hoaId).maybeSingle();
+        if (!cancelled && msgrRow?.unread_count) next.msgr = msgrRow.unread_count;
+      }
+      const lastSeenKey = `cosmo_userapp_news_seen_${hoaId}`;
+      const lastSeen = localStorage.getItem(lastSeenKey);
+      if (!lastSeen) {
+        localStorage.setItem(lastSeenKey, new Date().toISOString());
+      } else if (newsRows) {
+        next.news = newsRows.filter((n) => new Date(n.created_at) > new Date(lastSeen)).length;
+      }
+      if (!cancelled) setBadges(next);
+    })();
+    return () => { cancelled = true; };
+  }, [hoaId, user?.id]);
 
   // 2026-08-27: хуучин "suh" App.jsx-ийн 4 CSS хувьсагч тооцоолох
   // useEffect-үүдийг ЯГ ИЖИЛ шилжүүлэв (--card-tint-overlay,
@@ -130,6 +162,11 @@ export default function UserApp({ theme, onToggleTheme }) {
     : false;
 
   function handleOpenTile(item) {
+    if (item.key === 'news') {
+      // Мэдээ уншсаны дараа badge тоолуурыг арилгана.
+      localStorage.setItem(`cosmo_userapp_news_seen_${hoaId}`, new Date().toISOString());
+      setBadges((b) => ({ ...b, news: 0 }));
+    }
     if (item.key === 'dashboard') {
       // Dashboard: admin талын /dashboard-той ОГТ өөр (энгийн статик)
       // компонент тул shared route биш, /userapp-dashboard тусдаа
@@ -165,6 +202,7 @@ export default function UserApp({ theme, onToggleTheme }) {
           onOpenTile={handleOpenTile}
           showAddModal={showAddModal}
           onCloseAddModal={() => setShowAddModal(false)}
+          badges={badges}
         />
       </>
     );
@@ -204,7 +242,7 @@ export default function UserApp({ theme, onToggleTheme }) {
         </div>
       </div>
 
-      <div className="content-body">{mainContent}</div>
+      <div className="content-body content-body-transition" key={pathAfterHoa}>{mainContent}</div>
 
       {comingSoonTitle && (
         <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && setComingSoonTitle(null)}>
