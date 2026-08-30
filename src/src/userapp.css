@@ -49,3 +49,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
 /* 2026-08-28 (3): Хэрэглэгчийн жигдлэх хүсэлт — News/Voting зэрэг shared хуудасны ".ds-toolbar" (dropdown/гарчгийн хайрцаг) OwnerApp дотор "карт" шиг харагдахгүй, зүгээр тунгалаг байх ёстой (Мессенжер хуудасны энгийн текст гарчигтай адил). */
 .userapp-root .ds-toolbar{background:transparent!important;border:none!important;box-shadow:none!important;padding:4px 0 14px!important}
+
+/* 2026-08-30: Хэрэглэгчийн хүсэлт — OwnerApp доторх "Буцах" зэрэг .ds-btn-secondary товчнуудын хар-хвх (admin-ий) вн апп-ийн glass дизайнтай зөрчилдөж байсныг glassmorphism болгов (header-ийн .icon-btn-тэй адил зарчим). */
+.userapp-root .ds-btn-secondary{background:#ffffff24 !important;color:var(--text-primary) !important;border:1px solid #ffffff2e !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}

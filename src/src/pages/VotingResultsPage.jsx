@@ -487,14 +487,14 @@ export default function VotingResultsPage() {
                     <>
                       <div className="text-[11px] text-mutedtext mb-2">Дээд тал нь {limit} саналыг сонгож болно</div>
                       <div className="flex flex-col gap-1.5">
-                        {col.cands.map((c) => (
+                        {col.cands.map((c, idx) => (
                           <label key={c.id} className="flex items-center gap-2 text-[12px] text-slate-700 dark:text-text cursor-pointer">
                             <input
                               type="checkbox"
                               checked={(electionSelections[col.key] || []).includes(c.fullname === 'Аль нь ч биш' ? 'NONE' : c.id)}
                               onChange={() => toggleCandidate(col.key, c.fullname === 'Аль нь ч биш' ? 'NONE' : c.id)}
                             />
-                            {c.fullname}
+                            {idx + 1}. {c.fullname}
                           </label>
                         ))}
                       </div>
@@ -513,9 +513,9 @@ export default function VotingResultsPage() {
                   {(!isOwnerViewer || !isOpenForVoting || col.responded) && col.cands.length > 0 && (
                     resultCouncil ? (
                       <div className="flex flex-col gap-2 mt-1">
-                        {(resultCouncil.candidates || []).map((c) => (
+                        {(resultCouncil.candidates || []).map((c, idx) => (
                           <ResultBar
-                            key={c.candidate_id} label={c.fullname} count={c.votes} total={totalVotes}
+                            key={c.candidate_id} label={`${idx + 1}. ${c.fullname}`} count={c.votes} total={totalVotes}
                             highlight={c.fullname !== 'Аль нь ч биш'} unit={results?.turnout?.weighted ? ' м²' : ''}
                             mine={c.fullname === 'Аль нь ч биш' ? myVotedNone : myCandidateIds.has(c.candidate_id)}
                           />

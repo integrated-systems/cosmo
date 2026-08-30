@@ -387,7 +387,7 @@ export default function VotingEditPage() {
                 </div>
                 {col.cands.length === 0 && <div className="text-[12px] text-mutedtext">Нэр дэвшигч нэмээгүй байна</div>}
                 <div className="flex flex-col gap-1.5">
-                  {col.cands.map((c) => {
+                  {col.cands.map((c, idx) => {
                     const q = c.fullname.trim().toLowerCase();
                     const matches = q
                       ? owners.filter((o) => `${o.firstname || ''} ${o.lastname || ''}`.toLowerCase().startsWith(q) || (o.lastname || '').toLowerCase().startsWith(q)).slice(0, 10)
@@ -395,6 +395,12 @@ export default function VotingEditPage() {
                     const isOpen = suggestFor && suggestFor.council === col.key && suggestFor.id === c.id;
                     return (
                       <div key={c.id} className="relative flex items-center gap-2">
+                        {/* 2026-08-30: хэрэглэгч тодруулав — нэр дэвшигчид
+                            заавал ДУГААРЛАСАН байх ёстой (энэ дугаар
+                            санал өгөх/үр дүнгийн хуудсанд ч харагдана).
+                            Гараар бичихийг шаардахгүй, order_index-ээр
+                            автоматаар тооцоолж үзүүлнэ. */}
+                        <span className="text-[12px] font-semibold text-mutedtext w-5 shrink-0 text-right">{idx + 1}.</span>
                         <input
                           className="ds-input w-full" placeholder="Нэр дэвшигчийн нэр"
                           value={c.fullname}
