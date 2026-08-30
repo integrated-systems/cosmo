@@ -52,13 +52,15 @@ function StarInput({ value, onChange, readOnly }) {
   );
 }
 
-function ResultBar({ label, count, total, highlight, unit = '' }) {
+function ResultBar({ label, count, total, highlight, unit = '', mine = false }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <div>
       <div className="flex items-center justify-between text-[12px] mb-1">
-        <span className={highlight ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-text'}>{label}</span>
-        <span className="text-mutedtext">{count}{unit} · {pct}%</span>
+        <span className={highlight ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-text'}>
+          {label}{mine && <span className="text-customGreen font-semibold"> ✓ Миний өгсөн санал</span>}
+        </span>
+        <span className="text-mutedtext">{count}{unit} ({pct}%)</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 dark:bg-bordercol overflow-hidden">
         <div className="h-full bg-customBlue" style={{ width: `${pct}%` }} />
@@ -458,7 +460,11 @@ export default function VotingResultsPage() {
       {/* ============ ELECTION ============ */}
       {poll.type === 'election' && (
         <div className="ds-card p-4">
-          <div className="grid grid-cols-2 gap-6">
+          {/* 2026-08-30 ОЛСОН БОДИТ АЛДАА ЗАСАВ: хэрэглэгч тодруулав —
+              утсан дэлгэц дээр 2 багана хэт шаваарч харагддаг байсан
+              тул "grid-cols-2" биш, ЦУВУУЛЖ (Удирдах зүүлвл -> Хяналтын
+              зүүлвл) байрлуулна. */}
+          <div className="flex flex-col gap-6">
             {[
               { key: 'board', cands: boardCandidates, responded: hasRespondedBoard },
               { key: 'supervisory_board', cands: supervisoryCandidates, responded: hasRespondedSupervisory },
@@ -466,7 +472,12 @@ export default function VotingResultsPage() {
               const limit = col.key === 'board' ? (poll.board_votes_allowed ?? 1) : (poll.supervisory_votes_allowed ?? 1);
               const canVoteThis = isOwnerViewer && isOpenForVoting && !col.responded && col.cands.length > 0;
               const resultCouncil = results?.councils?.find((rc) => rc.council_type === col.key);
-              const totalVotes = resultCouncil ? (resultCouncil.candidates || []).reduce((sum, c) => sum + c.votes, 0) + (resultCouncil.none_votes || 0) : 0;
+              const totalVotes = resultCouncil ? (resultCouncil.candidates || []).reduce((sum, c) => sum + c.votes, 0) : 0;
+              // 2026-08-30: тухайн зүүлвлд ЭНЭ хэрэглэгчийн сонгосон
+              // нэр дэвшигч(ид)-ийг тодорхойлж, үр дүнд нь "✓ Миний
+              // өгсөн санал" гэж тэмдэглэж үзүүлэхийн тулд.
+              const myCandidateIds = new Set(myResponses.filter((r) => r.council_type === col.key && r.candidate_id).map((r) => r.candidate_id));
+              const myVotedNone = myResponses.some((r) => r.council_type === col.key && !r.candidate_id);
               return (
                 <div key={col.key}>
                   <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">{COUNCIL_TITLES[col.key]}</div>
@@ -503,7 +514,11 @@ export default function VotingResultsPage() {
                     resultCouncil ? (
                       <div className="flex flex-col gap-2 mt-1">
                         {(resultCouncil.candidates || []).map((c) => (
-                          <ResultBar key={c.candidate_id} label={c.fullname} count={c.votes} total={totalVotes} highlight={c.fullname !== 'Аль нь ч биш'} unit={results?.turnout?.weighted ? ' м²' : ''} />
+                          <ResultBar
+                            key={c.candidate_id} label={c.fullname} count={c.votes} total={totalVotes}
+                            highlight={c.fullname !== 'Аль нь ч биш'} unit={results?.turnout?.weighted ? ' м²' : ''}
+                            mine={c.fullname === 'Аль нь ч биш' ? myVotedNone : myCandidateIds.has(c.candidate_id)}
+                          />
                         ))}
                       </div>
                     ) : (
