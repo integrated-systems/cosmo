@@ -166,9 +166,13 @@ export default function OwnerMsgrThread({ hoaId }) {
                       padding: '9px 13px',
                       fontSize: 13,
                       lineHeight: 1.4,
-                      background: isMine ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                      color: isMine ? '#fff' : 'var(--text-primary)',
-                      border: isMine ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      // 2026-08-30: хэрэглэгчийн хүсэлт — илгээсэн (өөрийн)
+                      // баббл ирсэн бабблтай ЯГ АДИЛ саарал өнгвтэй болов
+                      // (цэнхэр ялгаа арилгав, зүгээр байрлал/зэрэгцээ
+                      // (баруун/зүүн) л ялгаатай хэвээр).
+                      background: 'rgba(255,255,255,0.08)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid rgba(255,255,255,0.1)',
                     }}
                   >
                     {m.body}

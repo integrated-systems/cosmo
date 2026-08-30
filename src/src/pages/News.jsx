@@ -189,6 +189,15 @@ export default function NewsPage() {
 
   return (
     <>
+      {/* 2026-08-28: Owner-т зориулж "Мэдээ, мэдээлэл" хуудсанд Мессенжер
+          хуудасны гарчигтай ЯГ ИЖИЛ форматтай гарчиг нэмэв — үүнээс
+          өмнө энэ хуудсанд гарчиг ОГТ байгаагүй. Staff-д (аль хэдийн
+          .ds-toolbar-даа гарчигтай үзвгдэл) давхар харагдахгүй. */}
+      {!isStaffViewer && (
+        <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
+          <div className="content-page-title">Мэдээ, мэдээлэл</div>
+        </div>
+      )}
       <NewsToolbar
         category={category}
         onCategoryChange={setCategory}

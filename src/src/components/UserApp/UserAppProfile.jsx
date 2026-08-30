@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { DEFAULT_TENANT_ID } from '../../config/tenant';
 import { PRESET_BACKGROUNDS } from '../../config/presetBackgrounds';
+import { formatUnitLabel } from '../../lib/ownersFormat';
 
 // 2026-08-27: Хуучин "suh" (userapp-react) төслийн Профайл хуудсыг
 // Cosmo стандартад (tenant_id, RLS, useUserAppPrefs) нийцүүлж бүрэн
@@ -32,14 +33,24 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
   const { supported: pushSupported, subscribed, subscribe, unsubscribe } = usePushNotifications(hoaId);
 
   const [owner, setOwner] = useState(null);
+  const [unitLabel, setUnitLabel] = useState(null);
   const [loadingOwner, setLoadingOwner] = useState(true);
   const [bgOpen, setBgOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.id || !hoaId) return;
-    supabase.from('owners').select('*').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle().then(({ data }) => {
+    Promise.all([
+      supabase.from('owners').select('*').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
+      // 2026-08-28: "Хаягжилт тохиргоо"-д тохируулсан форматыг (Байр-
+      // Давхар-Тоот эсвэл Байр-Орц-Тоот) яг ижил ашиглана.
+      supabase.from('unit_layouts').select('building_no,floor,door_no,structure_type,entrance_no').eq('tenant_id', hoaId),
+    ]).then(([{ data }, { data: layouts }]) => {
       setOwner(data ?? null);
+      if (data) {
+        const layoutRow = (layouts ?? []).find((u) => u.building_no === data.building_no && u.floor === data.floor && u.door_no === data.door_no);
+        setUnitLabel(formatUnitLabel(data.building_no, layoutRow?.structure_type, data.floor, layoutRow?.entrance_no, data.door_no));
+      }
       setLoadingOwner(false);
     });
   }, [user?.id, hoaId]);
@@ -49,13 +60,11 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
     await savePrefs({ theme: theme === 'dark' ? 'light' : 'dark' });
   }
 
-  const phones = Array.isArray(owner?.phones) ? owner.phones.filter(Boolean) : [];
-  const emails = Array.isArray(owner?.emails) ? owner.emails.filter(Boolean) : [];
   const parkings = Array.isArray(owner?.parkings) ? owner.parkings : [];
   const storages = Array.isArray(owner?.storages) ? owner.storages : [];
   const fullName = `${owner?.firstname || ''} ${owner?.lastname || ''}`.trim() || user?.email || '—';
   const infoRows = [
-    ['Тоот', [owner?.building_no, owner?.floor, owner?.door_no].filter((v) => v != null && v !== '').join(' / ') || '—'],
+    ['Тоот', unitLabel || '—'],
     ['Талбай', owner?.sqm ? `${owner.sqm} м²` : '—'],
     ['Зогсоол', parkings.length ? String(parkings.length) : '—'],
     ['Агуулах', storages.length ? String(storages.length) : '—'],
@@ -63,43 +72,20 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
 
   return (
     <div>
-      <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
-        <div className="content-page-title">Профайл</div>
-      </div>
-
+      {/* 2026-08-28: Хэрэглэгчийн зурган тэмдэглэл — "Профайл" хуудасны
+          гарчиг илүүц (доод tab-д "Profile" гэж бичигдсэн байгаа тул)
+          — бүрмөсөн арилгав. Мвн "ХЭРЭГЛЭГЧИЙН МЭДЭЭЛЭЛ" (Регистр/Утас/
+          И-мэйл) секцийг бүхэлд нь арилгав. */}
       {!loadingOwner && owner && (
         <>
           <div className="mobile-list-item" style={{ textAlign: 'center', padding: 20 }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{fullName}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              {owner.door_no != null ? `${owner.door_no} тоот` : ''}{owner.sqm ? ` · ${owner.sqm} м²` : ''}
-            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{unitLabel}</div>
           </div>
 
-          <div className="section-title">Хэрэглэгчийн мэдээлэл</div>
           <div className="mobile-list-item">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Регистр</span>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{owner.regno || '—'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Утас</span>
-              {phones.length
-                ? <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                    {phones.map((p, i) => <a key={i} href={`tel:${p}`} className="profile-value-link">{p}</a>)}
-                  </span>
-                : <span style={{ fontSize: 13, fontWeight: 700 }}>—</span>}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>И-мэйл</span>
-              {emails.length
-                ? <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                    {emails.map((em, i) => <a key={i} href={`mailto:${em}`} className="profile-value-link">{em}</a>)}
-                  </span>
-                : <span style={{ fontSize: 13, fontWeight: 700 }}>{user?.email || '—'}</span>}
-            </div>
-            {infoRows.map(([label, value]) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {infoRows.map(([label, value], i) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{value}</span>
               </div>

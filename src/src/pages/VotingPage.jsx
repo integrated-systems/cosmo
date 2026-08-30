@@ -70,12 +70,21 @@ export default function VotingPage() {
 
   return (
     <>
-      <div className="ds-toolbar">
-        <span className="text-[13px] font-semibold text-slate-900 dark:text-white">Сонгууль, санал асуулгын сан</span>
-        {can('voting', 'add') && (
-          <button className="ds-btn-primary" onClick={() => navigate(`/${hoaId}/voting/new`)}>+ Шинээр үүсгэх</button>
-        )}
-      </div>
+      {/* 2026-08-28: Owner-т Мессенжер хуудасны гарчигтай ЯГ ИЖИЛ
+          форматтай гарчиг үзүүлж, .ds-toolbar-ийн "карт" харагдацыг
+          бүрмөсөн арилгав (staff-д "+ Шинээр үүсгэх" товчтой хэвээрээ). */}
+      {canEditPoll ? (
+        <div className="ds-toolbar">
+          <span className="text-[13px] font-semibold text-slate-900 dark:text-white">Сонгууль, санал асуулгын сан</span>
+          {can('voting', 'add') && (
+            <button className="ds-btn-primary" onClick={() => navigate(`/${hoaId}/voting/new`)}>+ Шинээр үүсгэх</button>
+          )}
+        </div>
+      ) : (
+        <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
+          <div className="content-page-title">Сонгууль, санал асуулга</div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {loading && <div className="ds-card p-8 text-center text-darktext">Ачаалж байна...</div>}

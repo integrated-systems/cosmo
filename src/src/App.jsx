@@ -191,6 +191,7 @@ function AppRoutes() {
         <Route path="userapp-profile" element={null} />
         <Route path="userapp-dashboard" element={null} />
         <Route path="userapp-msgr" element={null} />
+        <Route path="userapp-payment" element={null} />
         <Route path="owners" element={<Owners />} />
         {/* restmarket СИСАДМИН (tenant-level) цэсэнд байгаа тул бусад СИСАДМИН
             модуль шиг RequireRole-гүй — зөвхөн SUPERSYSADMIN_TENANT_ITEMS +

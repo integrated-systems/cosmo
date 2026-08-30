@@ -14,6 +14,7 @@ import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
+import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
@@ -255,7 +256,7 @@ export default function UserApp({ theme, onToggleTheme }) {
     setBottomTab(key);
     if (key === 'home') navigate(`/${hoaId}`);
     else if (key === 'profile') navigate(`/${hoaId}/userapp-profile`);
-    else setComingSoonTitle('Төлбөр');
+    else navigate(`/${hoaId}/userapp-payment`);
   }
 
   let mainContent;
@@ -282,6 +283,8 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <OwnerDashboard hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-msgr')) {
     mainContent = <OwnerMsgrThread hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/userapp-payment')) {
+    mainContent = <OwnerPaymentPlaceholder />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile
