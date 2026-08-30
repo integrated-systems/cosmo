@@ -152,8 +152,8 @@ export default function OwnerMsgrThread({ hoaId }) {
               {showDivider && (
                 <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 6px' }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 600, color: '#fecaca',
-                    background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.3)',
+                    fontSize: 10, fontWeight: 600, color: 'var(--text-secondary)',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: 8, padding: '3px 10px',
                   }}>{dateKey(m)}</span>
                 </div>
