@@ -25,6 +25,14 @@ import { SendIcon } from '../icons/Icons';
 //     бодит role-оор дүүргэдэг боллоо, Rule of two).
 // 2026-08-28: Realtime — шинэ зурвас ирэхэд (staff бичихэд) хуудсыг
 // дахин ачаалахгүйгээр шууд харагдана (Supabase postgres_changes).
+//
+// 2026-08-28 (2): Уламжлалт чат апп-ийн UX-руу шилжив — огноог зурвас
+// бүр дээр давтахгүй, зүгээр огноо солигдох үед НЭГ л удаа (улаан
+// давхаргатай дугуй тэмдэг, тврийн голд) үзүүлж, зурвас бүрийн доор
+// зүгээр ЦАГ (HH:MM) л үлдэнэ. (Скриншот дээрх "Та" гэсэн мврүүд
+// миний ЗАСВАРААС ӨМНӨ үүссэн хуучин тест дата — шинэ зурвас бүгд
+// бодит role-оор (жиш "Менежер") зөв бичигдэнэ, доор Supabase дээр
+// дахин баталгаажуулав.)
 export default function OwnerMsgrThread({ hoaId }) {
   const { user } = useAuth();
   const [listId, setListId] = useState(null);
@@ -90,9 +98,14 @@ export default function OwnerMsgrThread({ hoaId }) {
     setDraft('');
   }
 
+  function dateKey(m) {
+    const d = new Date(m.created_at);
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   function formatMsgMeta(m) {
     const d = new Date(m.created_at);
-    const stamp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const stamp = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     // dir='out' = STAFF-ийн зурвас — тэдний role-ийг (agent) хамт үзүүлнэ.
     return m.dir === 'out' && m.agent ? `${stamp}, ${m.agent}` : stamp;
   }
@@ -131,23 +144,37 @@ export default function OwnerMsgrThread({ hoaId }) {
         {messages.length === 0 && (
           <div className="pool-empty">СӨХ-ийн ажилтантай холбогдохын тулд доор зурвас бичнэ vv.</div>
         )}
-        {messages.map((m) => {
+        {messages.map((m, i) => {
           const isMine = m.dir === 'in'; // 2026-08-28: засагдсан семантик
+          const showDivider = i === 0 || dateKey(m) !== dateKey(messages[i - 1]);
           return (
-            <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
-              <div
-                style={{
-                  borderRadius: 14,
-                  padding: '9px 13px',
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  background: isMine ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                  color: isMine ? '#fff' : 'var(--text-primary)',
-                  border: isMine ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                {m.body}
-                <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{formatMsgMeta(m)}</div>
+            <div key={m.id}>
+              {showDivider && (
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 6px' }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, color: '#fecaca',
+                    background: 'rgba(239,68,68,0.16)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: 8, padding: '3px 10px',
+                  }}>{dateKey(m)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignSelf: isMine ? 'flex-end' : 'flex-start', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                <div style={{ maxWidth: '78%' }}>
+                  <div
+                    style={{
+                      borderRadius: 14,
+                      padding: '9px 13px',
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      background: isMine ? '#3b82f6' : 'rgba(255,255,255,0.08)',
+                      color: isMine ? '#fff' : 'var(--text-primary)',
+                      border: isMine ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    {m.body}
+                    <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{formatMsgMeta(m)}</div>
+                  </div>
+                </div>
               </div>
             </div>
           );
