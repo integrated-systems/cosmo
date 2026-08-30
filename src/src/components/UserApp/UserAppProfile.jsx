@@ -60,6 +60,8 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
     await savePrefs({ theme: theme === 'dark' ? 'light' : 'dark' });
   }
 
+  const phones = Array.isArray(owner?.phones) ? owner.phones.filter(Boolean) : [];
+  const emails = Array.isArray(owner?.emails) ? owner.emails.filter(Boolean) : [];
   const parkings = Array.isArray(owner?.parkings) ? owner.parkings : [];
   const storages = Array.isArray(owner?.storages) ? owner.storages : [];
   const fullName = `${owner?.firstname || ''} ${owner?.lastname || ''}`.trim() || user?.email || '—';
@@ -72,10 +74,11 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
 
   return (
     <div>
-      {/* 2026-08-28: Хэрэглэгчийн зурган тэмдэглэл — "Профайл" хуудасны
-          гарчиг илүүц (доод tab-д "Profile" гэж бичигдсэн байгаа тул)
-          — бүрмөсөн арилгав. Мвн "ХЭРЭГЛЭГЧИЙН МЭДЭЭЛЭЛ" (Регистр/Утас/
-          И-мэйл) секцийг бүхэлд нь арилгав. */}
+      {/* 2026-08-30 ЗАЛРУУЛГА: хэрэглэгч тодруулав — зөвхөн "Профайл"
+          ХУУДАСНЫ ГАРЧГИЙГ л арилгах ёстой байсан (доод tab-д "Profile"
+          гэж бичигдсэн байгаа тул илүүц), "ХЭРЭГЛЭГЧИЙН МЭДЭЭЛЭЛ" карт
+          (Регистр/Утас/И-мэйл хамт) хэвээрээ үлдэх ёстой. ҮҮнийг
+          буцаав — зөвхөн "Тоот" мврийн форматыг л шинэчилсэн хэвээр. */}
       {!loadingOwner && owner && (
         <>
           <div className="mobile-list-item" style={{ textAlign: 'center', padding: 20 }}>
@@ -83,9 +86,30 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{unitLabel}</div>
           </div>
 
+          <div className="section-title">Хэрэглэгчийн мэдээлэл</div>
           <div className="mobile-list-item">
-            {infoRows.map(([label, value], i) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Регистр</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{owner.regno || '—'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Утас</span>
+              {phones.length
+                ? <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                    {phones.map((p, i) => <a key={i} href={`tel:${p}`} className="profile-value-link">{p}</a>)}
+                  </span>
+                : <span style={{ fontSize: 13, fontWeight: 700 }}>—</span>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>И-мэйл</span>
+              {emails.length
+                ? <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                    {emails.map((em, i) => <a key={i} href={`mailto:${em}`} className="profile-value-link">{em}</a>)}
+                  </span>
+                : <span style={{ fontSize: 13, fontWeight: 700 }}>{user?.email || '—'}</span>}
+            </div>
+            {infoRows.map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>{value}</span>
               </div>
