@@ -220,15 +220,27 @@ export default function UserApp({ theme, onToggleTheme }) {
   // 2026-08-30: OwnerApp талд зүгээр tile-ийн НЭРИЙГ (label) л (admin
   // Sidebar-ийн жинхэнэ нэрийг үл хүндэтгэж) солих, мвн зарим tile-ыг
   // owner-т ОГТ үзүүлэхгүй байх хэрэглэгчийн хүсэлт:
-  //   - "parking" (Түр зогсоол бүртгэл) -> "Зочин урих"
-  //   - "owners" (Сууц өмчлөгч бүртгэл) -> "Зарын самбар" (ирээдүйн
-  //     зарын самбар функцэд зориулж түр placeholder нэрээр солив)
+  //   - "parking" (Түр зогсоол бүртгэл) -> "Зочин урих" — хэрэглэгч
+  //     БАТАЛГААЖУУЛСАН: энэ бол НЭГ ХүСНЭГЛИЙН 2 нэр (owner зочны
+  //     машины дугаар илгээж, түр зогсоолд орох зөвшөөрөл авах бодит
+  //     функц) тул routing-ийг ХЭВЭЭР үлдээнэ.
+  //   - "owners" (Сууц өмчлөгч бүртгэл) — ЭНЭ бол цэвэр СӨХ-ийн
+  //     менежерийн ажлын хуудас, сууц өмчлөгч нэвтрэх ШААРДЛАГАГүй
+  //     гэдгийг хэрэглэгч тодруулав. Иймд OwnerApp-аас БүРЭН нуугдана
+  //     (invoice-той адил). "Зарын самбар" бол үүнтэй ОГТ ХОЛБООГүй,
+  //     ирээдүйд шинээр үүсэх ТУСДАА tile — доор synthetic tile
+  //     байдлаар нэмж, одоогоор "түн удахгүй" (coming soon) горимоор
+  //     ажиллана (бодит backend/хуудас үүсэх хүртэл).
   //   - "invoice" (Нэхэмжлэх) -> owner-т ОГТ харагдахгүй
-  const OWNERAPP_LABEL_OVERRIDES = { parking: 'Зочин урих', owners: 'Зарын самбар' };
-  const OWNERAPP_HIDDEN_KEYS = ['invoice'];
+  const OWNERAPP_LABEL_OVERRIDES = { parking: 'Зочин урих' };
+  const OWNERAPP_HIDDEN_KEYS = ['invoice', 'owners'];
   const allowedItems = ALL_MENU_ITEMS
     .filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view') && !OWNERAPP_HIDDEN_KEYS.includes(item.key))
     .map((item) => (OWNERAPP_LABEL_OVERRIDES[item.key] ? { ...item, label: OWNERAPP_LABEL_OVERRIDES[item.key] } : item));
+  // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
+  // OwnerApp-д зориулсан цоо шинэ (одоогоор placeholder) tile.
+  allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
+
 
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
   const isHome = pathAfterHoa === '' || pathAfterHoa === '/';
