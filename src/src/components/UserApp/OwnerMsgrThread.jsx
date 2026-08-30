@@ -194,7 +194,7 @@ export default function OwnerMsgrThread({ hoaId }) {
         }}>
           <textarea
             rows={1}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text-primary)', fontSize: 13, lineHeight: 1.4, maxHeight: 90 }}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4, maxHeight: 90 }}
             value={draft} onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Мессеж бичих..."
