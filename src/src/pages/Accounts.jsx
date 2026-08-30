@@ -19,16 +19,7 @@ import { useAuth } from '../lib/AuthContext';
 // ролийг нь бичнэ. Устгахад Auth-аас ч хамт хасна. Нууц үг сэргээх
 // боломжтой (Засах модальд шинэ нууц үг бичвэл л шинэчлэгдэнэ, хоосон
 // үлдээвэл хүчинтэй хэвээр үлдэнэ).
-const ROLE_LABELS = {
-  admin: 'Админ',
-  board: 'Удирдах зөвлөл',
-  supervisory_board: 'Хяналтын зөвлөл',
-  executive_director: 'Гүйцэтгэх захирал',
-  accountant: 'Нягтлан бодогч',
-  manager: 'Менежер',
-  owner: 'Сууц өмчлөгч',
-};
-const ROLE_OPTIONS = ['manager', 'accountant', 'executive_director', 'supervisory_board', 'board', 'owner', 'admin'];
+import { ROLE_LABELS, ROLE_OPTIONS } from '../config/roles';
 
 function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   const [role, setRole] = useState('manager');

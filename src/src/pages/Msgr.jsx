@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
+import { ROLE_LABELS } from '../config/roles';
+import { useAuth } from '../lib/AuthContext';
 import { formatDateTime } from '../lib/format';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDoubleIcon, PinIcon, BellOffIcon, AlertTriangleIcon } from '../components/icons/Icons';
@@ -15,14 +17,14 @@ import { SearchIcon, ClipIcon, PhoneCallIcon, InfoCircleIcon, SendIcon, CheckDou
 // (1) Хайлтын талбар одоо ТЕНАНТ-ийн БүХ өмчлөгчдийг (msgr_list мвр
 //     байгаа эсэхээс үл хамааран) нэрээр/тоотоор шүүж, сонгосон үед
 //     байхгүй бол шинэ msgr_list мвр үүсгэж шууд нээнэ.
-// (2) Info товч (Дуудлага-ийн хажууд) idэвхжиж, OwnerInfoModal-ыг
+// (2) Info товч (Дуудлага-ийн хажууд) идэвхжиж, OwnerInfoModal-ыг
 //     дуудна (Rule of two — Owners.jsx-ийн модалийг дахин ашиглав).
 // (3) Хавчаарны товч бодитоор ажиллаж, "msgr-attachments" bucket руу
 //     upload хийж, мессежинд хавсралт болгож хадгална.
 // (4) Хавчаарны icon 2 дахин томорсон (9px -> 18px).
 // (5) Light/Dark mode хоёулаа зввгүй харагдахаар бүх өнгвний класс
 //     light+dark хосоор бичигдэв (өмнв нь зүгээр dark-only токен
-//     ашигласан тул Light mode үед вnгв гажиж байсан).
+//     ашигласан тул Light mode үед өнгө гажиж байсан).
 // (6) OwnerInfoModal-ийн "Мессенжер" товчноос ?list=<id> query param-аар
 //     ирэхэд тухайн харилцан ярианд шууд шилждэг боллоо.
 const AVATAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#ef5555', '#0a428f'];
@@ -107,11 +109,13 @@ function ToggleIconButton({ active, onClick, title, activeColorClass, children }
 
 export default function Msgr() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { user, isSuperSysAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [allOwners, setAllOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
+  const [myAgentLabel, setMyAgentLabel] = useState('СӨХ');
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [tab, setTab] = useState('all');
@@ -187,6 +191,20 @@ export default function Msgr() {
   }, [hoaId]);
 
   useEffect(() => {
+    // 2026-08-28: OwnerApp талд STAFF-ийн зурвасны дэргэд бодит role
+    // (жиш "Сисадмин", "Менежер") үзүүлэхийн тулд одоогийн нэвтэрсэн
+    // хүний role-ийг тодорхойлж, msgr_messages.agent-д хадгална.
+    if (!hoaId || !user?.id) return;
+    if (isSuperSysAdmin) { setMyAgentLabel('SuperSysAdmin'); return; }
+    supabase.from('user_roles').select('role').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
+      const roles = (data ?? []).map((r) => r.role);
+      if (roles.includes('tenant_admin')) { setMyAgentLabel('Сисадмин'); return; }
+      const staffRole = roles.find((r) => ROLE_LABELS[r] && r !== 'owner');
+      setMyAgentLabel(staffRole ? ROLE_LABELS[staffRole] : 'СӨХ');
+    });
+  }, [hoaId, user?.id, isSuperSysAdmin]);
+
+  useEffect(() => {
     if (messagesRef.current) messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [messages.length, activeId]);
 
@@ -240,7 +258,7 @@ export default function Msgr() {
     setDraft('');
     const { data, error } = await supabase
       .from('msgr_messages')
-      .insert({ list_id: activeId, tenant_id: hoaId, dir: 'out', body, agent: 'Та', read: true })
+      .insert({ list_id: activeId, tenant_id: hoaId, dir: 'out', body, agent: myAgentLabel, read: true })
       .select()
       .single();
     if (error) { window.alert(error.message); return; }
@@ -262,7 +280,7 @@ export default function Msgr() {
     const { data, error } = await supabase
       .from('msgr_messages')
       .insert({
-        list_id: activeId, tenant_id: hoaId, dir: 'out', body: '', agent: 'Та', read: true,
+        list_id: activeId, tenant_id: hoaId, dir: 'out', body: '', agent: myAgentLabel, read: true,
         attachment_url: pub.publicUrl, attachment_name: file.name,
       })
       .select()

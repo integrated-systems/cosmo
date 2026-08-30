@@ -6,6 +6,7 @@ import { useAccessRules } from './hooks/useAccessRules';
 import { useTenantGate } from './hooks/useTenantGate';
 import { useUserAppPrefs } from './hooks/useUserAppPrefs';
 import { presetBackgroundUrl } from './config/presetBackgrounds';
+import { formatUnitLabel } from './lib/ownersFormat';
 import { DEFAULT_TENANT_ID } from './config/tenant';
 import { MENU_SECTIONS } from './config/menu';
 import TileGrid from './components/UserApp/TileGrid';
@@ -93,6 +94,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
   const [bottomTab, setBottomTab] = useState('home');
+  const [myOwnerId, setMyOwnerId] = useState(null);
 
   useEffect(() => {
     if (!hoaId) return;
@@ -118,14 +120,20 @@ export default function UserApp({ theme, onToggleTheme }) {
     if (!hoaId || !user?.id) return;
     let cancelled = false;
     (async () => {
-      const [{ data: ownerRow }, { data: newsRows }] = await Promise.all([
+      const [{ data: ownerRow }, { data: newsRows }, { data: layouts }] = await Promise.all([
         supabase.from('owners').select('id, building_no, floor, door_no').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
         supabase.from('news').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
+        // 2026-08-28: "Хаягжилт тохиргоо" (AddressConfig)-д тохируулсан
+        // форматыг (Байр-Давхар-Тоот эсвэл Байр-Орц-Тоот) яг ижил
+        // ашиглана — хэрэглэгчийн заасны дагуу Owners бүртгэлийн
+        // жагсаалтад ашигладаг формат л энд хэрэглэгдэнэ.
+        supabase.from('unit_layouts').select('building_no,floor,door_no,structure_type,entrance_no').eq('tenant_id', hoaId),
       ]);
       if (cancelled) return;
       if (ownerRow) {
-        const unitParts = [ownerRow.building_no, ownerRow.door_no].filter((v) => v != null && v !== '');
-        setOwnerUnit(unitParts.length ? unitParts.join(', ') : null);
+        setMyOwnerId(ownerRow.id);
+        const layoutRow = (layouts ?? []).find((u) => u.building_no === ownerRow.building_no && u.floor === ownerRow.floor && u.door_no === ownerRow.door_no);
+        setOwnerUnit(formatUnitLabel(ownerRow.building_no, layoutRow?.structure_type, ownerRow.floor, layoutRow?.entrance_no, ownerRow.door_no));
       }
       const next = {};
       if (ownerRow) {
@@ -143,6 +151,20 @@ export default function UserApp({ theme, onToggleTheme }) {
     })();
     return () => { cancelled = true; };
   }, [hoaId, user?.id]);
+
+  useEffect(() => {
+    // 2026-08-28: Мессенжерийн badge-ыг Realtime болгов — шинэ зурвас
+    // (unread_count шинэчлэгдэх) орж ирэхэд tile badge хуудас дахин
+    // ачаалахгүйгээр шууд шинэчлэгдэнэ.
+    if (!myOwnerId || !hoaId) return;
+    const channel = supabase
+      .channel(`userapp-msgr-badge-${myOwnerId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'msgr_list', filter: `owner_id=eq.${myOwnerId}` }, (payload) => {
+        setBadges((b) => ({ ...b, msgr: payload.new?.unread_count || 0 }));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myOwnerId, hoaId]);
 
   // 2026-08-27: зурган хүснэгэсээр баталгаажсан "5 леир, 5 слайдер"
   // систем — доод → дээш: Леир1(bg)→Леир2(хар,slider1)→Леир3(blur,

@@ -43,3 +43,4 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
    Мессенжер (OwnerMsgrThread.jsx) энэ классыг огт ашигладаггүй тул
    автоматаар хамрагдахгүй. */
 .userapp-root .ds-card{background:linear-gradient(var(--card-tint-overlay), var(--card-tint-overlay)), var(--card-bg-computed,var(--bg-card)) !important;border-color:var(--card-border-computed,var(--border-card)) !important;border-radius:var(--card-radius-computed,10px) !important}.userapp-root .ds-select,.userapp-root select{background:var(--card-bg-computed,var(--bg-card)) !important;border-color:var(--card-border-computed,var(--border-card)) !important;border-radius:var(--card-radius-computed,8px) !important;color:var(--text-primary) !important}
+.hero-skeleton{opacity:.5;background:var(--bg-card,#1a2740);animation:hero-skeleton-pulse 1.4s ease-in-out infinite}@keyframes hero-skeleton-pulse{0%,100%{opacity:.35}50%{opacity:.6}}

@@ -49,15 +49,25 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
 
   // Sidebar цэсний "Мессенжер"-ийн хажууд уншаагүй мессежийн НИЙТ тоог
   // badge маягаар харуулах — 2026-08-19 хэрэглэгч тодорхой заасан.
+  // 2026-08-28: Realtime нэмэв — шинэ зурвас (msgr_list.unread_count
+  // өөрчлөгдөх) орж ирэхэд хуудас дахин ачаалахгүйгээр badge шууд
+  // шинэчлэгдэнэ.
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
-    fetchAllRows(() => supabase.from('msgr_list').select('unread_count').eq('tenant_id', hoaId)).then(({ data }) => {
-      if (cancelled) return;
-      const total = (data ?? []).reduce((s, r) => s + (r.unread_count || 0), 0);
-      setMsgrUnread(total);
-    });
-    return () => { cancelled = true; };
+    function reload() {
+      fetchAllRows(() => supabase.from('msgr_list').select('unread_count').eq('tenant_id', hoaId)).then(({ data }) => {
+        if (cancelled) return;
+        const total = (data ?? []).reduce((s, r) => s + (r.unread_count || 0), 0);
+        setMsgrUnread(total);
+      });
+    }
+    reload();
+    const channel = supabase
+      .channel(`sidebar-msgr-${hoaId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'msgr_list', filter: `tenant_id=eq.${hoaId}` }, reload)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(channel); };
   }, [hoaId]);
   const currentTenantName = tenants.find((t) => t.id === hoaId)?.name;
 

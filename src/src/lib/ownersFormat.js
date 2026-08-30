@@ -42,3 +42,17 @@ export function formatUnitCode(buildingNo, structureType, floor, entranceNo, doo
   const d = String(doorNo ?? 0).padStart(2, '0');
   return `${b} ${f}${d}`;
 }
+
+// 2026-08-28: OwnerApp-ийн header greeting мврт зориулсан ӨРГӨН (үг
+// оруулсан) хэлбэр — Хаягжилт тохиргооны хоёр горимд яг таарсан
+// хэрэглэгчийн заасан жишээгээр: Байр+Давхар+Тоот үед "58/4 байрны
+// 0703 тоот", Байр+Орц+Тоот үед "19-р байр 3 орц 24 тоот".
+export function formatUnitLabel(buildingNo, structureType, floor, entranceNo, doorNo) {
+  const b = String(buildingNo ?? '').trim();
+  if (structureType === 'entrance') {
+    return `${b}-р байр ${entranceNo ?? '—'} орц ${doorNo ?? '—'} тоот`;
+  }
+  const f = formatStructureValue(floor);
+  const d = formatDoorNo(doorNo, structureType);
+  return `${b} байрны ${f}${d} тоот`;
+}

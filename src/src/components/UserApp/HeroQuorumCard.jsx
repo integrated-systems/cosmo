@@ -18,18 +18,30 @@ export default function HeroQuorumCard({ hoaId }) {
   const navigate = useNavigate();
   const [poll, setPoll] = useState(null);
   const [turnout, setTurnout] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
     supabase.rpc('get_home_hero', { p_tenant_id: hoaId }).then(({ data, error }) => {
-      if (cancelled || error) return;
+      if (cancelled || error) { setLoading(false); return; }
       setPoll(data?.poll || null);
       setTurnout(data?.turnout || null);
+      setLoading(false);
     });
     return () => { cancelled = true; };
   }, [hoaId]);
 
+  // 2026-08-28 ОЛСОН БОДИТ АЛДАА — Hero карт ачааллын үед бүрэн ЮУ Ч
+  // харуулдаггүй (null буцаадаг) байсан тул доод tile-үүд ачаалагдах
+  // хугацаанд "дээшээ" шилжиж, дараа нь Hero гарч ирэхэд дахин
+  // "доошоо" шилждэг (Cumulative Layout Shift) байв. Одоо ачааллын үед
+  // ТАЙЛТАЙ АДИЛ статик хэмжээст skeleton үзүүлж, байрлал хэзээ ч
+  // шилжихгүй — зөвхөн ДОТОРХ контент (тоо, гарчиг) л ачаалагдсаны
+  // дараа "гарч ирнэ".
+  if (loading) {
+    return <div className="hero-quorum-card hero-skeleton" />;
+  }
   if (!poll) return null;
 
   const pct = turnout?.turnout_percent ?? 0;

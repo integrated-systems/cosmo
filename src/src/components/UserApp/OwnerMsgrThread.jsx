@@ -11,13 +11,20 @@ import { SendIcon } from '../icons/Icons';
 // thread-only компонент ашиглагдана — owner зөвхөн ӨӨРИЙН СӨХ-тэй
 // хийсэн харилцан ярианыхаа мессежүүдийг харж, шинэ зурвас бичиж болно.
 //
-// 2026-08-28: ОЛСОН БОДИТ АЛДАА (бичээд илгээхэд огт илгээгдэхгүй
-// байсан) — шалтгаан нь: 'owner' role-той ч гэсэн зарим хэрэглэгч
-// (жиш нь бүртгэл дутуу) "owners" хүснэгэлд ХОЛБОГДОХ мвргүй байж
-// болдог, харин код үүнийг үргүйгээр таамаглаж ("ownerRow.id") шууд
-// хандсанаар JS алдаа (TypeError) шидэж, listId хэзээ ч тохирдоггүй,
-// иймээс send() үүргүй "listId алга" гэдэг шалтгаанаар үргэлж
-// зогсдог байв. Одоо энэ тохиолдолд ойлгомжтой мессеж үзүүлнэ.
+// 2026-08-28: ОЛСОН 2 БОДИТ АЛДАА:
+//  1) "dir" талбарын семантик буруу байсан — admin-ий Msgr.jsx-д
+//     dir='out' гэдэг нь STAFF-ийн бичсэн зурвас, dir='in' гэдэг нь
+//     OWNER-оос ирсэн зурвас гэсэн үг (staff-ийн үүднээс). Гэтэл энэ
+//     компонент dir='out'-ыг "миний зурвас" (хвх, баруун) гэж буруу
+//     үзүүлж байсан тул СИСАДМИНЫ бичсэн зурвас OWNER-ий өөрийнх шиг
+//     харагдаж байв. Одоо dir='in' = OWNER-ий өөрийнх (хвх, баруун),
+//     dir='out' = STAFF-ийнх (саарал, зүүн) гэж зассан.
+//  2) Зурвасны цаг+огноог "YYYY.MM.DD HH:MM" форматтай, STAFF-ийн
+//     зурвас дээр нэмээд ИЛГЭЭГЧИЙН РОЛИЙГ (жиш: "Сисадмин") үзүүлдэг
+//     болгов (msgr_messages.agent багана — admin.Msgr.jsx-ээс илгээхдээ
+//     бодит role-оор дүүргэдэг боллоо, Rule of two).
+// 2026-08-28: Realtime — шинэ зурвас ирэхэд (staff бичихэд) хуудсыг
+// дахин ачаалахгүйгээр шууд харагдана (Supabase postgres_changes).
 export default function OwnerMsgrThread({ hoaId }) {
   const { user } = useAuth();
   const [listId, setListId] = useState(null);
@@ -54,6 +61,20 @@ export default function OwnerMsgrThread({ hoaId }) {
   }, [hoaId, user?.id]);
 
   useEffect(() => {
+    // RLS нь msgr_messages-ийг зөвхөн ӨӨРИЙН list_id-д хамаарах мврөөр
+    // хязгаарладаг тул postgres_changes бодит realtime мвр (staff бичсэн)
+    // ЭНД шууд дуудагдана.
+    if (!listId) return;
+    const channel = supabase
+      .channel(`owner-msgr-${listId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'msgr_messages', filter: `list_id=eq.${listId}` }, (payload) => {
+        setMessages((prev) => (prev.some((m) => m.id === payload.new.id) ? prev : [...prev, payload.new]));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [listId]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -65,8 +86,15 @@ export default function OwnerMsgrThread({ hoaId }) {
     }).select().single();
     setSending(false);
     if (error) { alert(error.message); return; }
-    setMessages((m) => [...m, data]);
+    setMessages((m) => (m.some((x) => x.id === data.id) ? m : [...m, data]));
     setDraft('');
+  }
+
+  function formatMsgMeta(m) {
+    const d = new Date(m.created_at);
+    const stamp = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    // dir='out' = STAFF-ийн зурвас — тэдний role-ийг (agent) хамт үзүүлнэ.
+    return m.dir === 'out' && m.agent ? `${stamp}, ${m.agent}` : stamp;
   }
 
   if (loading) return <div className="pool-empty">Ачаалж байна...</div>;
@@ -84,7 +112,7 @@ export default function OwnerMsgrThread({ hoaId }) {
     );
   }
 
-  // 2026-08-28: Мессенжерийн bubble-үүд ЗОРИУДААР Профайл→Интерфейс-ийн
+  // 2026-08-27: Мессенжерийн bubble-үүд ЗОРИУДААР Профайл→Интерфейс-ийн
   // custom карт-тохиргоог (--card-bg-computed г.м) АШИГЛАХГүй — хэн
   // ямар мессеж бичсэнийг ялгах өнгө (өөрийн/бусдын) утга учиртай тул
   // хэрэглэгчийн сонгосон үзэмжээс үл хамааран тогтмол үлдэнэ.
@@ -98,26 +126,27 @@ export default function OwnerMsgrThread({ hoaId }) {
         {messages.length === 0 && (
           <div className="pool-empty">СӨХ-ийн ажилтантай холбогдохын тулд доор зурвас бичнэ vv.</div>
         )}
-        {messages.map((m) => (
-          <div key={m.id} style={{ alignSelf: m.dir === 'out' ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
-            <div
-              style={{
-                borderRadius: 14,
-                padding: '9px 13px',
-                fontSize: 13,
-                lineHeight: 1.4,
-                background: m.dir === 'out' ? '#3b82f6' : 'rgba(255,255,255,0.08)',
-                color: m.dir === 'out' ? '#fff' : 'var(--text-primary)',
-                border: m.dir === 'out' ? 'none' : '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              {m.body}
-              <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>
-                {new Date(m.created_at).toLocaleString('mn-MN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'numeric' })}
+        {messages.map((m) => {
+          const isMine = m.dir === 'in'; // 2026-08-28: засагдсан семантик
+          return (
+            <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '78%' }}>
+              <div
+                style={{
+                  borderRadius: 14,
+                  padding: '9px 13px',
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  background: isMine ? '#3b82f6' : 'rgba(255,255,255,0.08)',
+                  color: isMine ? '#fff' : 'var(--text-primary)',
+                  border: isMine ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                {m.body}
+                <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{formatMsgMeta(m)}</div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
 
