@@ -217,7 +217,18 @@ export default function UserApp({ theme, onToggleTheme }) {
     document.documentElement.style.setProperty('--bg-l3-blur', `${(pct / 100) * 24}px`);
   }, [prefs.bg_blur]);
 
-  const allowedItems = ALL_MENU_ITEMS.filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view'));
+  // 2026-08-30: OwnerApp талд зүгээр tile-ийн НЭРИЙГ (label) л (admin
+  // Sidebar-ийн жинхэнэ нэрийг үл хүндэтгэж) солих, мвн зарим tile-ыг
+  // owner-т ОГТ үзүүлэхгүй байх хэрэглэгчийн хүсэлт:
+  //   - "parking" (Түр зогсоол бүртгэл) -> "Зочин урих"
+  //   - "owners" (Сууц өмчлөгч бүртгэл) -> "Зарын самбар" (ирээдүйн
+  //     зарын самбар функцэд зориулж түр placeholder нэрээр солив)
+  //   - "invoice" (Нэхэмжлэх) -> owner-т ОГТ харагдахгүй
+  const OWNERAPP_LABEL_OVERRIDES = { parking: 'Зочин урих', owners: 'Зарын самбар' };
+  const OWNERAPP_HIDDEN_KEYS = ['invoice'];
+  const allowedItems = ALL_MENU_ITEMS
+    .filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view') && !OWNERAPP_HIDDEN_KEYS.includes(item.key))
+    .map((item) => (OWNERAPP_LABEL_OVERRIDES[item.key] ? { ...item, label: OWNERAPP_LABEL_OVERRIDES[item.key] } : item));
 
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
   const isHome = pathAfterHoa === '' || pathAfterHoa === '/';
