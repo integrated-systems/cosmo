@@ -116,8 +116,13 @@ export default function OwnerMsgrThread({ hoaId }) {
   // custom карт-тохиргоог (--card-bg-computed г.м) АШИГЛАХГүй — хэн
   // ямар мессеж бичсэнийг ялгах өнгө (өөрийн/бусдын) утга учиртай тул
   // хэрэглэгчийн сонгосон үзэмжээс үл хамааран тогтмол үлдэнэ.
+  // 2026-08-28 ОЛСОН БОДИТ АЛДАА: "calc(100vh - 190px)" гэсэн ХАТУУ
+  // ТООН тооцоолол дэлгэцийг өндөр өөрчлөх бүрд буруу гарч, контент
+  // viewport-оос гадуур гардаг байсан. Одоо .app-shell/.content-body
+  // (userapp.css) үүргүй дэлгэцийг үнэмлэхүй хязгаарлаж, дотор нь л
+  // scroll хийдэг болсон тул зүгээр "100%" ашиглаж болно.
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 190px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
         <div className="content-page-title">Мессенжер</div>
       </div>
