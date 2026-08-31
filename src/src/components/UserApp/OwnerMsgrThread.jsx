@@ -138,12 +138,12 @@ export default function OwnerMsgrThread({ hoaId }) {
   // (userapp.css) үүргүй дэлгэцийг үнэмлэхүй хязгаарлаж, дотор нь л
   // scroll хийдэг болсон тул зүгээр "100%" ашиглаж болно.
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
       <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
         <div className="content-page-title">Мессенжер</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
+      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
         {messages.length === 0 && (
           <div className="pool-empty">СӨХ-ийн ажилтантай холбогдохын тулд доор зурвас бичнэ vv.</div>
         )}
@@ -161,18 +161,24 @@ export default function OwnerMsgrThread({ hoaId }) {
                   }}>{dateKey(m)}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', alignSelf: isMine ? 'flex-end' : 'flex-start', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '78%' }}>
+              {/* 2026-08-30 ОЛСОН БОДИТ АЛДАА: зай (space) огт үгүй
+                  урт текст (жиш тест мэдээллүүд) bubble-ийг "78%"
+                  хязгаараас илүү өргөн болгож, үүнээс үүдэн
+                  эх контейнер horizontal overflow үүсгэж, доод
+                  мессеж бичих талбарыг шахдаг байв. Одоо
+                  word-break/overflow-wrap нэмж, ямар ч урт зайгүй
+                  текст ч гэсэн bubble-ийн хүрээнээс хэзээ ч
+                  гарахгүй. */}
+              <div style={{ display: 'flex', alignSelf: isMine ? 'flex-end' : 'flex-start', justifyContent: isMine ? 'flex-end' : 'flex-start', minWidth: 0 }}>
+                <div style={{ maxWidth: '78%', minWidth: 0 }}>
                   <div
                     style={{
                       borderRadius: 14,
                       padding: '9px 13px',
                       fontSize: 13,
                       lineHeight: 1.4,
-                      // 2026-08-30: хэрэглэгчийн хүсэлт — илгээсэн (өөрийн)
-                      // баббл ирсэн бабблтай ЯГ АДИЛ саарал өнгвтэй болов
-                      // (цэнхэр ялгаа арилгав, зүгээр байрлал/зэрэгцээ
-                      // (баруун/зүүн) л ялгаатай хэвээр).
+                      wordBreak: 'break-word',
+                      overflowWrap: 'anywhere',
                       background: 'rgba(255,255,255,0.08)',
                       color: 'var(--text-primary)',
                       border: '1px solid rgba(255,255,255,0.1)',
