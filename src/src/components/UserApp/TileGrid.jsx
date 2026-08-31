@@ -67,14 +67,12 @@ export default function TileGrid({ items, onOpenTile, showAddModal, onCloseAddMo
       <div className="tile-grid">
         {shown.map((t) => {
           const badgeCount = badges[t.key] || 0;
-          // 2026-08-27: Bento дэлгэц (variant 1, хэрэглэгчийн сонгосон
-          // хувилбар) — эхэндээ Мессенжерийг үргэлж өргөн болгосон ч,
-          // хэрэглэгч "энгийн бусад tile шиг байх ёстой" гэж заасны дагуу
-          // арилгав. Одоо ЗӨВХӨН шинэ зүйлтэй (badge>0) tile л анхаарал
-          // татахын тулд өргөн болно.
-          const wide = badgeCount > 0;
+          // 2026-08-30 ЗАЛРУУЛГА: хэрэглэгч тодруулав — badge гарч ирэхэд
+          // tile гэнэт "wide" болж хэмжээ үүргүй үүсгэдэг байсныг болиулав.
+          // Одоо бүх tile (Мессенжер хамт) үүргүй ижил хэмжээст (энгийн
+          // 2-баганат) tile компонент байна, badge зүгээр жижиг тоолуур үлдэнэ.
           return (
-            <Tile key={t.key} tile={t} wide={wide} showHideBtn={showHideBtnFor === t.key}
+            <Tile key={t.key} tile={t} wide={false} showHideBtn={showHideBtnFor === t.key}
               onOpen={() => onOpenTile(t)} onLongPress={() => setShowHideBtnFor(t.key)}
               onHide={(e) => hideTile(e, t.key)} badgeCount={badgeCount} />
           );
