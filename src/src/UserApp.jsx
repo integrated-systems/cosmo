@@ -236,7 +236,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   //     ажиллана (бодит backend/хуудас үүсэх хүртэл).
   //   - "invoice" (Нэхэмжлэх) -> owner-т ОГТ харагдахгүй
   const OWNERAPP_LABEL_OVERRIDES = { parking: 'Зочин урих' };
-  const OWNERAPP_HIDDEN_KEYS = ['invoice', 'owners'];
+  const OWNERAPP_HIDDEN_KEYS = ['invoice', 'owners', 'classifieds'];
   const allowedItems = ALL_MENU_ITEMS
     .filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view') && !OWNERAPP_HIDDEN_KEYS.includes(item.key))
     .map((item) => (OWNERAPP_LABEL_OVERRIDES[item.key] ? { ...item, label: OWNERAPP_LABEL_OVERRIDES[item.key] } : item));

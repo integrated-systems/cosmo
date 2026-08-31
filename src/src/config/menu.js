@@ -21,7 +21,7 @@ export const MENU_SECTIONS = [
       { key: 'anndunn', label: 'Мэдэгдэл', path: '/anndunn' },
       { key: 'msgr', label: 'Мессенжер', path: '/msgr' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
-      { key: 'vat', label: 'ИБаримт', path: '/vat' },
+      { key: 'classifieds', label: 'Зарын самбар', path: '/classifieds' },
     ],
   },
   {

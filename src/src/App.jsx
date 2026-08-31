@@ -25,6 +25,7 @@ import NewsPage from './pages/News';
 import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
 import VotingPage from './pages/VotingPage';
+import AdminClassifieds from './pages/AdminClassifieds';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -211,6 +212,7 @@ function AppRoutes() {
         <Route path="providers" element={<Providers />} />
         <Route path="msgr" element={<Msgr />} />
         <Route path="voting" element={<VotingPage />} />
+        <Route path="classifieds" element={<AdminClassifieds />} />
         <Route path="voting/new" element={<VotingEditPage />} />
         <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
         <Route path="voting/:pollId/results" element={<VotingResultsPage />} />
