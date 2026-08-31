@@ -136,7 +136,7 @@ export default function OwnerMsgrThread({ hoaId }) {
           <div className="content-page-title">Мессенжер</div>
         </div>
         <div className="pool-empty">
-          Таны сууц өмчлөгчийн бүртгэл дутуу тул мессенжер ашиглах боломжгүй байна. СӨХ-ны ажилтантай холбогдож бүртгэлээ бүрдүүлнэ vv.
+          Таны сууц өмчлөгчийн бүртгэл дутуу тул мессенжер ашиглах боломжгүй байна. СӨХ-ны ажилтантай холбогдож бүртгэлээ бүрдүүлнэ үү.
         </div>
       </div>
     );
@@ -150,37 +150,19 @@ export default function OwnerMsgrThread({ hoaId }) {
   // ТООН тооцоолол дэлгэцийг өндөр өөрчлөх бүрд буруу гарч, контент
   // viewport-оос гадуур гардаг байсан. Одоо .app-shell/.content-body
   // (userapp.css) үүргүй дэлгэцийг үнэмлэхүй хязгаарлаж, дотор нь л
-  // 2026-08-31 ОЛСОН БОДИТ АЛДАА (мргш танилцуулгын өмнө
-  // илрүүлэв) — энэ компонент "height:100%" дээр үндэслэсэн
-  // 3-хэсэгт flex layout (header + flex:1 зурвасны жагсаалт
-  // + доод композ мөр) ашигладаг байсан. Гар (keyboard)
-  // нээгдэхэд зарим мобайл browser дээр ".app-shell"-ийн
-  // "100dvh" (мөн үүнээс үүдэн энэ компонентын "height:100%")
-  // агшдаг тул 3-хэсэгт flex layout бүхэлдээг шахагдж,
-  // fixed доод navigation (.tab-bar-wrap) шинэ (агссан)
-  // хүрээнд яг тохирохгүй тул композ мөрийн ДЭЭД ТАЛД
-  // "шахагдсан" мэт харагдаг байв (Зарын самбар
-  // нь ЭНЭ "height:100%" бүтцийг огт ашигладаггүй,
-  // зүгээр энгийн урсгал тул ямар ч алдаа үүсдэггүй
-  // байсан).
-  //
-  // Одоо ЯГ Зарын самбар шиг keyboard-с бүрэн
-  // хамааралгүй бүтэц рүү шилжүүлэв: "height:100%"
-  // flex-fill бүтцийг арилгаж, композ мөрийг
-  // "position:sticky; bottom:0" болгож, .content-body-ийн
-  // өөрийн л scroll-д түшиглэнэ.
+  // scroll хийдэг болсон тул зүгээр "100%" ашиглаж болно.
   return (
-    <div style={{ minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
       <div className="content-page-header" style={{ padding: '4px 0 12px' }}>
         <div className="content-page-title">Мессенжер</div>
       </div>
 
-      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
+      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
         {messages.length === 0 && (
           <div className="pool-empty">СӨХ-ны ажилтантай холбогдохын тулд доор зурвас бичнэ үү.</div>
         )}
         {messages.map((m, i) => {
-          const isMine = m.dir === 'in';
+          const isMine = m.dir === 'in'; // 2026-08-28: засагдсан семантик
           const showDivider = i === 0 || dateKey(m) !== dateKey(messages[i - 1]);
           return (
             <div key={m.id}>
@@ -193,6 +175,14 @@ export default function OwnerMsgrThread({ hoaId }) {
                   }}>{dateKey(m)}</span>
                 </div>
               )}
+              {/* 2026-08-30 ОЛСОН БОДИТ АЛДАА: зай (space) огт үгүй
+                  урт текст (жиш тест мэдээллүүд) bubble-ийг "78%"
+                  хязгаараас илүү өргөн болгож, үүнээс үүдэн
+                  эх контейнер horizontal overflow үүсгэж, доод
+                  мессеж бичих талбарыг шахдаг байв. Одоо
+                  word-break/overflow-wrap нэмж, ямар ч урт зайгүй
+                  текст ч гэсэн bubble-ийн хүрээнээс хэзээ ч
+                  гарахгүй. */}
               <div style={{ display: 'flex', alignSelf: isMine ? 'flex-end' : 'flex-start', justifyContent: isMine ? 'flex-end' : 'flex-start', minWidth: 0 }}>
                 <div style={{ maxWidth: '78%', minWidth: 0 }}>
                   <div
@@ -219,10 +209,7 @@ export default function OwnerMsgrThread({ hoaId }) {
         <div ref={bottomRef} />
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, paddingBottom: 8,
-        position: 'sticky', bottom: 0, background: 'var(--bg-page)',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8 }}>
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center',
           background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
