@@ -248,7 +248,7 @@ export default function Msgr() {
         // Admin ЭНЭ харилцан ярианд аль хэдийн орж байгаа тул шинэ
         // зурвас ирсэн ч гэсэн шууд "уншсан" гэж үзнэ.
         if (payload.new.dir === 'in') {
-          supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', activeId);
+          supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', activeId).then(({ error }) => { if (error) console.error('unread reset (live) алдаа:', error); });
         }
       })
       .subscribe();
@@ -262,7 +262,7 @@ export default function Msgr() {
     // local state хуучирсан (stale) байж болзошгүй тул үүнээс үл
     // хамааран ҮҮРГүй reset хийнэ (аль хэдийн 0 бол үр дүнд нөлөөүгүй,
     // ямар ч хор хүлбүргүй).
-    supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', id);
+    supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', id).then(({ error }) => { if (error) console.error('unread reset (select) алдаа:', error); });
     setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
   }
 
