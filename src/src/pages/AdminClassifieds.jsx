@@ -16,7 +16,7 @@ import { SearchIcon } from '../components/icons/Icons';
 // 2026-08-31 (2) ЗАЛРУУЛГА: хэрэглэгч тодруулав —
 //   1) Гарчиг мвр (карт-ий title) арилгаж, оронд нь ХАЙЛТЫН toolbar
 //      картны дээд талд байрлуулав.
-//   2) СӨХ-ийн ажилтны зар бичих талбарыг ДАВХАР карт (nested card)
+//   2) СӨХ-ны ажилтны зар бичих талбарыг ДАВХАР карт (nested card)
 //      биш, зүгээр л үндсэн контент картын дээд/зүүн/баруун ирмэгээс
 //      10px зайтай, 1-мөрийн өндөртэй (auto-grow) болгов.
 function timeAgo(iso) {
@@ -134,10 +134,10 @@ export default function AdminClassifieds() {
             style={{ overflowY: 'auto', maxHeight: 140 }}
             value={draft}
             onChange={(e) => { setDraft(e.target.value); autoGrowTextarea(e.target); }}
-            placeholder="Нийт сууц өмчлөгчдвд зориулсан зар бичих (жиш: усны хагалт, засварын мэдэгдэл г.м)..."
+            placeholder="СӨХ-г төлөөлөн зар бичих"
           />
           <button className="ds-btn-primary shrink-0" onClick={submitPost} disabled={posting || !draft.trim()}>
-            {posting ? 'Илгээж байна...' : 'СӨХ-ийн нэрээр нийтлэх'}
+            {posting ? 'Илгээж байна...' : 'Нийтлэх'}
           </button>
         </div>
 
