@@ -191,6 +191,24 @@ export default function Msgr() {
   }, [hoaId]);
 
   useEffect(() => {
+    // 2026-08-30 ОЛСОН БОДИТ АЛДАА — "conversations" state зүгээр НЭГ
+    // удаа (mount үед) татагддаг байсан тул шинэ зурвас ирэхэд list-ийн
+    // unread badge (мвн доторх selectConversation-ийн "conv.unread>0"
+    // шалгалт) хуучирсан (stale) утга ашиглаж, ХЭЗЭЭ Ч 0 болж
+    // reset хийгддэггүй байв. Realtime нэмэв.
+    if (!hoaId) return;
+    const channel = supabase
+      .channel(`msgr-list-live-${hoaId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'msgr_list', filter: `tenant_id=eq.${hoaId}` }, (payload) => {
+        setConversations((cs) => cs.map((c) => (c.id === payload.new.id
+          ? { ...c, unread: payload.new.unread_count, pinned: payload.new.pinned, muted: payload.new.muted, urgent: payload.new.urgent }
+          : c)));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [hoaId]);
+
+  useEffect(() => {
     // 2026-08-28: OwnerApp талд STAFF-ийн зурвасны дэргэд бодит role
     // (жиш "Сисадмин", "Менежер") үзүүлэхийн тулд одоогийн нэвтэрсэн
     // хүний role-ийг тодорхойлж, msgr_messages.agent-д хадгална.
@@ -227,6 +245,11 @@ export default function Msgr() {
       .channel(`admin-msgr-${activeId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'msgr_messages', filter: `list_id=eq.${activeId}` }, (payload) => {
         setMessages((prev) => (prev.some((m) => m.id === payload.new.id) ? prev : [...prev, payload.new]));
+        // Admin ЭНЭ харилцан ярианд аль хэдийн орж байгаа тул шинэ
+        // зурвас ирсэн ч гэсэн шууд "уншсан" гэж үзнэ.
+        if (payload.new.dir === 'in') {
+          supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', activeId);
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -235,14 +258,12 @@ export default function Msgr() {
   async function selectConversation(id) {
     setActiveId(id);
     loadMessages(id);
-    setConversations((cs) => {
-      const conv = cs.find((c) => c.id === id);
-      if (conv && conv.unread > 0) {
-        supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', id);
-        return cs.map((c) => (c.id === id ? { ...c, unread: 0 } : c));
-      }
-      return cs;
-    });
+    // 2026-08-30 ЗАСАВ: "conv.unread > 0" гэсэн нүхцлийг арилгав —
+    // local state хуучирсан (stale) байж болзошгүй тул үүнээс үл
+    // хамааран ҮҮРГүй reset хийнэ (аль хэдийн 0 бол үр дүнд нөлөөүгүй,
+    // ямар ч хор хүлбүргүй).
+    supabase.from('msgr_list').update({ unread_count: 0 }).eq('id', id);
+    setConversations((cs) => cs.map((c) => (c.id === id ? { ...c, unread: 0 } : c)));
   }
 
   // Хайлтаас өмчлөгч сонгоход: тухайн өмчлөгчид msgr_list мвр байгаа
