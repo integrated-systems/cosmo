@@ -42,6 +42,7 @@ export default function OwnerMsgrThread({ hoaId }) {
   const [noOwnerRecord, setNoOwnerRecord] = useState(false);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
+  const textareaRef = useRef(null);
 
   async function loadThread() {
     setLoading(true);
@@ -99,6 +100,19 @@ export default function OwnerMsgrThread({ hoaId }) {
     if (error) { alert(error.message); return; }
     setMessages((m) => (m.some((x) => x.id === data.id) ? m : [...m, data]));
     setDraft('');
+    // 2026-08-30: Илгээсний дараа талбарыг анхны (1 мврийн) өндөрт нь
+    // буцаана — доор auto-grow-той хамт ажиллана.
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+  }
+
+  // 2026-08-30: Хэрэглэгчийн хүсэлт — текст 1 мөрөөс урт болоход
+  // бичих талбар ГАНЦ мөр хэвээрээ үлддэг байсныг засав. textarea-ийн
+  // scrollHeight-аар нь уян хатан (auto-grow) вндэртэй болгоно, дээд
+  // тал нь 90px (доорх maxHeight-тай яг тохирно) хүртэл.
+  function autoGrowTextarea(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 90)}px`;
   }
 
   function dateKey(m) {
@@ -202,9 +216,10 @@ export default function OwnerMsgrThread({ hoaId }) {
           borderRadius: 20, padding: '8px 14px',
         }}>
           <textarea
+            ref={textareaRef}
             rows={1}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4, maxHeight: 90 }}
-            value={draft} onChange={(e) => setDraft(e.target.value)}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4, maxHeight: 90, overflowY: 'auto' }}
+            value={draft} onChange={(e) => { setDraft(e.target.value); autoGrowTextarea(e.target); }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Мессеж бичих..."
           />
