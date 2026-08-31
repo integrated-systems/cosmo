@@ -56,6 +56,9 @@ export default function OwnerMsgrThread({ hoaId }) {
     }
     if (!listRow) { setLoading(false); return; }
     setListId(listRow.id);
+    // Admin.Msgr.jsx-ийн адил, owner харилцан ярианы хуудсаа НЭЭХЭД
+    // (унших үед) өврийн уншаагүй тоог 0 болгоно.
+    supabase.from('msgr_list').update({ owner_unread_count: 0 }).eq('id', listRow.id);
 
     const { data: msgs } = await supabase.from('msgr_messages').select('*').eq('list_id', listRow.id).order('created_at', { ascending: true });
     setMessages(msgs ?? []);

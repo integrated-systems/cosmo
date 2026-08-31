@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     let targetUserIds = [];
     let title = 'Шинэ зурвас';
-    let url = `/cosmo/${msg.tenant_id}/msgr`;
+    let url = `/cosmo/#/${msg.tenant_id}/msgr`;
 
     if (msg.dir === 'in') {
       // Owner бичсэн — STAFF (tenant_admin) бүгдэд мэдэгдэнэ.
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
         if (owner?.user_id) targetUserIds = [owner.user_id];
       }
       title = msg.agent ? `${msg.agent}-ээс шинэ зурвас` : 'СӨХ-оос шинэ зурвас';
-      url = `/cosmo/${msg.tenant_id}/userapp-msgr`;
+      url = `/cosmo/#/${msg.tenant_id}/userapp-msgr`;
     }
 
     if (targetUserIds.length === 0) {

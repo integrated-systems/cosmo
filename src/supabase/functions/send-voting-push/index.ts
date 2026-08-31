@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title: 'Шинэ санал асуулга',
       body: title,
-      url: `/cosmo/${tenant_id}/voting/${poll_id}/results`,
+      url: `/cosmo/#/${tenant_id}/voting/${poll_id}/results`,
     });
 
     const results = await Promise.allSettled(

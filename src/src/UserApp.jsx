@@ -138,8 +138,8 @@ export default function UserApp({ theme, onToggleTheme }) {
       }
       const next = {};
       if (ownerRow) {
-        const { data: msgrRow } = await supabase.from('msgr_list').select('unread_count').eq('owner_id', ownerRow.id).eq('tenant_id', hoaId).maybeSingle();
-        if (!cancelled && msgrRow?.unread_count) next.msgr = msgrRow.unread_count;
+        const { data: msgrRow } = await supabase.from('msgr_list').select('owner_unread_count').eq('owner_id', ownerRow.id).eq('tenant_id', hoaId).maybeSingle();
+        if (!cancelled && msgrRow?.owner_unread_count) next.msgr = msgrRow.owner_unread_count;
       }
       const lastSeenKey = `cosmo_userapp_news_seen_${hoaId}`;
       const lastSeen = localStorage.getItem(lastSeenKey);
@@ -161,7 +161,7 @@ export default function UserApp({ theme, onToggleTheme }) {
     const channel = supabase
       .channel(`userapp-msgr-badge-${myOwnerId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'msgr_list', filter: `owner_id=eq.${myOwnerId}` }, (payload) => {
-        setBadges((b) => ({ ...b, msgr: payload.new?.unread_count || 0 }));
+        setBadges((b) => ({ ...b, msgr: payload.new?.owner_unread_count || 0 }));
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
