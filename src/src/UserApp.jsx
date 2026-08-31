@@ -241,10 +241,12 @@ export default function UserApp({ theme, onToggleTheme }) {
     .filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view') && !OWNERAPP_HIDDEN_KEYS.includes(item.key))
     .map((item) => (OWNERAPP_LABEL_OVERRIDES[item.key] ? { ...item, label: OWNERAPP_LABEL_OVERRIDES[item.key] } : item));
   // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
-  // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
   // OwnerApp-д зориулсан цоо шинэ, 2026-08-31-с хойш БОДИТ (бүрэн
   // ажилладаг) tile — сууц өмчлөгч Facebook-ийн пост шиг
   // зар нийтэлж, реакц, коммент бичих боломжтой.
+  if (userappEnabled.classifieds !== false) {
+    allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
+  }
   // 2026-08-31: "Утасны жагсаалт" болон "СӨХ-ны тухай" — мөн
   // үндсэн программын ЯМАР Ч хуудастай (Sidebar-ийн)
   // холбоогүй, OwnerApp-д зориулсан БОДИТ (бүрэн ажилладаг) synthetic
