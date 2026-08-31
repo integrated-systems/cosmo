@@ -218,6 +218,20 @@ export default function Msgr() {
     setMessagesLoading(false);
   }
 
+  useEffect(() => {
+    // 2026-08-30: ОЛСОН ЦООРХОЙ — нээлттэй харилцан ярианд owner шинэ
+    // зурвас бичихэд admin тал ХУУДАС ДАХИН АЧААЛАХГүй л бол харагдахгүй
+    // байсан. Realtime нэмэв.
+    if (!activeId) return;
+    const channel = supabase
+      .channel(`admin-msgr-${activeId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'msgr_messages', filter: `list_id=eq.${activeId}` }, (payload) => {
+        setMessages((prev) => (prev.some((m) => m.id === payload.new.id) ? prev : [...prev, payload.new]));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeId]);
+
   async function selectConversation(id) {
     setActiveId(id);
     loadMessages(id);

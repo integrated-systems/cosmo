@@ -4,6 +4,7 @@ import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../con
 import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
 import ProfileModal from './ProfileModal';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 
@@ -20,6 +21,11 @@ export default function Topbar({ theme, onToggleTheme }) {
   const [expiryLabel, setExpiryLabel] = useState(null);
   const [planMenuOpen, setPlanMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  // 2026-08-30: Мессенжерийн push notification-ийг STAFF тал хүлээн
+  // авахын тулд БүРТГүүЛЭХ UI шаардлагатай байсан — өмнв нь ЗӨВХӨН
+  // OwnerApp-ийн Профайл хуудсанд л ийм товч байсан тул admin/staff
+  // хэзээ ч push мэдэгдэл хүлээж авдаггүй байв.
+  const { supported: pushSupported, subscribed: pushSubscribed, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushNotifications(hoaId);
 
   // 2026-08-19 хэрэглэгч тодорхой заасан: "Захиалах" товчны дизайн/
   // хүрээг ОГТ өөрчлөхгүйгээр, дотор нь тухайн tenant-ийн Төлбөрийн
@@ -81,6 +87,23 @@ export default function Topbar({ theme, onToggleTheme }) {
       >
         <MailIcon />
       </button>
+
+      {pushSupported && (
+        <button
+          onClick={() => (pushSubscribed ? pushUnsubscribe() : pushSubscribe())}
+          title={pushSubscribed ? 'Push мэдэгдэл идэвхтэй (унтраах бол дар)' : 'Push мэдэгдэл идэвхжүүлэх'}
+          className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+            pushSubscribed
+              ? 'border-blue-400 bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:border-blue-500/40 dark:text-blue-300'
+              : 'border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+            <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+          </svg>
+        </button>
+      )}
 
       <button
         onClick={onToggleTheme}
