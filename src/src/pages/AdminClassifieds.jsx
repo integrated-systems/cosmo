@@ -103,8 +103,13 @@ export default function AdminClassifieds() {
   const filtered = q ? (posts ?? []).filter((p) => p.body.toLowerCase().includes(q) || p.author.toLowerCase().includes(q)) : posts;
 
   return (
-    <div className="ds-card p-0 overflow-hidden">
-      {/* Хайлтын toolbar — картны гарчгийг орлов. */}
+    <>
+      {/* 2026-08-31 ЗАЛРУУЛГА: хэрэглэгч тодруулав — .ds-toolbar өөрөө
+          .ds-card агуулдаг (@apply ds-card ...) тул үүнийг вндсэн
+          контент картан дотор байрлуулснаар ДАВХАР карт
+          үүсгэсэн байв (Accounts.jsx/VotingPage.jsx-ийн зөвөө
+          загварын дагуу toolbar болон контент карт ХОЁР ТУСДАА
+          sibling байх ёстой). */}
       <div className="ds-toolbar">
         <div className="relative w-full max-w-xs">
           <SearchIcon className="w-3.5 h-3.5 text-slate-400 dark:text-darktext absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -117,6 +122,7 @@ export default function AdminClassifieds() {
         </div>
       </div>
 
+      <div className="ds-card p-0 overflow-hidden">
       <div className="p-4">
         {/* 2026-08-31 (2): давхар карт үгүйгээр, зүгээр 10px margin-тай
             композ талбар. */}
@@ -165,5 +171,6 @@ export default function AdminClassifieds() {
         </div>
       </div>
     </div>
+    </>
   );
 }
