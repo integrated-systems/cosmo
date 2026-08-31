@@ -27,7 +27,7 @@ function timeAgo(iso) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function CommentsPanel({ postId }) {
+function CommentsPanel({ postId, hoaId, user }) {
   const [comments, setComments] = useState(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -40,9 +40,17 @@ function CommentsPanel({ postId }) {
   async function send() {
     if (!draft.trim()) return;
     setSending(true);
-    await supabase.from('classifieds_comments').insert({ post_id: postId, body: draft.trim() });
-    setDraft('');
+    // 2026-08-31 ОЛСОН БОДИТ АЛДАА: insert үед tenant_id/owner_id
+    // огт дамжуулдаггүй байсан тул RLS with-check-д үл нийцэж (мвн
+    // хүснэгэлийн NOT NULL хязгаарлалтад ч үл нийцэж) insert ЧИМЭЭГүй
+    // бүтэлгүйтдэг байв (алдаа шалгадаггүй байсан тул харагдахгүй,
+    // коммент бичсэн мэт боловч бодитоор хадгалагддаггүй байв).
+    const { data: ownerRow } = await supabase.from('owners').select('id').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle();
+    if (!ownerRow) { setSending(false); alert('Таны сууц өмчлөгчийн бүртгэл дутуу тул коммент бичих боломжгүй байна.'); return; }
+    const { error } = await supabase.from('classifieds_comments').insert({ post_id: postId, tenant_id: hoaId, owner_id: ownerRow.id, body: draft.trim() });
     setSending(false);
+    if (error) { alert(error.message); return; }
+    setDraft('');
     load();
   }
 
@@ -127,8 +135,13 @@ export default function OwnerClassifieds({ hoaId }) {
           <textarea
             rows={2}
             value={draft} onChange={(e) => setDraft(e.target.value)}
-            placeholder="Юу зарах, санал болгох гэж байна вэ?"
-            style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4, resize: 'none' }}
+            placeholder="Зар бичих"
+            style={{
+              flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 14, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4,
+              resize: 'none', outline: 'none',
+              WebkitBackdropFilter: 'blur(10px)', backdropFilter: 'blur(10px)',
+            }}
           />
           <button
             onClick={submitPost} disabled={posting || !draft.trim()}
@@ -159,7 +172,7 @@ export default function OwnerClassifieds({ hoaId }) {
               <span style={{ fontSize: 12 }}>{p.comment_count > 0 ? p.comment_count : ''}</span>
             </button>
           </div>
-          {openComments === p.id && <CommentsPanel postId={p.id} />}
+          {openComments === p.id && <CommentsPanel postId={p.id} hoaId={hoaId} user={user} />}
         </div>
       ))}
     </div>
