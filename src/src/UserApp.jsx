@@ -97,6 +97,33 @@ export default function UserApp({ theme, onToggleTheme }) {
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
+  // 2026-08-31 ОЛСОН БОДИТ АЛДАА — судалгаа хийж тодруулав: Мессенжер
+  // хуудсанд бичих талбар ХУУДАСНЫ ДООД ХЭСЭГТ (доод navigation-ийн
+  // яг дэргэд) байрладаг тул гар (keyboard) нээгдэхэд мобайл browser
+  // тухайн input-ийг харагдах хэсэгтээ ("scroll-into-view") оруулах
+  // үед, "interactive-widget=resizes-visual" viewport meta tag-ийн
+  // browser дэмжлэг бүрэн биш (зарим Android WebView/iOS хувилбар
+  // дээр тогтмол ажилладаггүй, харьцангуй шинэ стандарт) байсны улмаас
+  // fixed .tab-bar-wrap гарын дээр "хөврөн" гарч ирдэг байв. Зарын
+  // самбарт бичих талбар ХУУДАСНЫ ДЭЭД хэсэгт байрладаг тул энэ
+  // scroll-into-view auto-adjust үүсэхгүй, тул анзаарагдаагүй. Одоо
+  // ЯМАР ч browser-ийн viewport-quirk-ээс үл хамааран НАЙДВАРТАЙ
+  // ажилладаг шийдэл: ямар ч input/textarea focus авахад доод
+  // navigation-ийг ШУУД нуух (JS-driven, meta tag-аас үл хамаарна).
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    function isTextInput(el) {
+      return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+    }
+    function handleFocusIn(e) { if (isTextInput(e.target)) setKeyboardOpen(true); }
+    function handleFocusOut(e) { if (isTextInput(e.target)) setKeyboardOpen(false); }
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
   const [bottomTab, setBottomTab] = useState('home');
   const [myOwnerId, setMyOwnerId] = useState(null);
 
@@ -227,7 +254,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   //     БАТАЛГААЖУУЛСАН: энэ бол НЭГ ХүСНЭГЛИЙН 2 нэр (owner зочны
   //     машины дугаар илгээж, түр зогсоолд орох зөвшөөрөл авах бодит
   //     функц) тул routing-ийг ХЭВЭЭР үлдээнэ.
-  //   - "owners" (Сууц өмчлөгч бүртгэл) — ЭНЭ бол цэвэр СӨХ-ийн
+  //   - "owners" (Сууц өмчлөгч бүртгэл) — ЭНЭ бол цэвэр СӨХ-ны
   //     менежерийн ажлын хуудас, сууц өмчлөгч нэвтрэх ШААРДЛАГАГүй
   //     гэдгийг хэрэглэгч тодруулав. Иймд OwnerApp-аас БүРЭН нуугдана
   //     (invoice-той адил). "Зарын самбар" бол үүнтэй ОГТ ХОЛБООГүй,
@@ -393,7 +420,7 @@ export default function UserApp({ theme, onToggleTheme }) {
         </div>
       )}
 
-      <div className="tab-bar-wrap">
+      <div className={`tab-bar-wrap${keyboardOpen ? ' tab-bar-hidden' : ''}`}>
         <TabBar
           tabs={TABS}
           active={TABS.findIndex((t) => t.key === bottomTab)}
