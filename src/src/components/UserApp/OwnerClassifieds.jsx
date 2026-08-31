@@ -187,7 +187,10 @@ export default function OwnerClassifieds({ hoaId }) {
       {posts?.map((p) => (
         <div key={p.id} style={{ padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>{p.author}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{p.author}</span>
+              {p.is_staff_post && <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: 'rgba(59,130,246,0.18)', color: '#60a5fa' }}>СӨХ</span>}
+            </span>
             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{timeAgo(p.created_at)}</span>
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap', marginBottom: 8 }}>{p.body}</div>

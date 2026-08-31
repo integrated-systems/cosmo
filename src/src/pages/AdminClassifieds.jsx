@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
+import { useAuth } from '../lib/AuthContext';
 
 // "Зарын самбар" (/classifieds) — 2026-08-31 хэрэглэгчийн хүсэлт.
 // үвр нь "ИБаримт" (key: 'vat') гэсэн хэзээ ч бодитоор бүтээгдээгүй
@@ -51,13 +52,31 @@ function CommentsRow({ postId, expanded, onDeleted }) {
 
 export default function AdminClassifieds() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { user } = useAuth();
   const [posts, setPosts] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [draft, setDraft] = useState('');
+  const [posting, setPosting] = useState(false);
 
   function load() {
     supabase.rpc('get_classifieds_feed', { p_tenant_id: hoaId }).then(({ data }) => setPosts(data || []));
   }
   useEffect(() => { load(); }, [hoaId]);
+
+  // 2026-08-31: Хэрэглэгчийн хүсэлт — СӨХ-ийн БүХ роль (staff) мвн
+  // адил НИЙТ сууц өмчлөгчид хандан зар нийтлэх эрхтэй. Staff-д owners
+  // мвр байхгүй тул owner_id=null (author_user_id-аар л тодорхойлно).
+  async function submitPost() {
+    if (!draft.trim()) return;
+    setPosting(true);
+    const { error } = await supabase.from('classifieds_posts').insert({
+      tenant_id: hoaId, author_user_id: user.id, body: draft.trim(),
+    });
+    setPosting(false);
+    if (error) { alert(error.message); return; }
+    setDraft('');
+    load();
+  }
 
   async function deletePost(postId) {
     if (!window.confirm('Энэ зарыг (коммент, реакц хамт) бүрмөсөн устгах уу?')) return;
@@ -74,6 +93,17 @@ export default function AdminClassifieds() {
       </div>
 
       <div className="p-4">
+        <div className="ds-card p-3 mb-4 flex items-end gap-2">
+          <textarea
+            className="ds-input flex-1 resize-none" rows={2}
+            value={draft} onChange={(e) => setDraft(e.target.value)}
+            placeholder="Нийт сууц өмчлөгчдвд зориулсан зар бичих (жиш: усны хагалт, засварын мэдэгдэл г.м)..."
+          />
+          <button className="ds-btn-primary shrink-0" onClick={submitPost} disabled={posting || !draft.trim()}>
+            {posting ? 'Илгээж байна...' : 'СӨХ-ийн нэрээр нийтлэх'}
+          </button>
+        </div>
+
         {posts === null && <div className="text-[12px] text-darktext py-4">Ачаалж байна...</div>}
         {posts?.length === 0 && <div className="text-[12px] text-mutedtext py-4">Зар одоогоор алга.</div>}
 
@@ -84,6 +114,7 @@ export default function AdminClassifieds() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[13px] font-semibold text-slate-900 dark:text-white">{p.author}</span>
+                    {p.is_staff_post && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-customBlue/15 text-customBlue">СӨХ</span>}
                     <span className="text-[10px] text-mutedtext">{timeAgo(p.created_at)}</span>
                   </div>
                   <div className="text-[13px] text-slate-700 dark:text-text whitespace-pre-wrap">{p.body}</div>
