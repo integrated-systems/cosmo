@@ -46,7 +46,7 @@ const TENANT_ITEM_PATHS = SUPERSYSADMIN_TENANT_ITEMS.map((i) => i.path);
 // хоосон буцааж байсан алдааг олж, nested-route+<Outlet/> загварт шилжүүлсэн.
 // 2026-08-19 (3-р засвар): "Сууц өмчлөгч" (owner) роль эсэхийг шалгаж,
 // admin-ийн Layout (Sidebar+Topbar) эсвэл резидентийн UserApp (энгийн
-// толгой+хэвтээ цэс) хоёрын алийг үзүүлэхийг сонгодог "шийдвэр вгвгч"
+// толгой+хэвтээ цэс) хоёрын алийг үзүүлэхийг сонгодог "шийдвэр өгөгч"
 // wrapper. ҮҮнийг тусад нь гаргасны ач холбогдол: Layout-т owner-ийн
 // код ОГТ орохгүй, UserApp-т ч мвн admin-ийн код орохгүй — 2 shell
 // бүрэн цэвэр тусгаарлагдана (ирээдүйд UserApp-ыг гарган авахад бэлэн).
@@ -192,6 +192,8 @@ function AppRoutes() {
         <Route path="userapp-dashboard" element={null} />
         <Route path="userapp-msgr" element={null} />
         <Route path="userapp-payment" element={null} />
+        <Route path="userapp-phonebook" element={null} />
+        <Route path="userapp-about" element={null} />
         <Route path="owners" element={<Owners />} />
         {/* restmarket СИСАДМИН (tenant-level) цэсэнд байгаа тул бусад СИСАДМИН
             модуль шиг RequireRole-гүй — зөвхөн SUPERSYSADMIN_TENANT_ITEMS +

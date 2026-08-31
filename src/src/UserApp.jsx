@@ -15,6 +15,8 @@ import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
+import OwnerPhonebook from './components/UserApp/OwnerPhonebook';
+import OwnerAbout from './components/UserApp/OwnerAbout';
 import OwnerDashboard from './pages/OwnerDashboard';
 import './userapp.css';
 
@@ -71,7 +73,7 @@ function hexToRgb(hex) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -240,6 +242,16 @@ export default function UserApp({ theme, onToggleTheme }) {
   // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
   // OwnerApp-д зориулсан цоо шинэ (одоогоор placeholder) tile.
   allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
+  // 2026-08-31: "Утасны жагсаалт" болон "СӨХ-ны тухай" — мөн
+  // үндсэн программын ЯМАР Ч хуудастай (Sidebar-ийн)
+  // холбоогүй, OwnerApp-д зориулсан БОДИТ (бүрэн ажилладаг) synthetic
+  // tile-үүд. "Userapp тохиргоо"-ны тохиргоог л дагана (userappEnabled).
+  if (userappEnabled.phonebook !== false) {
+    allowedItems.push({ key: 'phonebook', label: 'Утасны жагсаалт', path: '/userapp-phonebook' });
+  }
+  if (userappEnabled.about !== false) {
+    allowedItems.push({ key: 'about', label: 'СӨХ-ны тухай', path: '/userapp-about' });
+  }
 
 
   const pathAfterHoa = location.pathname.replace(/^\/[^/]+/, '');
@@ -308,6 +320,10 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <OwnerMsgrThread hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-payment')) {
     mainContent = <OwnerPaymentPlaceholder />;
+  } else if (pathAfterHoa.startsWith('/userapp-phonebook')) {
+    mainContent = <OwnerPhonebook hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/userapp-about')) {
+    mainContent = <OwnerAbout hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile
