@@ -30,12 +30,12 @@ const MODULES = [
   { key: 'parking', label: 'Зочин урих', built: false },
   { key: 'phonebook', label: 'Утасны жагсаалт', built: true },
   { key: 'about', label: 'СӨХ-ны тухай', built: true },
+  { key: 'classifieds', label: 'Зарын самбар', built: true },
 ];
 
 // Тогтмол харагдах (энэ жагсаалтаар ХЯЗГААРЛАГДДАГГүй) зүйлс —
 // admin-д тодорхой болгохын тулд зүгээр мэдээлэл болгон үзүүлнэ.
 const FIXED_ITEMS = [
-  { label: 'Зарын самбар', note: 'Home tile — үүргүй харагдана (тохируулах боломж удахгүй нэмэгдэнэ)' },
   { label: 'Төлбөр', note: 'Доод navigation tab — үүргүй харагдана' },
   { label: 'Профайл', note: 'Доод navigation tab — үүргүй харагдана' },
 ];
@@ -70,10 +70,6 @@ function PhonePreview({ modules, enabled }) {
                 <div className="tile-status" style={{ fontSize: 8.5 }}>{m.built ? 'Нээлттэй' : 'Түн удахгүй'}</div>
               </div>
             ))}
-            <div className="tile" style={{ minHeight: 78, padding: 12 }}>
-              <div className="tile-label" style={{ fontSize: 10.5 }}>Зарын самбар</div>
-              <div className="tile-status" style={{ fontSize: 8.5 }}>Түн удахгүй</div>
-            </div>
           </div>
         </div>
         <div className="tab-bar-wrap" style={{ position: 'absolute', padding: '0 10px 10px' }}>

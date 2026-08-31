@@ -15,6 +15,7 @@ import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
+import OwnerClassifieds from './components/UserApp/OwnerClassifieds';
 import OwnerPhonebook from './components/UserApp/OwnerPhonebook';
 import OwnerAbout from './components/UserApp/OwnerAbout';
 import OwnerDashboard from './pages/OwnerDashboard';
@@ -73,7 +74,7 @@ function hexToRgb(hex) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -240,8 +241,10 @@ export default function UserApp({ theme, onToggleTheme }) {
     .filter((item) => (userappEnabled[item.key] !== false) && can(item.key, 'view') && !OWNERAPP_HIDDEN_KEYS.includes(item.key))
     .map((item) => (OWNERAPP_LABEL_OVERRIDES[item.key] ? { ...item, label: OWNERAPP_LABEL_OVERRIDES[item.key] } : item));
   // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
-  // OwnerApp-д зориулсан цоо шинэ (одоогоор placeholder) tile.
-  allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
+  // "Зарын самбар" — үндсэн программын ЯМАР Ч хуудастай холбоогүй,
+  // OwnerApp-д зориулсан цоо шинэ, 2026-08-31-с хойш БОДИТ (бүрэн
+  // ажилладаг) tile — сууц өмчлөгч Facebook-ийн пост шиг
+  // зар нийтэлж, реакц, коммент бичих боломжтой.
   // 2026-08-31: "Утасны жагсаалт" болон "СӨХ-ны тухай" — мөн
   // үндсэн программын ЯМАР Ч хуудастай (Sidebar-ийн)
   // холбоогүй, OwnerApp-д зориулсан БОДИТ (бүрэн ажилладаг) synthetic
@@ -324,6 +327,8 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <OwnerPhonebook hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-about')) {
     mainContent = <OwnerAbout hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/userapp-classifieds')) {
+    mainContent = <OwnerClassifieds hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile

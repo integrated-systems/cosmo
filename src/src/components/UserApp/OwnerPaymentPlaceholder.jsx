@@ -35,12 +35,19 @@ export default function OwnerPaymentPlaceholder() {
         </div>
       </div>
 
-      <button
-        className="login-btn" style={{ marginTop: 4 }}
-        onClick={() => alert('QPay холболт удахгүй нэмэгдэнэ.')}
-      >
-        QPay-аар төлөх
-      </button>
+      {/* 2026-08-31 ЗАСАВ: glassmorphism + хэвтээ тэнхэлэгийн дагуу голлуулав. */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+        <button
+          onClick={() => alert('QPay холболт удахгүй нэмэгдэнэ.')}
+          style={{
+            padding: '13px 32px', borderRadius: 14, fontSize: 15, fontWeight: 700,
+            color: 'var(--text-primary)', background: '#ffffff24', border: '1px solid #ffffff2e',
+            WebkitBackdropFilter: 'blur(14px)', backdropFilter: 'blur(14px)', cursor: 'pointer',
+          }}
+        >
+          QPay-аар төлөх
+        </button>
+      </div>
 
       <div className="section-title" style={{ textAlign: 'center', marginTop: 20 }}>Төлбөр төлөлтийн түүх</div>
       <div className="pool-empty">Төлбөрийн түүх алга</div>
