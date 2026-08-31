@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../lib/AuthContext';
 
 // 2026-08-31: Хэрэглэгчийн хүсэлт — "Зарын самбар". Дизайн: Мессенжер
 // хуудас шиг (.ds-card/.mobile-list-item ЗУРААС ГАДУУР, зүгээр
-// хөөрөлддөг элементүүд) КАРТГүй. Логик: сууц өмчлөгч Facebook-ийн
+// хөөрсөн элементүүд) КАРТГүй. Логик: сууц өмчлөгч Facebook-ийн
 // пост шиг зар нийтэлж, хотхоны БүХ сууц өмчлөгч нар (нийтэд) харж,
 // доор нь жижигхэн 2 SVG товч (иможи/like, коммент) дарж үйлчилнэ.
 function HeartIcon({ filled }) {
@@ -27,10 +27,20 @@ function timeAgo(iso) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// 2026-08-31: Мессенжерийн auto-grow textarea-тай АДИЛ зарчим —
+// анх 1 мөрийн өндөртэй, текст уртсахад scrollHeight-ээр нь уян
+// хатан вргүүлнэ (мессеж бичих талбарт хийсэн засвартай нийцтэй).
+function autoGrowTextarea(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
+}
+
 function CommentsPanel({ postId, hoaId, user }) {
   const [comments, setComments] = useState(null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const textareaRef = useRef(null);
 
   function load() {
     supabase.rpc('get_classifieds_comments', { p_post_id: postId }).then(({ data }) => setComments(data || []));
@@ -40,17 +50,13 @@ function CommentsPanel({ postId, hoaId, user }) {
   async function send() {
     if (!draft.trim()) return;
     setSending(true);
-    // 2026-08-31 ОЛСОН БОДИТ АЛДАА: insert үед tenant_id/owner_id
-    // огт дамжуулдаггүй байсан тул RLS with-check-д үл нийцэж (мвн
-    // хүснэгэлийн NOT NULL хязгаарлалтад ч үл нийцэж) insert ЧИМЭЭГүй
-    // бүтэлгүйтдэг байв (алдаа шалгадаггүй байсан тул харагдахгүй,
-    // коммент бичсэн мэт боловч бодитоор хадгалагддаггүй байв).
     const { data: ownerRow } = await supabase.from('owners').select('id').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle();
     if (!ownerRow) { setSending(false); alert('Таны сууц өмчлөгчийн бүртгэл дутуу тул коммент бичих боломжгүй байна.'); return; }
     const { error } = await supabase.from('classifieds_comments').insert({ post_id: postId, tenant_id: hoaId, owner_id: ownerRow.id, body: draft.trim() });
     setSending(false);
     if (error) { alert(error.message); return; }
     setDraft('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     load();
   }
 
@@ -58,7 +64,9 @@ function CommentsPanel({ postId, hoaId, user }) {
     <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
       {comments === null && <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Ачаалж байна...</div>}
       {comments?.map((c) => (
-        <div key={c.id} style={{ marginBottom: 6 }}>
+        // 2026-08-31: Хэрэглэгчийн хүсэлт — коммент зартай зэрэгцэж
+        // (0 indent) биш, зүгээр 1 таб (~28px) зайнаас эхэлдэг.
+        <div key={c.id} style={{ marginBottom: 6, paddingLeft: 28 }}>
           <div style={{ fontSize: 12 }}>
             <span style={{ fontWeight: 700 }}>{c.author}</span>{' '}
             <span>{c.body}</span>
@@ -66,14 +74,26 @@ function CommentsPanel({ postId, hoaId, user }) {
           <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{timeAgo(c.created_at)}</div>
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-        <input
-          value={draft} onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginTop: 6, paddingLeft: 28 }}>
+        {/* 2026-08-31 ОЛСОН БОДИТ АЛДАА: <input type="text"> нь урт
+            текстийг МВР ТАСАЛХГүй, зүгээр ХЭВТЭЭ scroll хийдэг тул
+            эхний бичсэн текст зүүн тийш "гүйгээд алга болчихдог" байв.
+            Одоо textarea (auto-grow, мессежийн адил) болгож, урт
+            текст ДООШОО мөрөөр нэмэгддэг болгов. */}
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); autoGrowTextarea(e.target); }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           placeholder="Коммент бичих..."
-          style={{ flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, padding: '7px 12px', color: 'var(--text-primary)', fontSize: 13, outline: 'none' }}
+          style={{
+            flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 14, padding: '7px 12px', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4,
+            outline: 'none', resize: 'none', maxHeight: 140, overflowY: 'auto',
+          }}
         />
-        <button onClick={send} disabled={sending} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Илгээх</button>
+        <button onClick={send} disabled={sending} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, paddingBottom: 7 }}>Илгээх</button>
       </div>
     </div>
   );
@@ -86,6 +106,7 @@ export default function OwnerClassifieds({ hoaId }) {
   const [posting, setPosting] = useState(false);
   const [openComments, setOpenComments] = useState(null); // postId эсвэл null
   const [noOwnerRecord, setNoOwnerRecord] = useState(false);
+  const postTextareaRef = useRef(null);
 
   function load() {
     supabase.rpc('get_classifieds_feed', { p_tenant_id: hoaId }).then(({ data }) => setPosts(data || []));
@@ -108,6 +129,7 @@ export default function OwnerClassifieds({ hoaId }) {
     setPosting(false);
     if (error) { alert(error.message); return; }
     setDraft('');
+    if (postTextareaRef.current) postTextareaRef.current.style.height = 'auto';
     load();
   }
 
@@ -133,19 +155,26 @@ export default function OwnerClassifieds({ hoaId }) {
       ) : (
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, marginBottom: 14 }}>
           <textarea
-            rows={2}
-            value={draft} onChange={(e) => setDraft(e.target.value)}
+            ref={postTextareaRef}
+            rows={1}
+            value={draft}
+            onChange={(e) => { setDraft(e.target.value); autoGrowTextarea(e.target); }}
             placeholder="Зар бичих"
             style={{
               flex: 1, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: 14, padding: '10px 14px', color: 'var(--text-primary)', fontSize: 16, lineHeight: 1.4,
-              resize: 'none', outline: 'none',
+              resize: 'none', outline: 'none', maxHeight: 140, overflowY: 'auto',
               WebkitBackdropFilter: 'blur(10px)', backdropFilter: 'blur(10px)',
             }}
           />
+          {/* 2026-08-31: Хэрэглэгчийн хүсэлт — glassmorphism болгов. */}
           <button
             onClick={submitPost} disabled={posting || !draft.trim()}
-            style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 14, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+            style={{
+              background: '#ffffff24', color: 'var(--text-primary)', border: '1px solid #ffffff2e',
+              WebkitBackdropFilter: 'blur(14px)', backdropFilter: 'blur(14px)',
+              borderRadius: 14, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+            }}
           >
             Нийтлэх
           </button>
