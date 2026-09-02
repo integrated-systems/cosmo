@@ -506,7 +506,7 @@ export default function AddressConfig() {
         // (idiomatic) архитектураар дахин бичсэн хувилбар. Үзнэ vv
         // GridConstructorReact.jsx-ийн эхлэлийн comment-ийн дэлгэрэнгүй
         // архитектурын тайлбарыг.
-        <GridConstructorReact />
+        <GridConstructorReact hoaId={hoaId} />
       )}
     </>
   );

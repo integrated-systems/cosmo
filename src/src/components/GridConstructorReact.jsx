@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 // 2026-08-31: Хэрэглэгчийн хүсэлт — "__parking_grid_drawer_v5.html"
 // (standalone, imperative DOM-той хэрэгсэл)-ийг React-т зохимжтой
@@ -53,7 +54,21 @@ function isGroupFootprintFree(slots, candidates, cols, rows) {
   );
 }
 
-export default function GridConstructorReact() {
+export default function GridConstructorReact({ hoaId }) {
+  // 2026-08-31 (2): Хэрэглэгчийн хүсэлт — талбайн ажилтан таблет/iPad-
+  // аар зогсоол/агуулах дотор явж байгаад НЭГ дор бүрэн зурж дуусгах
+  // боломж бага тул: (а) "Хадгалах" (ноорог) товч үе бүрд Supabase
+  // руу бичнэ, (б) "Нийтлэх" товч зөвхөн зураг бэлэн болсон үед
+  // status='published' болгоно, (в) localStorage-д өөрчлөлт бүрд
+  // автоматаар хадгалж, сүлжээгүй үед ч алдахгүй байх аюулгүйн сүлжээ
+  // болгоно, (г) JSON импорт/экспорт (архивлах, устсан үед сэргээх).
+  const [floorKey, setFloorKey] = useState('B1');
+  const [status, setStatus] = useState('draft');
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const fileInputRef = useRef(null);
+  const localStorageKey = `cosmo_grid_constructor_${hoaId}_${floorKey}`;
+
   const [cols, setCols] = useState(40);
   const [rows, setRows] = useState(30);
   const [zoom, setZoom] = useState(1);
@@ -111,6 +126,79 @@ export default function GridConstructorReact() {
   }, [undo, redo]);
 
   const ec = CELL * zoom; // тухайн zoom-ийн бодит нүдний хэмжээ (px)
+
+  // ---------------- ачаалах: localStorage (шуурхай) → Supabase (эх сурвалж) ----------------
+  const applyLayout = useCallback((layout) => {
+    setCols(layout.cols || 40);
+    setRows(layout.rows || 30);
+    setSlots(layout.slots || []);
+    setPolygons(layout.polygons || []);
+    const maxSlotId = (layout.slots || []).reduce((m, s) => Math.max(m, s.id || 0), 0);
+    const maxPolyId = (layout.polygons || []).reduce((m, p) => Math.max(m, p.id || 0), 0);
+    nextIdRef.current = maxSlotId + 1;
+    nextPolyIdRef.current = maxPolyId + 1;
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+  }, []);
+
+  const isFirstLoadRef = useRef(true);
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+    // 1) localStorage-с шуурхай ачаална (сүлжээгүй үед ч ажиллана).
+    try {
+      const cached = localStorage.getItem(localStorageKey);
+      if (cached) applyLayout(JSON.parse(cached));
+    } catch { /* хоосон эсвэл эвдэрсэн cache — үл тоомсорноно */ }
+    // 2) Supabase-ээс эх сурвалжиг татаж, байвал ДАВХАР бичнэ.
+    if (!hoaId) return;
+    supabase.from('basement_floors').select('layout_json, status').eq('tenant_id', hoaId).eq('floor_key', floorKey).maybeSingle()
+      .then(({ data }) => {
+        if (data) { applyLayout(data.layout_json); setStatus(data.status); }
+        else setStatus('draft');
+        isFirstLoadRef.current = false;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId, floorKey]);
+
+  // ---------------- localStorage-д автомат хадгалалт (аюлгвүйн сүлжээ) ----------------
+  useEffect(() => {
+    if (isFirstLoadRef.current) return; // ачаалж дуусаагүй үед бичихгүй
+    try { localStorage.setItem(localStorageKey, JSON.stringify({ cols, rows, slots, polygons })); } catch { /* quota — үл тоомсорноно */ }
+  }, [cols, rows, slots, polygons, localStorageKey]);
+
+  // ---------------- Supabase хадгалах/нийтлэх ----------------
+  async function saveToSupabase(publish) {
+    if (!hoaId) return;
+    setSaving(true);
+    const payload = {
+      tenant_id: hoaId, floor_key: floorKey,
+      layout_json: { cols, rows, slots, polygons },
+      ...(publish ? { status: 'published' } : {}),
+    };
+    const { error } = await supabase.from('basement_floors').upsert(payload, { onConflict: 'tenant_id,floor_key' });
+    setSaving(false);
+    if (error) { alert(error.message); return; }
+    if (publish) setStatus('published');
+    setLastSavedAt(new Date());
+  }
+
+  // ---------------- JSON импорт/экспорт (архивлах, устсэн үед сэргээх) ----------------
+  function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        pushHistory();
+        const data = JSON.parse(reader.result);
+        applyLayout(data);
+      } catch {
+        alert('JSON файл уншиж чадсангүй — файлын бүтцийг шалгана уу.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
 
   // ---------------- координат хайрвалт ----------------
   function clientToCell(clientX, clientY) {
@@ -302,6 +390,35 @@ export default function GridConstructorReact() {
 
   return (
     <div className="ds-card p-3" style={{ height: 'calc(100vh - 220px)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* 2026-08-31 (2): давхарга сонгох + хадгалах/нийтлэх/импорт — талбайн ажилтан тусгаар (draft/published 2 түвшин) хандалахад зориулав. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded border border-bordercol overflow-hidden">
+          {['B1', 'B2', 'B3'].map((fk) => (
+            <button
+              key={fk}
+              onClick={() => setFloorKey(fk)}
+              className={`px-3 py-1.5 text-[12px] font-medium ${floorKey === fk ? 'bg-customBlue text-white' : 'bg-transparent text-mutedtext hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              {fk}
+            </button>
+          ))}
+        </div>
+        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${status === 'published' ? 'bg-customGreen text-white' : 'bg-customOrange text-white'}`}>
+          {status === 'published' ? 'Нийтлэгдсэн' : 'Ноорог'}
+        </span>
+        <button className="ds-btn-secondary" onClick={() => saveToSupabase(false)} disabled={saving || !hoaId}>
+          {saving ? 'Хадгалж байна...' : 'Хадгалах'}
+        </button>
+        <button className="ds-btn-primary" onClick={() => saveToSupabase(true)} disabled={saving || !hoaId}>Нийтлэх</button>
+        {lastSavedAt && (
+          <span className="text-[10.5px] text-mutedtext">Сүүлд хадгалсан: {lastSavedAt.toLocaleTimeString()}</span>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={handleImportFile} />
+          <button className="ds-btn-secondary" onClick={() => fileInputRef.current?.click()}>JSON импортлох</button>
+        </div>
+      </div>
+
       {/* ---------------- toolbar ---------------- */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
@@ -348,7 +465,7 @@ export default function GridConstructorReact() {
 
       <div className="text-[10.5px] text-mutedtext">
         Зогсоол: хоосон нүднээс зэргэлдээ нүд рүү чирж 2 нүд холбоход слот үүснэ · Агуулах: хоосон нүд дээр дарахад 1 нүдэд слот үүснэ ·
-        Слот дээр дарж чирвэл байрлал өөрчлвгднв, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална.
+        Слот дээр дарж чирвэл байрлал өөрчлөгднө, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална.
       </div>
 
       {/* ---------------- canvas ---------------- */}
