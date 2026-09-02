@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { SimpleListField, SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useUnitLayouts } from '../hooks/useUnitLayouts';
 import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
+import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
 // 2026-08-13 хэрэглэгчийн өгсөн 2 screenshot-той тулгаж бүтээв. Хэдэн ч
@@ -29,13 +30,20 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
   const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
   const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
+  const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenParkingIds, setTakenParkingIds] = useState(new Set());
   const [takenStorageIds, setTakenStorageIds] = useState(new Set());
+  const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
+  const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
+  const [takenGridLandIds, setTakenGridLandIds] = useState(new Set());
 
   useEffect(() => {
     if (!open || !hoaId) return;
     fetchTakenSpotIds(hoaId, 'parkings', owner?.id, null).then(setTakenParkingIds);
     fetchTakenSpotIds(hoaId, 'storages', owner?.id, null).then(setTakenStorageIds);
+    fetchTakenGridIds(hoaId, 'grid_parkings', owner?.id).then(setTakenGridParkingIds);
+    fetchTakenGridIds(hoaId, 'grid_storages', owner?.id).then(setTakenGridStorageIds);
+    fetchTakenGridIds(hoaId, 'grid_land_plots', owner?.id).then(setTakenGridLandIds);
   }, [open, hoaId, owner?.id]);
 
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
@@ -60,6 +68,9 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     child2: owner?.child_6_18 ?? '',
     hasStorage: owner?.has_storage || false, storages: owner?.storages || [],
     hasParking: owner?.has_parking || false, parkings: owner?.parkings || [],
+    hasGridParking: owner?.has_grid_parking || false, gridParkings: owner?.grid_parkings || [],
+    hasGridStorage: owner?.has_grid_storage || false, gridStorages: owner?.grid_storages || [],
+    hasGridLand: owner?.has_grid_land || false, gridLandPlots: owner?.grid_land_plots || [],
     hasVehicle: owner?.has_vehicle || false, vehicles: owner?.vehicles || [],
     note: owner?.note || '',
   }));
@@ -206,6 +217,27 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.storages }))}
         items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
         spots={storageSpots} takenIds={takenStorageIds} loading={storageLoading}
+      />
+      {/* 2026-09-02: Хэрэглэгчийн хүсэлт — "Конструктор (React)"-ээр
+          зурсан слот/агуулах/талбайг owners-той холбох 3 шинэ талбар
+          (аль хэдийн байгаа "Зогсоол"/"Агуулах"-аас тусдаа эх сурвалж). */}
+      <SpotSelectField
+        label="Зогсоол (грид)" checked={form.hasGridParking}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
+        items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
+        spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
+      />
+      <SpotSelectField
+        label="Агуулах (грид)" checked={form.hasGridStorage}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
+        items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
+        spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
+      />
+      <SpotSelectField
+        label="Талбай (полигон)" checked={form.hasGridLand}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridLand: v, gridLandPlots: v && f.gridLandPlots.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridLandPlots }))}
+        items={form.gridLandPlots} onChange={(v) => set('gridLandPlots', v)} addLabel="+ Талбай нэмэх"
+        spots={gridLandPlots} takenIds={takenGridLandIds} loading={gridSpotsLoading}
       />
       <VehicleListField
         checked={form.hasVehicle}

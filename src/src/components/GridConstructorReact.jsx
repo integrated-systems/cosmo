@@ -357,7 +357,7 @@ export default function GridConstructorReact({ hoaId }) {
   function finishPolygon(points) {
     if (points.length < 3) { setPolyPoints([]); return; }
     pushHistory();
-    setPolygons((prev) => [...prev, { id: nextPolyIdRef.current++, points, strokeColor, strokeWidth: 2, fillColor: null }]);
+    setPolygons((prev) => [...prev, { id: nextPolyIdRef.current++, points, strokeColor, strokeWidth: 2, fillColor: null, label: '' }]);
     setPolyPoints([]);
   }
   function handlePolyClick(e) {
@@ -369,6 +369,38 @@ export default function GridConstructorReact({ hoaId }) {
       if (dist < 10) { finishPolygon(polyPoints); return; }
     }
     setPolyPoints((prev) => [...prev, pt]);
+  }
+
+  // ---------------- бэлэн полигон дээр дарж нэр (label) оноох ----------------
+  // 2026-09-02: Хэрэглэгчийн хүсэлт — талбай эзэмшигчийг "Тоот" засах
+  // модал доторх dropdown-оор холбохын тулд полигон ч мвн slot шиг
+  // тодорхой нэртэй (жиш нь "Э-01") байх шаардлагатай болов.
+  const [editingPolygonId, setEditingPolygonId] = useState(null);
+  function pointInPolygon(x, y, points) {
+    let inside = false;
+    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+      const xi = points[i].x, yi = points[i].y, xj = points[j].x, yj = points[j].y;
+      const intersect = (yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+  function handleCanvasClickForPolygonSelect(e) {
+    if (tool === 'polygon') return; // энэ үед шинэ полигон зурж байгаа тул алгасна
+    if (e.target.closest('[data-slot-id]')) return;
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+    const hit = polygons.find((p) => pointInPolygon(x, y, p.points));
+    if (hit) setEditingPolygonId(hit.id);
+  }
+  function updatePolygon(id, patch) {
+    setPolygons((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }
+  function deletePolygon(id) {
+    pushHistory();
+    setPolygons((prev) => prev.filter((p) => p.id !== id));
+    setEditingPolygonId(null);
   }
   useEffect(() => {
     function onKeyDown(e) {
@@ -387,7 +419,7 @@ export default function GridConstructorReact({ hoaId }) {
     const data = {
       cellSize: CELL, cols, rows,
       slots: slots.map((s) => ({ col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, label: s.label || '' })),
-      polygons: polygons.map((p) => ({ points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor })),
+      polygons: polygons.map((p) => ({ points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, label: p.label || '' })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -398,6 +430,7 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   const editingSlot = useMemo(() => slots.find((s) => s.id === editingSlotId), [slots, editingSlotId]);
+  const editingPolygon = useMemo(() => polygons.find((p) => p.id === editingPolygonId), [polygons, editingPolygonId]);
 
   return (
     <div className="ds-card p-3" style={{ height: 'calc(100vh - 220px)', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -484,7 +517,7 @@ export default function GridConstructorReact({ hoaId }) {
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}
-          onClick={handlePolyClick}
+          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
             backgroundImage: `repeating-linear-gradient(180deg, rgba(143,168,192,0.16) 0, rgba(143,168,192,0.16) 1px, transparent 1px, transparent ${ec}px),`
@@ -568,6 +601,21 @@ export default function GridConstructorReact({ hoaId }) {
             <div className="flex justify-between gap-2">
               <button className="ds-btn-secondary text-customRed" onClick={() => deleteSlot(editingSlot.id)}>Слот устгах</button>
               <button className="ds-btn-primary" onClick={() => setEditingSlotId(null)}>Дуусгах</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- полигон засах модал (талбай нэр оноох) ---------------- */}
+      {editingPolygon && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setEditingPolygonId(null)}>
+          <div className="ds-card p-4" style={{ width: 300 }} onClick={(e) => e.stopPropagation()}>
+            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Талбай засах</div>
+            <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн нэр / дугаар (жиш нь "Э-01")</label>
+            <input className="ds-input w-full mb-4" maxLength={16} value={editingPolygon.label || ''} onChange={(e) => updatePolygon(editingPolygon.id, { label: e.target.value })} />
+            <div className="flex justify-between gap-2">
+              <button className="ds-btn-secondary text-customRed" onClick={() => deletePolygon(editingPolygon.id)}>Талбай устгах</button>
+              <button className="ds-btn-primary" onClick={() => setEditingPolygonId(null)}>Дуусгах</button>
             </div>
           </div>
         </div>
