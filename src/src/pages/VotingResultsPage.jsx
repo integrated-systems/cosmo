@@ -73,8 +73,8 @@ export default function VotingResultsPage() {
   const { hoaId = DEFAULT_TENANT_ID, pollId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { can, bypass } = useAccessRules(hoaId);
-  const canEditPoll = bypass || can('voting', 'edit');
+  const { can, bypass, loading: accessLoading } = useAccessRules(hoaId);
+  const canEditPoll = !accessLoading && (bypass || can('voting', 'edit'));
 
   const [poll, setPoll] = useState(null);
   const [questions, setQuestions] = useState([]);

@@ -46,8 +46,16 @@ export function useAccessRules(hoaId) {
   // ашиглана — staff роль: Устгах=үгүй, бусад бүгд=тийм (ажлын урсгал
   // тасрахгүй байлгах зорилгоор). "owner" роль: БүГД=үгүй (тодорхой
   // зөвшөөрсэн үед л).
+  // 2026-08-31 ОЛСОН БОДИТ АЛДАА — хуудас дахин ачаалагдах (эсвэл
+  // key-based remount) үед RPC хариу ирэх хүртэлх богино хугацаанд
+  // "myRole" анхдагчаар null байдаг тул "can()" ЯМАР Ч асуултад
+  // "true" буцааж, зөвшөөргүй товч (жиш "+ Шинээр үүсгэх") owner-т
+  // агшин зуур буруу мэлтэсхийж харагддаг байв. Одоо "loading" үед
+  // fail-closed (false) буцаана — ажлын урсгал тасрахгүй, звгввр
+  // РАЛЬ ч алдаатай (хэт зөвшөөрсөн) харагдац үүсэхгүй.
   function can(pageKey, action) {
     if (bypass) return true;
+    if (loading) return false;
     if (!myRole) return true;
     if (!rules) return true;
     const pageRules = rules[pageKey];

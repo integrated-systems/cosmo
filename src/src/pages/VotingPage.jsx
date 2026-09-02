@@ -32,7 +32,7 @@ function formatDate(iso) {
 export default function VotingPage() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const navigate = useNavigate();
-  const { can, bypass } = useAccessRules(hoaId);
+  const { can, bypass, loading: accessLoading } = useAccessRules(hoaId);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -43,7 +43,7 @@ export default function VotingPage() {
   // хардаг (owner-д ноорог ОГТ үзүүлэхгүй), нийтлэгдсэн (active/closed)
   // зүйл дээр дарахад БүГД (admin ч гэсэн) зөвхөн уншихад зориулсан
   // VotingResultsPage.jsx руу л чиглүүлнэ.
-  const canEditPoll = bypass || can('voting', 'edit');
+  const canEditPoll = !accessLoading && (bypass || can('voting', 'edit'));
 
   async function load() {
     setLoading(true);
