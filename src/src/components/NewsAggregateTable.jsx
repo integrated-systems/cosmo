@@ -47,15 +47,17 @@ export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, 
               <th className="py-2.5 px-3 w-[110px]">ТӨЛӨВ</th>
               <th className="py-2.5 px-3 w-[80px]">ОНЦЛОХ</th>
               <th className="py-2.5 px-3 w-[80px]">ШУУРХАЙ</th>
+              <th className="py-2.5 px-3 w-[110px]">СЭРЭМЖЛҮҮЛЭГ</th>
+              <th className="py-2.5 px-3 w-[80px]">НОЦТОЙ</th>
               <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={7} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={9} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={7} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={9} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && rows.map((r) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
@@ -67,6 +69,8 @@ export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, 
                 </td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.featured} /></td>
                 <td className="py-2.5 px-3"><YesNoCell value={r.urgent} /></td>
+                <td className="py-2.5 px-3"><YesNoCell value={r.warning} /></td>
+                <td className="py-2.5 px-3"><YesNoCell value={r.critical} /></td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   {canEdit && (
                     <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
