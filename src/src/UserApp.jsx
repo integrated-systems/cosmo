@@ -99,11 +99,21 @@ export default function UserApp({ theme, onToggleTheme }) {
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
-  // 2026-08-31: Хэрэглэгчийн хүсэлт — OwnerApp-ийн БүХ хуудсыг доош
-  // чирэхэд рефреш хийдэг болгов. Үвр нь энэ hook зөвхөн admin-ий
+  // 2026-08-31: Хэрэглэгчийн хүсэлт — OwnerApp-ийн бүх хуудасыг доош
+  // чирэхэд рефреш хийдэг болгов. үвүр нь энэ hook зөвхөн admin-ийн
   // Layout-д л холбогдсон байсан, OwnerApp-д огт ашиглагддаггүй байв.
+  //
+  // 2026-08-31 (2): ОЛСОН БОДИТ АЛДАА — "window.location.reload()"
+  // бүтэн хуудсыг дахин ачаалж, хар хөх "ачаалж байна" нүүр агшин
+  // зуур харагддаг, мөн апп-ийн эхлэлийн redirect логикоос болж
+  // навигацийн slider Home руу буцдаг байв. Одоо БүТЭН reload биш,
+  // зүгээр "refreshKey"-г нэмэгдүүлж, mainContent-ийг key-based
+  // remount хийлгэнэ (тухайн дэд компонентын useEffect дахин
+  // ажиллаж, дата дахин ачаалагдана) — ямар ч ачаалж
+  // байна нүүр, навигацийн алдаа үүсэхгүй.
   const contentScrollRef = useRef(null);
-  usePullToRefresh(contentScrollRef);
+  const [refreshKey, setRefreshKey] = useState(0);
+  usePullToRefresh(contentScrollRef, () => setRefreshKey((k) => k + 1));
   const [bottomTab, setBottomTab] = useState('home');
   const [myOwnerId, setMyOwnerId] = useState(null);
 
@@ -395,7 +405,9 @@ export default function UserApp({ theme, onToggleTheme }) {
           ажиглагдах", "апп удаан ачаалагдах" гэсэн 3 тайлбарласан
           зүйлийн НЭГ л үндсэн шалтгаан байв. Хүнгэн шилжилтийн
           "мэдрэмж" нь ЭНЭ үнэ цэнэтэй биш тул зүгээр арилгав. */}
-      <div ref={contentScrollRef} className="content-body">{mainContent}</div>
+      <div ref={contentScrollRef} className="content-body">
+        <div key={refreshKey}>{mainContent}</div>
+      </div>
 
       {comingSoonTitle && (
         <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && setComingSoonTitle(null)}>
