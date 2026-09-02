@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
 import ParkingZoneDesigner from '../components/ParkingZoneDesigner';
+import GridConstructorReact from '../components/GridConstructorReact';
 import StorageZoneDesigner from '../components/StorageZoneDesigner';
 import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
@@ -450,6 +451,7 @@ const ADDRESSING_TABS = [
   { key: 'parking', label: 'Зогсоол' },
   { key: 'storage', label: 'Агуулах' },
   { key: 'constructor', label: 'Конструктор' },
+  { key: 'constructorReact', label: 'Конструктор (React)' },
 ];
 
 // "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
@@ -497,6 +499,14 @@ export default function AddressConfig() {
             style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
           />
         </div>
+      )}
+      {tab === 'constructorReact' && (
+        // 2026-08-31 (2): Хэрэглэгчийн даалгавар — "Cosmo хвгжүүлэгчийн
+        // байр сууринаас" iframe-ийн ОРОНД React-т зохимжтой
+        // (idiomatic) архитектураар дахин бичсэн хувилбар. Үзнэ vv
+        // GridConstructorReact.jsx-ийн эхлэлийн comment-ийн дэлгэрэнгүй
+        // архитектурын тайлбарыг.
+        <GridConstructorReact />
       )}
     </>
   );
