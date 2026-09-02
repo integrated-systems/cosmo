@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from './lib/supabaseClient';
 import { useAuth } from './lib/AuthContext';
@@ -17,6 +17,7 @@ import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
 import OwnerClassifieds from './components/UserApp/OwnerClassifieds';
 import OwnerParking from './components/UserApp/OwnerParking';
+import { usePullToRefresh } from './hooks/usePullToRefresh';
 import OwnerPhonebook from './components/UserApp/OwnerPhonebook';
 import OwnerAbout from './components/UserApp/OwnerAbout';
 import OwnerDashboard from './pages/OwnerDashboard';
@@ -98,6 +99,11 @@ export default function UserApp({ theme, onToggleTheme }) {
   const [tenantName, setTenantName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [comingSoonTitle, setComingSoonTitle] = useState(null);
+  // 2026-08-31: Хэрэглэгчийн хүсэлт — OwnerApp-ийн БүХ хуудсыг доош
+  // чирэхэд рефреш хийдэг болгов. Үвр нь энэ hook зөвхөн admin-ий
+  // Layout-д л холбогдсон байсан, OwnerApp-д огт ашиглагддаггүй байв.
+  const contentScrollRef = useRef(null);
+  usePullToRefresh(contentScrollRef);
   const [bottomTab, setBottomTab] = useState('home');
   const [myOwnerId, setMyOwnerId] = useState(null);
 
@@ -389,7 +395,7 @@ export default function UserApp({ theme, onToggleTheme }) {
           ажиглагдах", "апп удаан ачаалагдах" гэсэн 3 тайлбарласан
           зүйлийн НЭГ л үндсэн шалтгаан байв. Хүнгэн шилжилтийн
           "мэдрэмж" нь ЭНЭ үнэ цэнэтэй биш тул зүгээр арилгав. */}
-      <div className="content-body">{mainContent}</div>
+      <div ref={contentScrollRef} className="content-body">{mainContent}</div>
 
       {comingSoonTitle && (
         <div className="modal-overlay open" onClick={(e) => e.target === e.currentTarget && setComingSoonTitle(null)}>
