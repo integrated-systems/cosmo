@@ -30,20 +30,18 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
   const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
   const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
-  const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
+  const { gridParkingSpots, gridStorageSpots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenParkingIds, setTakenParkingIds] = useState(new Set());
   const [takenStorageIds, setTakenStorageIds] = useState(new Set());
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
-  const [takenGridLandIds, setTakenGridLandIds] = useState(new Set());
 
   useEffect(() => {
     if (!open || !hoaId) return;
     fetchTakenSpotIds(hoaId, 'parkings', owner?.id, null).then(setTakenParkingIds);
     fetchTakenSpotIds(hoaId, 'storages', owner?.id, null).then(setTakenStorageIds);
-    fetchTakenGridIds(hoaId, 'grid_parkings', owner?.id).then(setTakenGridParkingIds);
-    fetchTakenGridIds(hoaId, 'grid_storages', owner?.id).then(setTakenGridStorageIds);
-    fetchTakenGridIds(hoaId, 'grid_land_plots', owner?.id).then(setTakenGridLandIds);
+    fetchTakenGridIds(hoaId, 'grid_parkings', owner?.id, null).then(setTakenGridParkingIds);
+    fetchTakenGridIds(hoaId, 'grid_storages', owner?.id, null).then(setTakenGridStorageIds);
   }, [open, hoaId, owner?.id]);
 
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
@@ -70,7 +68,6 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     hasParking: owner?.has_parking || false, parkings: owner?.parkings || [],
     hasGridParking: owner?.has_grid_parking || false, gridParkings: owner?.grid_parkings || [],
     hasGridStorage: owner?.has_grid_storage || false, gridStorages: owner?.grid_storages || [],
-    hasGridLand: owner?.has_grid_land || false, gridLandPlots: owner?.grid_land_plots || [],
     hasVehicle: owner?.has_vehicle || false, vehicles: owner?.vehicles || [],
     note: owner?.note || '',
   }));
@@ -232,12 +229,6 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
-      />
-      <SpotSelectField
-        label="Талбай (полигон)" checked={form.hasGridLand}
-        onToggle={(v) => setForm((f) => ({ ...f, hasGridLand: v, gridLandPlots: v && f.gridLandPlots.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridLandPlots }))}
-        items={form.gridLandPlots} onChange={(v) => set('gridLandPlots', v)} addLabel="+ Талбай нэмэх"
-        spots={gridLandPlots} takenIds={takenGridLandIds} loading={gridSpotsLoading}
       />
       <VehicleListField
         checked={form.hasVehicle}

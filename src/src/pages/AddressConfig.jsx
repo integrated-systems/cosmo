@@ -4,9 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
-import ParkingZoneDesigner from '../components/ParkingZoneDesigner';
 import GridConstructorReact from '../components/GridConstructorReact';
-import StorageZoneDesigner from '../components/StorageZoneDesigner';
 import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
@@ -266,7 +264,7 @@ function UnitLayoutDesigner() {
   }
   // 2026-08-19 хэрэглэгч тодорхой заасан: нуугдсан тоотыг Тоот таб дээр
   // саарал өнгөтэй харуулж, дахин дарж "Ил болгох" боломжтой болгов —
-  // үмнв нь нуугдсан тоот бүрмөсөн харагдахгүй (SISADMIN үвврвв ч
+  // үмнв нь нуугдсан тоот бүрмөсөн харагдахгүй (SISADMIN өөрөө ч
   // олж чадахгүй, буцаах боломжгүй) болдог байсныг олж зассан.
   function handleUnitUnhide(unitId) {
     if (!editing) return;
@@ -448,24 +446,18 @@ function UnitLayoutDesigner() {
 
 const ADDRESSING_TABS = [
   { key: 'unit', label: 'Тоот' },
-  { key: 'parking', label: 'Зогсоол' },
-  { key: 'storage', label: 'Агуулах' },
-  { key: 'constructor', label: 'Конструктор' },
-  { key: 'constructorReact', label: 'Конструктор (React)' },
+  { key: 'constructorReact', label: 'Зогсоол, Агуулах, Талбай' },
 ];
 
 // "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
 // дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
 // UnitLayoutDesigner (өмнөх бүрэн бүтээгдсэн grid хуудас, хвндөгдөөгүй).
-// Зогсоол/Агуулах — дугаарлалтын дүрэм суулгах ирээдүйн ажил (одоогоор
-// зүгээр placeholder, grid шаардлагагүй гэдгийг хэрэглэгч тодорхой
-// заасан).
-// "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
-// дагуу 3 таб (Тоот/Зогсоол/Агуулах) болов. "Тоот" таб = дээрхи
-// UnitLayoutDesigner (өмнөх бүрэн бүтээгдсэн grid хуудас, хвндөгдөөгүй).
-// "Зогсоол" таб = ParkingZoneDesigner (grid БИШ, давхар→бүс жагсаалт,
-// tenant даяар нэг нийтлэг сан — 2026-08-19 хэрэглэгч тодорхой заасан).
-// "Агуулах" — дугаарлалтын дүрэм суулгах ирээдүйн ажил (placeholder).
+// "Хаягжилт тохиргоо" (/addressing) - 2026-09-02 хэрэглэгчийн заасны
+// дагуу зөвхөн 2 таб үлдэв (Тоот / Зогсоол, Агуулах, Талбай). Хуучин
+// "Зогсоол" (ParkingZoneDesigner), "Агуулах" (StorageZoneDesigner),
+// iframe-ээр холбосон хуучин "Конструктор" - эдгээр гурав бүгд
+// шинэ React "Конструктор" (GridConstructorReact.jsx)-оор бүрэн
+// орлогдож, кодоос үл мврг үй устгагдав.
 export default function AddressConfig() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('unit');
@@ -481,31 +473,12 @@ export default function AddressConfig() {
       </div>
 
       {tab === 'unit' && <UnitLayoutDesigner />}
-      {tab === 'parking' && <ParkingZoneDesigner hoaId={hoaId} />}
-      {tab === 'storage' && <StorageZoneDesigner hoaId={hoaId} />}
-      {tab === 'constructor' && (
-        // 2026-08-31: Хэрэглэгчийн хүсэлт — зогсоол/агуулах/эзэмшлийн
-        // хилийг периметрээр нь зурж, давхарга давхаргаар JSON файл
-        // болгож гаргах бүрэн бие даасан (standalone) HTML/JS хэрэгсэл.
-        // ОДООГООР ямар ч бусад хуудас/датагүй ТУСГААРЛАГДСАН туршилт
-        // (iframe) байдлаар холбов — өврийн CSS/JS-тэй бүрэн бие даасан
-        // тул React/Tailwind-той зврчилдвхгүй байхын тулд iframe
-        // ашигласан. Туршилт амжилттай болвол дараагийн шатанд бодит
-        // сан (Supabase)-тай холбоно.
-        <div className="ds-card p-0 overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
-          <iframe
-            src={`${import.meta.env.BASE_URL}parking-grid-drawer.html`}
-            title="Зогсоолын грид конструктор"
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-          />
-        </div>
-      )}
       {tab === 'constructorReact' && (
-        // 2026-08-31 (2): Хэрэглэгчийн даалгавар — "Cosmo хвгжүүлэгчийн
-        // байр сууринаас" iframe-ийн ОРОНД React-т зохимжтой
-        // (idiomatic) архитектураар дахин бичсэн хувилбар. Үзнэ vv
-        // GridConstructorReact.jsx-ийн эхлэлийн comment-ийн дэлгэрэнгүй
-        // архитектурын тайлбарыг.
+        // 2026-09-02: Хүснэгэлт "Зогсоол"/"Агуулах" таб + хуучирсан
+        // iframe "Конструктор" бүрмөсөн арилж, зөвхөн энэ (React) таб
+        // үлдэв - "Зогсоол, Агуулах, Талбай" нэрээр зогсоол/агуулах/
+        // талбайн (полигон) хилийг зурж, лэйбл оноож, Supabase-тай
+        // холбоно.
         <GridConstructorReact hoaId={hoaId} />
       )}
     </>

@@ -563,14 +563,28 @@ export default function GridConstructorReact({ hoaId }) {
 
           {/* полигон давхарга (SVG) */}
           <svg style={{ position: 'absolute', left: 0, top: 0, width: cols * ec, height: rows * ec, pointerEvents: 'none' }}>
-            {polygons.map((p) => (
-              <polygon
-                key={p.id}
-                points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
-                fill={p.fillColor || 'none'} fillOpacity={p.fillColor ? 0.35 : 0}
-                stroke={p.strokeColor} strokeWidth={p.strokeWidth} strokeLinejoin="round"
-              />
-            ))}
+            {polygons.map((p) => {
+              const cx = (p.points.reduce((s, pt) => s + pt.x, 0) / p.points.length) * zoom;
+              const cy = (p.points.reduce((s, pt) => s + pt.y, 0) / p.points.length) * zoom;
+              return (
+                <g key={p.id}>
+                  <polygon
+                    points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
+                    fill={p.fillColor || 'none'} fillOpacity={p.fillColor ? 0.35 : 0}
+                    stroke={p.strokeColor} strokeWidth={p.strokeWidth} strokeLinejoin="round"
+                  />
+                  {p.label && (
+                    <text
+                      x={cx} y={cy} fill={p.labelColor || '#f1f5f9'} fontSize={12 * zoom} fontWeight={700}
+                      textAnchor="middle" dominantBaseline="middle"
+                      transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                    >
+                      {p.label}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
             {tool === 'polygon' && polyPoints.length > 0 && (
               <polyline
                 points={polyPoints.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
@@ -587,17 +601,39 @@ export default function GridConstructorReact({ hoaId }) {
       {/* ---------------- слот засах модал ---------------- */}
       {editingSlot && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setEditingSlotId(null)}>
-          <div className="ds-card p-4" style={{ width: 300 }} onClick={(e) => e.stopPropagation()}>
+          <div className="ds-card p-4" style={{ width: 300, maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Слот засах</div>
             <label className="block text-[10.5px] text-mutedtext mb-1">Дугаар / бичвэр</label>
             <input className="ds-input w-full mb-3" maxLength={8} value={editingSlot.label} onChange={(e) => updateSlot(editingSlot.id, { label: e.target.value })} />
-            <label className="block text-[10.5px] text-mutedtext mb-1">Дүүргэх өнгө</label>
-            <div className="flex gap-1.5 mb-4">
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Дугаарын өнгө</label>
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updateSlot(editingSlot.id, { labelColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingSlot.labelColor === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Хү рээний өнгө</label>
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updateSlot(editingSlot.id, { borderColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingSlot.borderColor === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Дүү ргэх өнгө</label>
+            <div className="flex gap-1.5 mb-4 flex-wrap">
               <button onClick={() => updateSlot(editingSlot.id, { fillColor: null })} className={`w-6 h-6 rounded border ${!editingSlot.fillColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} />
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updateSlot(editingSlot.id, { fillColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingSlot.fillColor === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
             </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Одоогийн эргэлт: {editingSlot.labelRotation || 0}°</label>
+            <div className="flex gap-2 mb-4">
+              <button className="ds-btn-secondary flex-1" onClick={() => updateSlot(editingSlot.id, { labelRotation: ((editingSlot.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүү н)</button>
+              <button className="ds-btn-secondary flex-1" onClick={() => updateSlot(editingSlot.id, { labelRotation: ((editingSlot.labelRotation || 0) + 90) % 360 })}>↻ 90° (баруун)</button>
+            </div>
+
             <div className="flex justify-between gap-2">
               <button className="ds-btn-secondary text-customRed" onClick={() => deleteSlot(editingSlot.id)}>Слот устгах</button>
               <button className="ds-btn-primary" onClick={() => setEditingSlotId(null)}>Дуусгах</button>
@@ -609,10 +645,42 @@ export default function GridConstructorReact({ hoaId }) {
       {/* ---------------- полигон засах модал (талбай нэр оноох) ---------------- */}
       {editingPolygon && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setEditingPolygonId(null)}>
-          <div className="ds-card p-4" style={{ width: 300 }} onClick={(e) => e.stopPropagation()}>
+          <div className="ds-card p-4" style={{ width: 300, maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Талбай засах</div>
             <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн нэр / дугаар (жиш нь "Э-01")</label>
-            <input className="ds-input w-full mb-4" maxLength={16} value={editingPolygon.label || ''} onChange={(e) => updatePolygon(editingPolygon.id, { label: e.target.value })} />
+            <input className="ds-input w-full mb-3" maxLength={16} value={editingPolygon.label || ''} onChange={(e) => updatePolygon(editingPolygon.id, { label: e.target.value })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Нэрийн өнгө</label>
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updatePolygon(editingPolygon.id, { labelColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingPolygon.labelColor === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Зураасны өргөн (px)</label>
+            <input type="number" min={1} max={10} className="ds-input w-full mb-3" value={editingPolygon.strokeWidth || 2} onChange={(e) => updatePolygon(editingPolygon.id, { strokeWidth: Math.max(1, +e.target.value || 1) })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Зураасны өнгө</label>
+            <div className="flex gap-1.5 mb-3 flex-wrap">
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updatePolygon(editingPolygon.id, { strokeColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingPolygon.strokeColor === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Дүү ргэлтийн өнгө</label>
+            <div className="flex gap-1.5 mb-4 flex-wrap">
+              <button onClick={() => updatePolygon(editingPolygon.id, { fillColor: null })} className={`w-6 h-6 rounded border ${!editingPolygon.fillColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} />
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updatePolygon(editingPolygon.id, { fillColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingPolygon.fillColor === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Одоогийн эргэлт: {editingPolygon.labelRotation || 0}°</label>
+            <div className="flex gap-2 mb-4">
+              <button className="ds-btn-secondary flex-1" onClick={() => updatePolygon(editingPolygon.id, { labelRotation: ((editingPolygon.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүү н)</button>
+              <button className="ds-btn-secondary flex-1" onClick={() => updatePolygon(editingPolygon.id, { labelRotation: ((editingPolygon.labelRotation || 0) + 90) % 360 })}>↻ 90° (баруун)</button>
+            </div>
+
             <div className="flex justify-between gap-2">
               <button className="ds-btn-secondary text-customRed" onClick={() => deletePolygon(editingPolygon.id)}>Талбай устгах</button>
               <button className="ds-btn-primary" onClick={() => setEditingPolygonId(null)}>Дуусгах</button>

@@ -99,8 +99,6 @@ export default function Owners() {
       grid_parkings: form.gridParkings,
       has_grid_storage: form.hasGridStorage,
       grid_storages: form.gridStorages,
-      has_grid_land: form.hasGridLand,
-      grid_land_plots: form.gridLandPlots,
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,

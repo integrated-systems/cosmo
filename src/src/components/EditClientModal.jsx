@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SpotSelectField, VehicleListField } from './formFields/ListFields';
+import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
@@ -8,13 +9,20 @@ import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 export default function EditClientModal({ open, onClose, client, onSave, hoaId }) {
   const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
   const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
+  const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenParkingIds, setTakenParkingIds] = useState(new Set());
   const [takenStorageIds, setTakenStorageIds] = useState(new Set());
+  const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
+  const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
+  const [takenGridLandIds, setTakenGridLandIds] = useState(new Set());
 
   useEffect(() => {
     if (!open || !hoaId) return;
     fetchTakenSpotIds(hoaId, 'parkings', null, client?.id).then(setTakenParkingIds);
     fetchTakenSpotIds(hoaId, 'storages', null, client?.id).then(setTakenStorageIds);
+    fetchTakenGridIds(hoaId, 'grid_parkings', null, client?.id).then(setTakenGridParkingIds);
+    fetchTakenGridIds(hoaId, 'grid_storages', null, client?.id).then(setTakenGridStorageIds);
+    fetchTakenGridIds(hoaId, 'grid_land_plots', null, client?.id).then(setTakenGridLandIds);
   }, [open, hoaId, client?.id]);
 
   const [form, setForm] = useState(() => ({
@@ -31,6 +39,9 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId }
     contractEnd: client?.contract_end || '',
     hasParking: client?.has_parking || false, parkings: client?.parkings || [],
     hasStorage: client?.has_storage || false, storages: client?.storages || [],
+    hasGridParking: client?.has_grid_parking || false, gridParkings: client?.grid_parkings || [],
+    hasGridStorage: client?.has_grid_storage || false, gridStorages: client?.grid_storages || [],
+    hasGridLand: client?.has_grid_land || false, gridLandPlots: client?.grid_land_plots || [],
     hasVehicle: client?.has_vehicle || false, vehicles: client?.vehicles || [],
     note: client?.note || '',
   }));
@@ -116,6 +127,28 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId }
         onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.storages }))}
         items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
         spots={storageSpots} takenIds={takenStorageIds} loading={storageLoading}
+      />
+      {/* 2026-09-02: Хэрэглэгчийн хүсэлт — "Талбай өмчлөгч" (аж ахуйн
+          нэгж) л Зогсоол/Агуулах/Талбай (полигон) БүГДийг "Конструктор
+          (React)"-оос сонгож холбож болно (Сууц өмчлөгчид зөвхөн
+          Зогсоол/Агуулах-ыг л зөвшөөрнэ). */}
+      <SpotSelectField
+        label="Зогсоол (грид)" checked={form.hasGridParking}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
+        items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
+        spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
+      />
+      <SpotSelectField
+        label="Агуулах (грид)" checked={form.hasGridStorage}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
+        items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
+        spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
+      />
+      <SpotSelectField
+        label="Талбай (полигон)" checked={form.hasGridLand}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridLand: v, gridLandPlots: v && f.gridLandPlots.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridLandPlots }))}
+        items={form.gridLandPlots} onChange={(v) => set('gridLandPlots', v)} addLabel="+ Талбай нэмэх"
+        spots={gridLandPlots} takenIds={takenGridLandIds} loading={gridSpotsLoading}
       />
       <VehicleListField
         checked={form.hasVehicle}
