@@ -26,6 +26,7 @@ import Providers from './pages/Providers';
 import Msgr from './pages/Msgr';
 import VotingPage from './pages/VotingPage';
 import AdminClassifieds from './pages/AdminClassifieds';
+import ParkingPage from './pages/ParkingPage';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -116,7 +117,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
               <div className="text-sm text-slate-500 dark:text-mutedtext max-w-md">
                 {isPending
                   ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ уу.'
-                  : 'Уучлаарай, таны үүсгэсэн СӨХ-ийн хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
+                  : 'Уучлаарай, таны үүсгэсэн СӨХ-ны хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
               </div>
             </div>
           ) : (
@@ -213,6 +214,7 @@ function AppRoutes() {
         <Route path="msgr" element={<Msgr />} />
         <Route path="voting" element={<VotingPage />} />
         <Route path="classifieds" element={<AdminClassifieds />} />
+        <Route path="parking" element={<ParkingPage />} />
         <Route path="voting/new" element={<VotingEditPage />} />
         <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
         <Route path="voting/:pollId/results" element={<VotingResultsPage />} />

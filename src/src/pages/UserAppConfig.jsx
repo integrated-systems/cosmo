@@ -27,7 +27,7 @@ const MODULES = [
   { key: 'news', label: 'Мэдээ, мэдээлэл', built: true },
   { key: 'msgr', label: 'Мессенжер', built: true },
   { key: 'voting', label: 'Сонгууль, санал асуулга', built: true },
-  { key: 'parking', label: 'Зочин урих', built: false },
+  { key: 'parking', label: 'Зочин урих', built: true },
   { key: 'phonebook', label: 'Утасны жагсаалт', built: true },
   { key: 'about', label: 'СӨХ-ны тухай', built: true },
   { key: 'classifieds', label: 'Зарын самбар', built: true },
@@ -277,7 +277,7 @@ export default function UserAppConfig() {
           <div>
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">СӨХ-ны тухай</div>
             <div className="text-[11px] text-mutedtext mb-4 max-w-xl">
-              СӨХ-ийн хаяг, дансны мэдээлэл болон хотхоны танилцуулга текст —
+              СӨХ-ны хаяг, дансны мэдээлэл болон хотхоны танилцуулга текст —
               сууц өмчлөгч OwnerApp дээрх "СӨХ-ны тухай" тайл дээр дарж
               харна.
             </div>

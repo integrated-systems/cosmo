@@ -16,6 +16,7 @@ import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
 import OwnerClassifieds from './components/UserApp/OwnerClassifieds';
+import OwnerParking from './components/UserApp/OwnerParking';
 import OwnerPhonebook from './components/UserApp/OwnerPhonebook';
 import OwnerAbout from './components/UserApp/OwnerAbout';
 import OwnerDashboard from './pages/OwnerDashboard';
@@ -74,7 +75,7 @@ function hexToRgb(hex) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds', 'parking'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -331,6 +332,13 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <OwnerAbout hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-classifieds')) {
     mainContent = <OwnerClassifieds hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/parking')) {
+    // "parking" бол үндсэн менюгийн БОДИТ page_key ("Түр зогсоол
+    // бүртгэл", admin-д зориулсан жинхэнэ зам "/parking") тул
+    // synthetic tile-үүдээс (userapp-*) ялгаатайгаар, ЯГ ТЭР ЗАМЫГ
+    // л ашиглана. Owner үед л ЭНЭ branch-аар мэдэгдэнэ, staff үед
+    // admin Layout-ийн Outlet-ээр ParkingPage.jsx харагдана.
+    mainContent = <OwnerParking hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-profile')) {
     mainContent = (
       <UserAppProfile
