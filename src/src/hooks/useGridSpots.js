@@ -2,27 +2,26 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
-// 2026-09-02: Хэрэглэгчийн хүсэлт — "Конструктор (React)"-ээр зурсан
+// 2026-09-02: Хэрэглэгчийн хүсэлт - "Конструктор (React)"-ээр зурсан
 // слот/агуулах/талбай (полигон)-ийн label-үүдийг "Тоот" засах модал
 // дахь SpotSelectField-той ЯГ АДИЛ dropdown-д ашиглана (Аль хэдийн
 // байгаа unit_parking/unit_storage-той параллель, тусдаа эх сурвалж).
 //
-// `id` талбарт "{floor_key}:{label}" хэлбэрийн НЭГТГЭСЭН мвр ашиглана
-// (учир нь Grid Constructor-ийн дотоод React id үе бүрд өөрчлвгддвг
-// тул тогтвортой холбоос болж чадахгүй — харин label+floor_key
-// хослол л бизнесийн хувьд тогтвортой, давхцахгүй.
-// 2026-09-02: ОЛСОН БОДИТ АЛДАА — "code" талбарт давхаргын угтвар
-// (`${f.floor_key} `) аль хэдийн орсон байхад, SpotCombobox вврвв
-// ДАВХАР `${floorLevel} ${code}` гэж угтвар нэмдэг тул "B1 B1 G30"
-// шиг давхардсан харагдац үүсгэдэг байв. Одоо "code" зөвхөн label-ийг
-// л агуулна, угтварыг SpotCombobox-д даатгана.
+// 2026-09-02 (2): Хэрэглэгчийн хүсэлт - линкийн "id" (`${floor_key}:
+// ${label}`)-г "{floor_key}:{slot.id}" болгож сольсон. ҮҮнээс өмнө
+// label өөрчлөгдөхөд ХОЛБООС ТАСРАХ эрсдэлтэй байсан (жиш "G-001"-ийг
+// "G-01" болгож нэрлэвэл, түүнд холбогдсон owner "алга" болно) -
+// slot.id одоо GridConstructorReact.jsx-ийн crypto.randomUUID()-аар
+// үүсдэг ТОГТМОЛ түлхүүр тул label хэдийг ч вврчилсэн ч холбоос
+// тасрахгүй. "code" (дэлгэцэнд харагдах текст) хэвээрээ label-ийг
+// л агуулна.
 function toParkingWarehouse(floors) {
   const parking = [];
   const storage = [];
   floors.forEach((f) => {
     (f.layout_json?.slots || []).forEach((s) => {
       if (!s.label) return;
-      const item = { id: `${f.floor_key}:${s.label}`, floorLevel: f.floor_key, code: s.label };
+      const item = { id: `${f.floor_key}:${s.id}`, floorLevel: f.floor_key, code: s.label };
       if (s.kind === 'warehouse') storage.push(item);
       else parking.push(item);
     });
@@ -34,7 +33,7 @@ function toLandPlots(floors) {
   floors.forEach((f) => {
     (f.layout_json?.polygons || []).forEach((p) => {
       if (!p.label) return;
-      plots.push({ id: `${f.floor_key}:${p.label}`, floorLevel: f.floor_key, code: p.label });
+      plots.push({ id: `${f.floor_key}:${p.id}`, floorLevel: f.floor_key, code: p.label });
     });
   });
   return plots;

@@ -80,8 +80,6 @@ export default function GridConstructorReact({ hoaId }) {
   const [strokeColor, setStrokeColor] = useState('#3b82f6');
   const [borderColor, setBorderColor] = useState('#e2e8f0');
 
-  const nextIdRef = useRef(1);
-  const nextPolyIdRef = useRef(1);
   const gridRef = useRef(null);
 
   // ---------------- undo/redo (snapshot-based, refs — React state биш) ----------------
@@ -129,25 +127,19 @@ export default function GridConstructorReact({ hoaId }) {
 
   // ---------------- ачаалах: localStorage (шуурхай) → Supabase (эх сурвалж) ----------------
   const applyLayout = useCallback((layout) => {
-    // 2026-09-02 ОЛСОН БОДИТ АЛДАА — импортолсон JSON (эсвэл гараар
-    // бүтээсэн Supabase мвр)-д "id" талбар байхгүй бол бүх слот "id:
-    // undefined" болж, ЗАСАХ/ЗөөХ/УСТГАХ бүх логик (`s.id === id`)
-    // НЭГЭН зэрэг БүХ слотод тохирч, нэг слот дээр хийсэн өөрчлөлт
-    // БүХ слотод (955 ширхэгт зэрэг!) хэрэгжих аюултай алдаа үүсгэдэг
-    // байв. Одоо ачаалах бүрд id-гүй слот/полигонд шинэ id автоматаар
-    // хуваарилна.
-    let nextSlotId = 1;
-    const slotsWithIds = (layout.slots || []).map((s) => (s.id ? s : { ...s, id: nextSlotId++ }));
-    let nextPolyId = 1;
-    const polysWithIds = (layout.polygons || []).map((p) => (p.id ? p : { ...p, id: nextPolyId++ }));
+    // 2026-09-02 (2): Хэрэглэгчийн хүсэлт - слотын id одоо зөвхөн
+    // React-ийн дотоод (session-only) дугаар БИШ, харин owners/
+    // clientele-той ХОЛБОГДОХ ТОГТМОЛ түлхүүр болсон тул incrementing
+    // тоо (1,2,3...) биш **UUID** (crypto.randomUUID()) ашиглана -
+    // label өөрчилсөн ч холбоос тасрахгүй. ҮҮр эх сурвалж (Supabase-с
+    // ачаалсан, гар JSON-оор импортолсон)-д "id" байхгүй л бол шинэ
+    // UUID автоматаар хуваарилна.
+    const slotsWithIds = (layout.slots || []).map((s) => (s.id ? s : { ...s, id: crypto.randomUUID() }));
+    const polysWithIds = (layout.polygons || []).map((p) => (p.id ? p : { ...p, id: crypto.randomUUID() }));
     setCols(layout.cols || 40);
     setRows(layout.rows || 30);
     setSlots(slotsWithIds);
     setPolygons(polysWithIds);
-    const maxSlotId = slotsWithIds.reduce((m, s) => Math.max(m, s.id || 0), 0);
-    const maxPolyId = polysWithIds.reduce((m, p) => Math.max(m, p.id || 0), 0);
-    nextIdRef.current = maxSlotId + 1;
-    nextPolyIdRef.current = maxPolyId + 1;
     undoStackRef.current = [];
     redoStackRef.current = [];
   }, []);
@@ -270,14 +262,14 @@ export default function GridConstructorReact({ hoaId }) {
     if (d.mode === 'draw' && d.pending) {
       pushHistory();
       setSlots((prev) => [...prev, {
-        id: nextIdRef.current++, col: d.pending.col, row: d.pending.row, horizontal: d.pending.horizontal,
+        id: crypto.randomUUID(), col: d.pending.col, row: d.pending.row, horizontal: d.pending.horizontal,
         kind: 'slot', borderColor, fillColor: null, label: '',
       }]);
     } else if (d.mode === 'undecided' && tool === 'warehouse') {
       if (!occupancy(slots).has(`${d.startCol},${d.startRow}`)) {
         pushHistory();
         setSlots((prev) => [...prev, {
-          id: nextIdRef.current++, col: d.startCol, row: d.startRow, horizontal: false,
+          id: crypto.randomUUID(), col: d.startCol, row: d.startRow, horizontal: false,
           kind: 'warehouse', borderColor, fillColor: null, label: '',
         }]);
       }
@@ -357,7 +349,7 @@ export default function GridConstructorReact({ hoaId }) {
   function finishPolygon(points) {
     if (points.length < 3) { setPolyPoints([]); return; }
     pushHistory();
-    setPolygons((prev) => [...prev, { id: nextPolyIdRef.current++, points, strokeColor, strokeWidth: 2, fillColor: null, label: '' }]);
+    setPolygons((prev) => [...prev, { id: crypto.randomUUID(), points, strokeColor, strokeWidth: 2, fillColor: null, label: '' }]);
     setPolyPoints([]);
   }
   function handlePolyClick(e) {
@@ -418,8 +410,8 @@ export default function GridConstructorReact({ hoaId }) {
   function exportJson() {
     const data = {
       cellSize: CELL, cols, rows,
-      slots: slots.map((s) => ({ col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, label: s.label || '' })),
-      polygons: polygons.map((p) => ({ points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, label: p.label || '' })),
+      slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0 })),
+      polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0 })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

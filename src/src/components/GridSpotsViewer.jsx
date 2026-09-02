@@ -75,7 +75,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
           {slots.map((s, i) => {
             const w = s.kind === 'warehouse' ? ec : (s.horizontal ? ec * 2 : ec);
             const h = s.kind === 'warehouse' ? ec : (s.horizontal ? ec : ec * 2);
-            const link = s.label ? resolveSlot?.(floor.floor_key, s.label, s.kind) : null;
+            const link = s.label ? resolveSlot?.(floor.floor_key, s.id, s.kind) : null;
             return (
               <button
                 key={i}
@@ -102,7 +102,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
             {polygons.map((p, i) => {
               const cx = (p.points.reduce((sum, pt) => sum + pt.x, 0) / p.points.length) * zoom;
               const cy = (p.points.reduce((sum, pt) => sum + pt.y, 0) / p.points.length) * zoom;
-              const link = p.label ? resolvePolygon?.(floor.floor_key, p.label) : null;
+              const link = p.label ? resolvePolygon?.(floor.floor_key, p.id) : null;
               return (
                 <g key={i} style={{ pointerEvents: 'auto', cursor: 'pointer' }} onClick={() => onPolygonClick?.(floor.floor_key, p, link)}>
                   <polygon

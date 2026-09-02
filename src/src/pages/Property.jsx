@@ -53,33 +53,35 @@ export default function Property() {
   const [addingGridSpot, setAddingGridSpot] = useState(null); // {kind, item}
   const [gridSpotChoice, setGridSpotChoice] = useState(null); // {kind, item} - сонголт хүлээж буй
 
-  function resolveGridLink(floorKey, label, field) {
-    const gid = `${floorKey}:${label}`;
+  function resolveGridLink(floorKey, itemId, field) {
+    const gid = `${floorKey}:${itemId}`;
     const o = owners.find((ow) => (ow[field] || []).some((sp) => sp.id === gid));
     if (o) return { type: 'owner', record: o };
     const c = clientele.find((cl) => (cl[field] || []).some((sp) => sp.id === gid));
     if (c) return { type: 'client', record: c };
     return null;
   }
-  function resolveSlot(floorKey, label, kind) {
-    return resolveGridLink(floorKey, label, kind === 'warehouse' ? 'grid_storages' : 'grid_parkings');
+  function resolveSlot(floorKey, slotId, kind) {
+    return resolveGridLink(floorKey, slotId, kind === 'warehouse' ? 'grid_storages' : 'grid_parkings');
   }
-  function resolvePolygon(floorKey, label) {
-    return resolveGridLink(floorKey, label, 'grid_land_plots');
+  function resolvePolygon(floorKey, polygonId) {
+    return resolveGridLink(floorKey, polygonId, 'grid_land_plots');
   }
   function handleGridSlotClick(floorKey, slot, link) {
     if (link?.type === 'owner') { setSelectedOwner(link.record); return; }
     if (link?.type === 'client') { setSelectedClient(link.record); return; }
     if (!slot.label) return; // label-гүй слотыг холбож болохгүй
-    const item = { id: `${floorKey}:${slot.label}`, floorLevel: floorKey, code: slot.label };
+    // 2026-09-02 (2): линкийн id одоо slot.id (crypto.randomUUID(),
+    // тогтмол) - "code" (дэлгэцэнд харагдах текст) л label хэвээрээ.
+    const item = { id: `${floorKey}:${slot.id}`, floorLevel: floorKey, code: slot.label };
     setGridSpotChoice({ kind: slot.kind === 'warehouse' ? 'storage' : 'parking', item });
   }
   function handleGridPolygonClick(floorKey, polygon, link) {
     if (link?.type === 'client') { setSelectedClient(link.record); return; }
     if (link?.type === 'owner') { setSelectedOwner(link.record); return; } // онолын хувьд гарахгүй ч, аюулгүйн үүднээс
     if (!polygon.label) return;
-    const item = { id: `${floorKey}:${polygon.label}`, floorLevel: floorKey, code: polygon.label };
-    setAddingGridSpot({ kind: 'land', item }); // Талбай зөвхөн Талбай өмчлөгчид харьяалагдана тул шууд нээнэ
+    const item = { id: `${floorKey}:${polygon.id}`, floorLevel: floorKey, code: polygon.label };
+    setAddingGridSpot({ kind: 'land', item }); // Талбай зөвхөн Талбай өмчлөгчид харьяалагддаг тул шууд нээнэ
   }
 
   async function loadAll() {
