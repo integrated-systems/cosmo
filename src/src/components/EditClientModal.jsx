@@ -2,24 +2,17 @@ import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
-import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
 // EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
 export default function EditClientModal({ open, onClose, client, onSave, hoaId, initialGridSpot }) {
-  const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
-  const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
   const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
-  const [takenParkingIds, setTakenParkingIds] = useState(new Set());
-  const [takenStorageIds, setTakenStorageIds] = useState(new Set());
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
   const [takenGridLandIds, setTakenGridLandIds] = useState(new Set());
 
   useEffect(() => {
     if (!open || !hoaId) return;
-    fetchTakenSpotIds(hoaId, 'parkings', null, client?.id).then(setTakenParkingIds);
-    fetchTakenSpotIds(hoaId, 'storages', null, client?.id).then(setTakenStorageIds);
     fetchTakenGridIds(hoaId, 'grid_parkings', null, client?.id).then(setTakenGridParkingIds);
     fetchTakenGridIds(hoaId, 'grid_storages', null, client?.id).then(setTakenGridStorageIds);
     fetchTakenGridIds(hoaId, 'grid_land_plots', null, client?.id).then(setTakenGridLandIds);
@@ -37,8 +30,6 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     contractNo: client?.contract_no || '',
     contractStart: client?.contract_start || '',
     contractEnd: client?.contract_end || '',
-    hasParking: client?.has_parking || false, parkings: client?.parkings || [],
-    hasStorage: client?.has_storage || false, storages: client?.storages || [],
     hasGridParking: client?.has_grid_parking || (!client && initialGridSpot?.kind === 'parking') || false,
     gridParkings: client?.grid_parkings || (!client && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
     hasGridStorage: client?.has_grid_storage || (!client && initialGridSpot?.kind === 'storage') || false,
@@ -119,18 +110,6 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
         </div>
       </div>
 
-      <SpotSelectField
-        label="Зогсоол" checked={form.hasParking}
-        onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.parkings }))}
-        items={form.parkings} onChange={(v) => set('parkings', v)} addLabel="+ Зогсоол нэмэх"
-        spots={parkingSpots} takenIds={takenParkingIds} loading={parkingLoading}
-      />
-      <SpotSelectField
-        label="Агуулах" checked={form.hasStorage}
-        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.storages }))}
-        items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
-        spots={storageSpots} takenIds={takenStorageIds} loading={storageLoading}
-      />
       {/* 2026-09-02: Хэрэглэгчийн хүсэлт — "Талбай өмчлөгч" (аж ахуйн
           нэгж) л Зогсоол/Агуулах/Талбай (полигон) БүГДийг "Конструктор
           (React)"-оос сонгож холбож болно (Сууц өмчлөгчид зөвхөн

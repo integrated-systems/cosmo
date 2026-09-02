@@ -513,7 +513,7 @@ export default function GridConstructorReact({ hoaId }) {
       </div>
 
       {/* ---------------- canvas ---------------- */}
-      <div className="flex-1 overflow-auto rounded border border-bordercol" style={{ background: '#101b29' }}>
+      <div className="flex-1 overflow-auto rounded border border-bordercol">
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}

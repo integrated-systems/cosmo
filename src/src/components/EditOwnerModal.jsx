@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SimpleListField, SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useUnitLayouts } from '../hooks/useUnitLayouts';
-import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
@@ -28,18 +27,12 @@ function SectionTitle({ children }) {
 
 export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit, initialGridSpot }) {
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
-  const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
-  const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
   const { gridParkingSpots, gridStorageSpots, loading: gridSpotsLoading } = useGridSpots(hoaId);
-  const [takenParkingIds, setTakenParkingIds] = useState(new Set());
-  const [takenStorageIds, setTakenStorageIds] = useState(new Set());
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
 
   useEffect(() => {
     if (!open || !hoaId) return;
-    fetchTakenSpotIds(hoaId, 'parkings', owner?.id, null).then(setTakenParkingIds);
-    fetchTakenSpotIds(hoaId, 'storages', owner?.id, null).then(setTakenStorageIds);
     fetchTakenGridIds(hoaId, 'grid_parkings', owner?.id, null).then(setTakenGridParkingIds);
     fetchTakenGridIds(hoaId, 'grid_storages', owner?.id, null).then(setTakenGridStorageIds);
   }, [open, hoaId, owner?.id]);
@@ -64,8 +57,6 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     people: owner?.people_count ?? '',
     child1: owner?.child_0_5 ?? '',
     child2: owner?.child_6_18 ?? '',
-    hasStorage: owner?.has_storage || false, storages: owner?.storages || [],
-    hasParking: owner?.has_parking || false, parkings: owner?.parkings || [],
     hasGridParking: owner?.has_grid_parking || (!owner && initialGridSpot?.kind === 'parking') || false,
     gridParkings: owner?.grid_parkings || (!owner && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
     hasGridStorage: owner?.has_grid_storage || (!owner && initialGridSpot?.kind === 'storage') || false,
@@ -205,18 +196,10 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         </div>
       </div>
 
-      <SpotSelectField
-        label="Зогсоол" checked={form.hasParking}
-        onToggle={(v) => setForm((f) => ({ ...f, hasParking: v, parkings: v && f.parkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.parkings }))}
-        items={form.parkings} onChange={(v) => set('parkings', v)} addLabel="+ Зогсоол нэмэх"
-        spots={parkingSpots} takenIds={takenParkingIds} loading={parkingLoading}
-      />
-      <SpotSelectField
-        label="Агуулах" checked={form.hasStorage}
-        onToggle={(v) => setForm((f) => ({ ...f, hasStorage: v, storages: v && f.storages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.storages }))}
-        items={form.storages} onChange={(v) => set('storages', v)} addLabel="+ Агуулах нэмэх"
-        spots={storageSpots} takenIds={takenStorageIds} loading={storageLoading}
-      />
+      {/* 2026-09-02 (2): "Зогсоол"/"Агуулах" (хуучин, unit_parking/
+          unit_storage-д тулгуурласан) талбарыг үл мврг үй устгав —
+          эдгээрийг удирддаг байсан "Хаягжилт тохиргоо" табыг арилгасан
+          тул холбоосгүй чекбокс болж хувирсан байв. */}
       {/* 2026-09-02: Хэрэглэгчийн хүсэлт — "Конструктор (React)"-ээр
           зурсан слот/агуулах/талбайг owners-той холбох 3 шинэ талбар
           (аль хэдийн байгаа "Зогсоол"/"Агуулах"-аас тусдаа эх сурвалж). */}
