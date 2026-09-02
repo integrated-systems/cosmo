@@ -264,7 +264,7 @@ function UnitLayoutDesigner() {
     setEditing(null);
   }
   // 2026-08-19 хэрэглэгч тодорхой заасан: нуугдсан тоотыг Тоот таб дээр
-  // саарал вnгвтэй харуулж, дахин дарж "Ил болгох" боломжтой болгов —
+  // саарал өнгөтэй харуулж, дахин дарж "Ил болгох" боломжтой болгов —
   // үмнв нь нуугдсан тоот бүрмөсөн харагдахгүй (SISADMIN үвврвв ч
   // олж чадахгүй, буцаах боломжгүй) болдог байсныг олж зассан.
   function handleUnitUnhide(unitId) {
@@ -449,6 +449,7 @@ const ADDRESSING_TABS = [
   { key: 'unit', label: 'Тоот' },
   { key: 'parking', label: 'Зогсоол' },
   { key: 'storage', label: 'Агуулах' },
+  { key: 'constructor', label: 'Конструктор' },
 ];
 
 // "Хаягжилт тохиргоо" (/addressing) — 2026-08-19 хэрэглэгчийн заасны
@@ -480,6 +481,23 @@ export default function AddressConfig() {
       {tab === 'unit' && <UnitLayoutDesigner />}
       {tab === 'parking' && <ParkingZoneDesigner hoaId={hoaId} />}
       {tab === 'storage' && <StorageZoneDesigner hoaId={hoaId} />}
+      {tab === 'constructor' && (
+        // 2026-08-31: Хэрэглэгчийн хүсэлт — зогсоол/агуулах/эзэмшлийн
+        // хилийг периметрээр нь зурж, давхарга давхаргаар JSON файл
+        // болгож гаргах бүрэн бие даасан (standalone) HTML/JS хэрэгсэл.
+        // ОДООГООР ямар ч бусад хуудас/датагүй ТУСГААРЛАГДСАН туршилт
+        // (iframe) байдлаар холбов — өврийн CSS/JS-тэй бүрэн бие даасан
+        // тул React/Tailwind-той зврчилдвхгүй байхын тулд iframe
+        // ашигласан. Туршилт амжилттай болвол дараагийн шатанд бодит
+        // сан (Supabase)-тай холбоно.
+        <div className="ds-card p-0 overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
+          <iframe
+            src={`${import.meta.env.BASE_URL}parking-grid-drawer.html`}
+            title="Зогсоолын грид конструктор"
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+          />
+        </div>
+      )}
     </>
   );
 }
