@@ -23,6 +23,8 @@ import Lightbox from './Lightbox';
 const BADGE_STYLE = {
   онцлох: 'bg-customBlue text-white',
   шуурхай: 'bg-customRed text-white',
+  'сэрэмжлүүлэг': 'bg-customOrange text-white',
+  ноцтой: 'bg-red-900 text-white',
 };
 
 function NewsBadges({ badges }) {
@@ -141,7 +143,7 @@ function sanitizeNewsHtml(html) {
 export default function News({ id, badges, datetime, category, viewCount, title, bodyText, bodyHtml, videoId, images, onView }) {
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
-  // Дэлгэцэн дээр бодитоор 4 мврвес хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
+  // Дэлгэцэн дээр бодитоор 4 мөрөөс хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
   // тоогоор тааварлахгүй) — screen/container өргөнөөс хамааран мврийн
   // тоо өөрчлөгддөг тул scrollHeight vs clientHeight-ийг харьцуулна.
   // Зүвхүн collapsed (line-clamp-4) үед хэмжинэ, expanded үед clientHeight

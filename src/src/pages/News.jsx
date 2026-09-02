@@ -32,6 +32,12 @@ function toCardProps(row) {
   const badges = [];
   if (row.featured) badges.push('онцлох');
   if (row.urgent) badges.push('шуурхай');
+  // 2026-08-31 ОЛСОН БОДИТ АЛДАА — "Сэрэмжлүүлэг"/"Ноцтой" ангилалтай
+  // мэдээ (warning/critical багана) хүснэгэлд зввв хадгалагдсан ч,
+  // энд badges массивт хэзээ ч нэмэгддэггүй байсан тул жагсаалтад
+  // энгийн мэдээнээс визуаль ялгаагүй харагддаг байв.
+  if (row.warning) badges.push('сэрэмжлүүлэг');
+  if (row.critical) badges.push('ноцтой');
   return {
     id: row.id,
     badges,
