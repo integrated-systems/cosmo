@@ -134,16 +134,23 @@ export default function UserApp({ theme, onToggleTheme }) {
 
   useEffect(() => {
     // 2026-08-27: Bento tile badge-үүд — msgr бол БОДИТ unread_count
-    // (msgr_list, RLS-ээр зөвхөн ӨӨРИЙН мвр), news бол backend-д
-    // per-user "уншсан эсэх" хүснэгэл байхгүй тул localStorage-д
-    // хадгалсан "сүүлд үзсэн" огноогоос хойших шинэ мэдээний тоог
-    // тооцоолно (хүнгэн, нэмэлт хүснэгэлгүй).
+    // (msgr_list, RLS-ээр зөвхөн ВВРИЙН мвр), news/voting/classifieds
+    // бол backend-д per-user "үзсэн эсэх" хүснэгэл байхгүй тул
+    // localStorage-д хадгалсан "сүүлд үзсэн" огноогоос хойших шинэ
+    // мврийн тоог тооцоолно (хүнгэн, нэмэлт хүснэгэлгүй).
+    //
+    // 2026-08-31: Хэрэглэгчийн хүсэлт — "Сонгууль, санал асуулга"
+    // болон "Зарын самбар" (паблик, зүгөөр мэдээллийн шинж чанартай
+    // тайлан) News-тэй ЯГ АДИЛ дүрмээр (зүгөөр silent badge, ямар ч
+    // push notification/дуут дохио үгүй) badge-тэй болов.
     if (!hoaId || !user?.id) return;
     let cancelled = false;
     (async () => {
-      const [{ data: ownerRow }, { data: newsRows }, { data: layouts }] = await Promise.all([
+      const [{ data: ownerRow }, { data: newsRows }, { data: votingRows }, { data: classifiedsRows }, { data: layouts }] = await Promise.all([
         supabase.from('owners').select('id, building_no, floor, door_no').eq('user_id', user.id).eq('tenant_id', hoaId).maybeSingle(),
         supabase.from('news').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
+        supabase.from('voting_polls').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
+        supabase.from('classifieds_posts').select('created_at').eq('tenant_id', hoaId).order('created_at', { ascending: false }).limit(30),
         // 2026-08-28: "Хаягжилт тохиргоо" (AddressConfig)-д тохируулсан
         // форматыг (Байр-Давхар-Тоот эсвэл Байр-Орц-Тоот) яг ижил
         // ашиглана — хэрэглэгчийн заасны дагуу Owners бүртгэлийн
@@ -161,13 +168,17 @@ export default function UserApp({ theme, onToggleTheme }) {
         const { data: msgrRow } = await supabase.from('msgr_list').select('owner_unread_count').eq('owner_id', ownerRow.id).eq('tenant_id', hoaId).maybeSingle();
         if (!cancelled && msgrRow?.owner_unread_count) next.msgr = msgrRow.owner_unread_count;
       }
-      const lastSeenKey = `cosmo_userapp_news_seen_${hoaId}`;
-      const lastSeen = localStorage.getItem(lastSeenKey);
-      if (!lastSeen) {
-        localStorage.setItem(lastSeenKey, new Date().toISOString());
-      } else if (newsRows) {
-        next.news = newsRows.filter((n) => new Date(n.created_at) > new Date(lastSeen)).length;
+      function countNewSince(storageKey, rows) {
+        const lastSeen = localStorage.getItem(storageKey);
+        if (!lastSeen) {
+          localStorage.setItem(storageKey, new Date().toISOString());
+          return 0;
+        }
+        return (rows ?? []).filter((r) => new Date(r.created_at) > new Date(lastSeen)).length;
       }
+      next.news = countNewSince(`cosmo_userapp_news_seen_${hoaId}`, newsRows);
+      next.voting = countNewSince(`cosmo_userapp_voting_seen_${hoaId}`, votingRows);
+      next.classifieds = countNewSince(`cosmo_userapp_classifieds_seen_${hoaId}`, classifiedsRows);
       if (!cancelled) setBadges(next);
     })();
     return () => { cancelled = true; };
@@ -296,6 +307,18 @@ export default function UserApp({ theme, onToggleTheme }) {
       // Мэдээ уншсаны дараа badge тоолуурыг арилгана.
       localStorage.setItem(`cosmo_userapp_news_seen_${hoaId}`, new Date().toISOString());
       setBadges((b) => ({ ...b, news: 0 }));
+    }
+    if (item.key === 'voting') {
+      // 2026-08-31: Хэрэглэгчийн хүсэлт — News-тэй адил зарчмаар,
+      // шинэ сонгууль/санал асуулга нэмэгдэхэд badge үзүүлнэ (зүгөөр
+      // тайлан дээр, дуут дохио/push notification үгүй — паблик
+      // мэдээлэл тул).
+      localStorage.setItem(`cosmo_userapp_voting_seen_${hoaId}`, new Date().toISOString());
+      setBadges((b) => ({ ...b, voting: 0 }));
+    }
+    if (item.key === 'classifieds') {
+      localStorage.setItem(`cosmo_userapp_classifieds_seen_${hoaId}`, new Date().toISOString());
+      setBadges((b) => ({ ...b, classifieds: 0 }));
     }
     if (item.key === 'dashboard') {
       // Dashboard: admin талын /dashboard-той ОГТ өөр (энгийн статик)
