@@ -22,9 +22,9 @@ import Lightbox from './Lightbox';
 // backdrop дарж хаах).
 const BADGE_STYLE = {
   онцлох: 'bg-customBlue text-white',
-  шуурхай: 'bg-customRed text-white',
+  шуурхай: 'bg-customGreen text-white',
   'сэрэмжлүүлэг': 'bg-customOrange text-white',
-  ноцтой: 'bg-red-900 text-white',
+  ноцтой: 'bg-customRed text-white',
 };
 
 function NewsBadges({ badges }) {
