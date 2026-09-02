@@ -81,12 +81,12 @@ export default function OwnerParking({ hoaId }) {
         {noOwnerRecord ? (
           <div className="pool-empty">Таны сууц өмчлөгчийн бүртгэл дутуу тул зочин урих боломжгүй байна.</div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <input
               value={digits} onChange={(e) => setDigits(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
               placeholder="1234" inputMode="numeric" maxLength={4}
               style={{
-                flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 800, letterSpacing: 2,
+                flex: 1, minWidth: 0, textAlign: 'center', fontSize: 20, fontWeight: 800, letterSpacing: 2,
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
                 borderRadius: 12, padding: '14px 8px', color: 'var(--text-primary)', outline: 'none',
               }}
@@ -95,7 +95,7 @@ export default function OwnerParking({ hoaId }) {
               value={letters} onChange={(e) => setLetters(e.target.value.replace(/[^а-яА-ЯөӨүҮa-zA-Z]/g, '').slice(0, 3).toUpperCase())}
               placeholder="АБВ" maxLength={3}
               style={{
-                flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 800, letterSpacing: 2,
+                flex: 1, minWidth: 0, textAlign: 'center', fontSize: 20, fontWeight: 800, letterSpacing: 2,
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
                 borderRadius: 12, padding: '14px 8px', color: 'var(--text-primary)', outline: 'none',
               }}

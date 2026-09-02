@@ -3,15 +3,23 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { SearchIcon } from '../components/icons/Icons';
+import TabButton from '../components/TabButton';
 
 // "Түр зогсоол бүртгэл" (/parking) — 2026-08-31 хэрэглэгчийн хүсэлт.
 // үвр нь ямар ч route/компонент/хүснэгэлгүй placeholder цэс байсныг
 // бүрэн ажилладаг болгов. Owner OwnerApp-ийн "Зочин урих" хуудсаар
 // зочны машины дугаар бүртгүүлж, энд admin/staff тэдгээрийг харж
 // (нэвтэрсэн огноо, хэтэрсэн минут, твлвх дүн, твлвв) удирдана.
+//
+// 2026-08-31 (2) ЗАЛРУУЛГА: хэрэглэгч тодруулав —
+//   1) "Түр зогссон машин" -> "Түр нэвтэрсэн машин"
+//   2) Таб-үүдийг toolbar картан дотроос гаргаж, "Тоот, зогсоол,
+//      агуулах" хуудасны загварын дагуу (TabButton компонент)
+//      toolbar-ийн ДООР, хүснэгэлийн ДЭЭР тусад нь мвр болгож
+//      байрлуулав.
 const TABS = [
   { key: 'guest', label: 'Зочин машин' },
-  { key: 'temp', label: 'Түр зогссон машин' },
+  { key: 'temp', label: 'Түр нэвтэрсэн машин' },
 ];
 
 const STATUS_LABELS = {
@@ -58,50 +66,43 @@ export default function ParkingPage() {
 
   return (
     <>
-      <div className="ds-toolbar flex-wrap">
+      {tab === 'guest' && (
+        <div className="ds-toolbar flex-wrap">
+          <select className="ds-select" value={year} onChange={(e) => setYear(e.target.value)}>
+            <option value="all">Бүх он</option>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select className="ds-select" value={month} onChange={(e) => setMonth(e.target.value)}>
+            <option value="all">Бүх сар</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select className="ds-select" value={day} onChange={(e) => setDay(e.target.value)}>
+            <option value="all">Бүх вдвр</option>
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select className="ds-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="all">Бүх твлвв</option>
+            <option value="pending">Хүлээгдэж буй</option>
+            <option value="entered">Орсон</option>
+            <option value="finished">Дуусан</option>
+          </select>
+          <div className="relative flex-1 min-w-[200px]">
+            <SearchIcon className="w-3.5 h-3.5 text-slate-400 dark:text-darktext absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text" placeholder="Тоот, машины дугаар, овог нэрээр хайх..."
+              className="ds-input w-full pl-8 text-[13px]"
+              value={search} onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2">
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded text-[12.5px] font-medium border transition-colors ${
-              tab === t.key
-                ? 'bg-customBlue/15 border-blue-500 text-customBlue'
-                : 'border-slate-200 dark:border-bordercol text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
+          <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
-          </button>
+          </TabButton>
         ))}
-        {tab === 'guest' && (
-          <>
-            <select className="ds-select" value={year} onChange={(e) => setYear(e.target.value)}>
-              <option value="all">Бүх он</option>
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <select className="ds-select" value={month} onChange={(e) => setMonth(e.target.value)}>
-              <option value="all">Бүх сар</option>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <select className="ds-select" value={day} onChange={(e) => setDay(e.target.value)}>
-              <option value="all">Бүх вдвр</option>
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select className="ds-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="all">Бүх твлвв</option>
-              <option value="pending">Хүлээгдэж буй</option>
-              <option value="entered">Орсон</option>
-              <option value="finished">Дуусан</option>
-            </select>
-            <div className="relative flex-1 min-w-[200px]">
-              <SearchIcon className="w-3.5 h-3.5 text-slate-400 dark:text-darktext absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text" placeholder="Тоот, машины дугаар, овог нэрээр хайх..."
-                className="ds-input w-full pl-8 text-[13px]"
-                value={search} onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </>
-        )}
       </div>
 
       {tab === 'temp' ? (
@@ -117,8 +118,8 @@ export default function ParkingPage() {
                   <th className="py-2.5 px-3">МАШИНЫ ДУГААР</th>
                   <th className="py-2.5 px-3">НЭВТЭРСЭН ОГНОО</th>
                   <th className="py-2.5 px-3">ХЭТЭРСЭН МИН</th>
-                  <th className="py-2.5 px-3">ТӨЛӨХ ДҮН</th>
-                  <th className="py-2.5 px-3">ТӨЛӨВ</th>
+                  <th className="py-2.5 px-3">ТВЛВХ ДүН</th>
+                  <th className="py-2.5 px-3">ТВЛВВ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
