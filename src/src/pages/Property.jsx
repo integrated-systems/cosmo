@@ -5,11 +5,11 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import PropertyToolbar from '../components/PropertyToolbar';
 import TabButton from '../components/TabButton';
 import UnitGridCard from '../components/UnitGridCard';
-import SpotTable from '../components/SpotTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import EditOwnerModal from '../components/EditOwnerModal';
 import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
+import GridSpotsViewer from '../components/GridSpotsViewer';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
@@ -29,8 +29,7 @@ import { formatUnitCode } from '../lib/ownersFormat';
 // болгов — менежер хуудас солилгүйгээр өмчлөгч нэмэх боломжтой.
 const TABS = [
   { key: 'household', label: 'Тоот' },
-  { key: 'parking', label: 'Зогсоол' },
-  { key: 'storage', label: 'Агуулах' },
+  { key: 'gridSpots', label: 'Зогсоол, Агуулах, Талбай' },
 ];
 
 export default function Property() {
@@ -47,6 +46,41 @@ export default function Property() {
   const [addingUnit, setAddingUnit] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [editingClient, setEditingClient] = useState(null);
+  // 2026-09-02: "Зогсоол, Агуулах, Талбай" таб — грид дээрх слот/
+  // агуулах/талбай дээр дарахад ашиглана. Эзэмшигчгүй слот дээр
+  // дарвал "Сууц өмчлөгч vv, Талбай өмчлөгч vv?" сонголт харуулна
+  // (полигон бол зөвхөн Талбай өмчлөгч л үзэмшдэг тул шууд нээнэ).
+  const [addingGridSpot, setAddingGridSpot] = useState(null); // {kind, item}
+  const [gridSpotChoice, setGridSpotChoice] = useState(null); // {kind, item} - сонголт хүлээж буй
+
+  function resolveGridLink(floorKey, label, field) {
+    const gid = `${floorKey}:${label}`;
+    const o = owners.find((ow) => (ow[field] || []).some((sp) => sp.id === gid));
+    if (o) return { type: 'owner', record: o };
+    const c = clientele.find((cl) => (cl[field] || []).some((sp) => sp.id === gid));
+    if (c) return { type: 'client', record: c };
+    return null;
+  }
+  function resolveSlot(floorKey, label, kind) {
+    return resolveGridLink(floorKey, label, kind === 'warehouse' ? 'grid_storages' : 'grid_parkings');
+  }
+  function resolvePolygon(floorKey, label) {
+    return resolveGridLink(floorKey, label, 'grid_land_plots');
+  }
+  function handleGridSlotClick(floorKey, slot, link) {
+    if (link?.type === 'owner') { setSelectedOwner(link.record); return; }
+    if (link?.type === 'client') { setSelectedClient(link.record); return; }
+    if (!slot.label) return; // label-гүй слотыг холбож болохгүй
+    const item = { id: `${floorKey}:${slot.label}`, floorLevel: floorKey, code: slot.label };
+    setGridSpotChoice({ kind: slot.kind === 'warehouse' ? 'storage' : 'parking', item });
+  }
+  function handleGridPolygonClick(floorKey, polygon, link) {
+    if (link?.type === 'client') { setSelectedClient(link.record); return; }
+    if (link?.type === 'owner') { setSelectedOwner(link.record); return; } // онолын хувьд гарахгүй ч, аюулгүйн үүднээс
+    if (!polygon.label) return;
+    const item = { id: `${floorKey}:${polygon.label}`, floorLevel: floorKey, code: polygon.label };
+    setAddingGridSpot({ kind: 'land', item }); // Талбай зөвхөн Талбай өмчлөгчид харьяалагдана тул шууд нээнэ
+  }
 
   async function loadAll() {
     setLoading(true);
@@ -104,13 +138,20 @@ export default function Property() {
       const { error } = await supabase.from('owners').insert({ tenant_id: hoaId, ...ownerPayload(form) });
       if (error) { alert(error.message); return; }
       setAddingUnit(null);
+    } else if (addingGridSpot) {
+      // 2026-09-02: "Зогсоол, Агуулах, Талбай" табаас эзэмшигчгүй
+      // слот дээр дарж шинэ Сууц өмчлөгч үүсгэх үед байр/тоот сонгоогүй
+      // байх тул unit_layouts-ийн эхний тоотыг л анхдагчаар авна
+      // (EditOwnerModal-ийн form.buildingNo/floor/doorNo талбар).
+      const { error } = await supabase.from('owners').insert({ tenant_id: hoaId, ...ownerPayload(form) });
+      if (error) { alert(error.message); return; }
+      setAddingGridSpot(null);
     }
     setSelectedOwner(null);
     await loadAll();
   }
 
   async function handleSaveClient(form) {
-    if (!editingClient) return;
     const payload = {
       legal_entity_name: form.legalEntityName || null,
       reg_no: form.regNo || null,
@@ -137,9 +178,19 @@ export default function Property() {
       vehicles: form.vehicles,
       note: form.note || null,
     };
-    const { error } = await supabase.from('clientele').update(payload).eq('id', editingClient.id);
-    if (error) { alert(error.message); return; }
-    setEditingClient(null);
+    if (editingClient) {
+      const { error } = await supabase.from('clientele').update(payload).eq('id', editingClient.id);
+      if (error) { alert(error.message); return; }
+      setEditingClient(null);
+    } else if (addingGridSpot) {
+      // 2026-09-02: "Зогсоол, Агуулах, Талбай" табаас шинэ Талбай
+      // өмчлөгч үүсгэх үед (полигон эсвэл сонголтоор "Талбай өмчлөгч").
+      const { error } = await supabase.from('clientele').insert({ tenant_id: hoaId, ...payload });
+      if (error) { alert(error.message); return; }
+      setAddingGridSpot(null);
+    } else {
+      return;
+    }
     setSelectedClient(null);
     await loadAll();
   }
@@ -171,46 +222,6 @@ export default function Property() {
     };
   }).filter((c) => !q || c.code.toLowerCase().includes(q));
 
-  // Зогсоол/Агуулах — Owners БОЛОН Clientele (ААН) хоёулангийн
-  // parkings/storages jsonb-ээс НИЙЛГЭЖ мвр үүсгэнэ. 2026-08-19: спот
-  // бүр {id,floorLevel,code} snapshot бүтэцтэй (unit_parking/unit_storage-
-  // аас сонгосон).
-  function spotRows(field) {
-    const rows = [];
-    owners.forEach((o) => {
-      (o[field] || []).forEach((sp, i) => {
-        if (!sp.code) return;
-        const ownerName = `${o.firstname || ''} ${o.lastname || ''}`.trim();
-        const location = `${sp.floorLevel} ${sp.code}`;
-        if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
-        rows.push({
-          id: `o-${o.id}-${field}-${i}`,
-          buildingNo: o.building_no,
-          location,
-          ownerName,
-          phone: o.phones?.[0] || '',
-          onClick: () => setSelectedOwner(o),
-        });
-      });
-    });
-    clientele.forEach((c) => {
-      (c[field] || []).forEach((sp, i) => {
-        if (!sp.code) return;
-        const ownerName = c.legal_entity_name || '';
-        const location = `${sp.floorLevel} ${sp.code}`;
-        if (q && !location.toLowerCase().includes(q) && !ownerName.toLowerCase().includes(q)) return;
-        rows.push({
-          id: `c-${c.id}-${field}-${i}`,
-          buildingNo: null,
-          location,
-          ownerName,
-          phone: c.mobile || c.phone || '',
-          onClick: () => setSelectedClient(c),
-        });
-      });
-    });
-    return rows;
-  }
 
   return (
     <>
@@ -231,8 +242,15 @@ export default function Property() {
           {tab === 'household' && (
             <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" />
           )}
-          {tab === 'parking' && <SpotTable rows={spotRows('parkings')} />}
-          {tab === 'storage' && <SpotTable rows={spotRows('storages')} />}
+          {tab === 'gridSpots' && (
+            <GridSpotsViewer
+              hoaId={hoaId}
+              resolveSlot={resolveSlot}
+              resolvePolygon={resolvePolygon}
+              onSlotClick={handleGridSlotClick}
+              onPolygonClick={handleGridPolygonClick}
+            />
+          )}
         </>
       )}
 
@@ -273,6 +291,40 @@ export default function Property() {
         open={!!editingClient}
         onClose={() => setEditingClient(null)}
         client={editingClient}
+        onSave={handleSaveClient}
+        hoaId={hoaId}
+      />
+
+      {/* 2026-09-02: Эзэмшигчгүй грид слот дээр дарахад "Сууц өмчлөгч
+          vv, Талбай өмчлөгч vv?" гэж сонгуулна (полигон бол шууд
+          Талбай өмчлөгч тул сонголт үзүүлэхгүй). */}
+      {gridSpotChoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 250 }} onClick={() => setGridSpotChoice(null)}>
+          <div className="ds-card p-4" style={{ width: 320 }} onClick={(e) => e.stopPropagation()}>
+            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">{gridSpotChoice.item.code}</div>
+            <div className="text-[11px] text-mutedtext mb-3">Энэ слотыг хэнд бүртгэх вэ?</div>
+            <div className="flex flex-col gap-2">
+              <button className="ds-btn-primary" onClick={() => { setAddingGridSpot({ ...gridSpotChoice, target: 'owner' }); setGridSpotChoice(null); }}>Сууц өмчлөгч нэмэх</button>
+              <button className="ds-btn-secondary" onClick={() => { setAddingGridSpot({ ...gridSpotChoice, target: 'client' }); setGridSpotChoice(null); }}>Талбай өмчлөгч нэмэх</button>
+            </div>
+          </div>
+        </div>
+      )}
+      <EditOwnerModal
+        key={addingGridSpot?.target === 'owner' ? `grid-${addingGridSpot.item.id}` : 'grid-owner-add'}
+        open={!!addingGridSpot && addingGridSpot.target !== 'client'}
+        onClose={() => setAddingGridSpot(null)}
+        owner={null}
+        initialGridSpot={addingGridSpot?.target !== 'client' ? addingGridSpot : null}
+        onSave={handleSaveOwner}
+        hoaId={hoaId}
+      />
+      <EditClientModal
+        key={addingGridSpot?.target === 'client' || addingGridSpot?.kind === 'land' ? `grid-${addingGridSpot.item.id}` : 'grid-client-add'}
+        open={!!addingGridSpot && (addingGridSpot.target === 'client' || addingGridSpot.kind === 'land')}
+        onClose={() => setAddingGridSpot(null)}
+        client={null}
+        initialGridSpot={addingGridSpot?.target === 'client' || addingGridSpot?.kind === 'land' ? addingGridSpot : null}
         onSave={handleSaveClient}
         hoaId={hoaId}
       />

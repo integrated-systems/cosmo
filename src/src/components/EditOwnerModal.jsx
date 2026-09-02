@@ -26,7 +26,7 @@ function SectionTitle({ children }) {
   );
 }
 
-export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit }) {
+export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit, initialGridSpot }) {
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
   const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
   const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
@@ -66,8 +66,10 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     child2: owner?.child_6_18 ?? '',
     hasStorage: owner?.has_storage || false, storages: owner?.storages || [],
     hasParking: owner?.has_parking || false, parkings: owner?.parkings || [],
-    hasGridParking: owner?.has_grid_parking || false, gridParkings: owner?.grid_parkings || [],
-    hasGridStorage: owner?.has_grid_storage || false, gridStorages: owner?.grid_storages || [],
+    hasGridParking: owner?.has_grid_parking || (!owner && initialGridSpot?.kind === 'parking') || false,
+    gridParkings: owner?.grid_parkings || (!owner && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
+    hasGridStorage: owner?.has_grid_storage || (!owner && initialGridSpot?.kind === 'storage') || false,
+    gridStorages: owner?.grid_storages || (!owner && initialGridSpot?.kind === 'storage' ? [initialGridSpot.item] : []),
     hasVehicle: owner?.has_vehicle || false, vehicles: owner?.vehicles || [],
     note: owner?.note || '',
   }));

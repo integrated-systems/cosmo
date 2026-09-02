@@ -6,7 +6,7 @@ import { useUnitSpots, fetchTakenSpotIds } from '../hooks/useUnitSpots';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
 // EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
-export default function EditClientModal({ open, onClose, client, onSave, hoaId }) {
+export default function EditClientModal({ open, onClose, client, onSave, hoaId, initialGridSpot }) {
   const { spots: parkingSpots, loading: parkingLoading } = useUnitSpots(hoaId, 'parking');
   const { spots: storageSpots, loading: storageLoading } = useUnitSpots(hoaId, 'storage');
   const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
@@ -39,9 +39,12 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId }
     contractEnd: client?.contract_end || '',
     hasParking: client?.has_parking || false, parkings: client?.parkings || [],
     hasStorage: client?.has_storage || false, storages: client?.storages || [],
-    hasGridParking: client?.has_grid_parking || false, gridParkings: client?.grid_parkings || [],
-    hasGridStorage: client?.has_grid_storage || false, gridStorages: client?.grid_storages || [],
-    hasGridLand: client?.has_grid_land || false, gridLandPlots: client?.grid_land_plots || [],
+    hasGridParking: client?.has_grid_parking || (!client && initialGridSpot?.kind === 'parking') || false,
+    gridParkings: client?.grid_parkings || (!client && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
+    hasGridStorage: client?.has_grid_storage || (!client && initialGridSpot?.kind === 'storage') || false,
+    gridStorages: client?.grid_storages || (!client && initialGridSpot?.kind === 'storage' ? [initialGridSpot.item] : []),
+    hasGridLand: client?.has_grid_land || (!client && initialGridSpot?.kind === 'land') || false,
+    gridLandPlots: client?.grid_land_plots || (!client && initialGridSpot?.kind === 'land' ? [initialGridSpot.item] : []),
     hasVehicle: client?.has_vehicle || false, vehicles: client?.vehicles || [],
     note: client?.note || '',
   }));
