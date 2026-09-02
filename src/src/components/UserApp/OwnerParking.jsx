@@ -119,7 +119,7 @@ export default function OwnerParking({ hoaId }) {
       </div>
 
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: 'var(--text-secondary)', textAlign: 'center', marginBottom: 8 }}>
-        СүүЛД үРЬСАН ЗОЧИД
+        Бүртгүүлсэн зочид
       </div>
       <div className="mobile-list-item">
         {recent === null && <div className="pool-empty">Ачаалж байна...</div>}
