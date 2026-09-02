@@ -129,12 +129,23 @@ export default function GridConstructorReact({ hoaId }) {
 
   // ---------------- ачаалах: localStorage (шуурхай) → Supabase (эх сурвалж) ----------------
   const applyLayout = useCallback((layout) => {
+    // 2026-09-02 ОЛСОН БОДИТ АЛДАА — импортолсон JSON (эсвэл гараар
+    // бүтээсэн Supabase мвр)-д "id" талбар байхгүй бол бүх слот "id:
+    // undefined" болж, ЗАСАХ/ЗөөХ/УСТГАХ бүх логик (`s.id === id`)
+    // НЭГЭН зэрэг БүХ слотод тохирч, нэг слот дээр хийсэн өөрчлөлт
+    // БүХ слотод (955 ширхэгт зэрэг!) хэрэгжих аюултай алдаа үүсгэдэг
+    // байв. Одоо ачаалах бүрд id-гүй слот/полигонд шинэ id автоматаар
+    // хуваарилна.
+    let nextSlotId = 1;
+    const slotsWithIds = (layout.slots || []).map((s) => (s.id ? s : { ...s, id: nextSlotId++ }));
+    let nextPolyId = 1;
+    const polysWithIds = (layout.polygons || []).map((p) => (p.id ? p : { ...p, id: nextPolyId++ }));
     setCols(layout.cols || 40);
     setRows(layout.rows || 30);
-    setSlots(layout.slots || []);
-    setPolygons(layout.polygons || []);
-    const maxSlotId = (layout.slots || []).reduce((m, s) => Math.max(m, s.id || 0), 0);
-    const maxPolyId = (layout.polygons || []).reduce((m, p) => Math.max(m, p.id || 0), 0);
+    setSlots(slotsWithIds);
+    setPolygons(polysWithIds);
+    const maxSlotId = slotsWithIds.reduce((m, s) => Math.max(m, s.id || 0), 0);
+    const maxPolyId = polysWithIds.reduce((m, p) => Math.max(m, p.id || 0), 0);
     nextIdRef.current = maxSlotId + 1;
     nextPolyIdRef.current = maxPolyId + 1;
     undoStackRef.current = [];
