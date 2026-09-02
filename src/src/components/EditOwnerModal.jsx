@@ -204,13 +204,13 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
           зурсан слот/агуулах/талбайг owners-той холбох 3 шинэ талбар
           (аль хэдийн байгаа "Зогсоол"/"Агуулах"-аас тусдаа эх сурвалж). */}
       <SpotSelectField
-        label="Зогсоол (грид)" checked={form.hasGridParking}
+        label="Зогсоол" checked={form.hasGridParking}
         onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
         items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
         spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
       />
       <SpotSelectField
-        label="Агуулах (грид)" checked={form.hasGridStorage}
+        label="Агуулах" checked={form.hasGridStorage}
         onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
