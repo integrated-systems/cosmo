@@ -118,6 +118,8 @@ export default function GridConstructorReact({ hoaId }) {
         e.preventDefault();
         if (e.shiftKey) redo(); else undo();
       }
+      // 2026-09-03: Escape дарахад олноор сонгосон слотыг цэвэрлэнэ.
+      if (e.key === 'Escape') setSelectedIds(new Set());
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -214,6 +216,7 @@ export default function GridConstructorReact({ hoaId }) {
   // хөдвөлгөөнөөрөө ("1 нүд зэргэлдээ" эсвэл "хол хөдлвх") шийдэгдэнэ.
   const dragRef = useRef(null); // continuous drag төлвв — re-render үүсгэхгүй
   const [ghost, setGhost] = useState(null); // зөөхөн ЗУРАХ үед л үзүүлэх урьдчилсан харагдац
+  const [marqueeRect, setMarqueeRect] = useState(null); // {x,y,w,h} - "чирж хүрээгээр сонгох" үзүүлэлт
 
   function handleGridPointerDown(e) {
     if (e.target.closest('[data-slot-id]')) return; // одоо буй слот өврийн listener-тэй
@@ -251,12 +254,39 @@ export default function GridConstructorReact({ hoaId }) {
       setGhost({ col: baseCol, row: baseRow, horizontal, ok });
       d.pending = ok ? { col: baseCol, row: baseRow, horizontal } : null;
     }
-    // marquee горим: энэ туршилтын хувилбарт зөвхөн "слот зурах"-ыг
-    // л хамгийн чухал гэж үзэж, олноор сонгох UI-ийг дараагийн
-    // ялгарлаар нэмнэ (одоогоор алгасав).
+    if (d.mode === 'marquee') {
+      // 2026-09-03: Хэрэглэгчийн хүсэлт - хоосон нүднээс хол чирвэл
+      // (эсвэл tool='warehouse' үед) рүүгүүл зурж, түүнтэй
+      // огтлолцсон бүх слотыг НЭГ зэрэг сонгоно (олноор сонгох).
+      const rect = gridRef.current.getBoundingClientRect();
+      const x1 = Math.min(d.startClientX, e.clientX) - rect.left;
+      const y1 = Math.min(d.startClientY, e.clientY) - rect.top;
+      const x2 = Math.max(d.startClientX, e.clientX) - rect.left;
+      const y2 = Math.max(d.startClientY, e.clientY) - rect.top;
+      setMarqueeRect({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
+    }
   }
 
-  function handleGridPointerUp() {
+  function finishMarqueeSelection(e, additive) {
+    const rect = gridRef.current.getBoundingClientRect();
+    const x1 = (Math.min(dragRef.current.startClientX, e.clientX) - rect.left) / ec;
+    const y1 = (Math.min(dragRef.current.startClientY, e.clientY) - rect.top) / ec;
+    const x2 = (Math.max(dragRef.current.startClientX, e.clientX) - rect.left) / ec;
+    const y2 = (Math.max(dragRef.current.startClientY, e.clientY) - rect.top) / ec;
+    const hitIds = slots
+      .filter((s) => {
+        const cells = cellsOf(s);
+        return cells.some(([c, r]) => c + 1 > x1 && c < x2 && r + 1 > y1 && r < y2);
+      })
+      .map((s) => s.id);
+    setSelectedIds((prev) => {
+      if (additive) return new Set([...prev, ...hitIds]);
+      return new Set(hitIds);
+    });
+    setMarqueeRect(null);
+  }
+
+  function handleGridPointerUp(e) {
     const d = dragRef.current;
     if (!d) return;
     if (d.mode === 'draw' && d.pending) {
@@ -273,6 +303,8 @@ export default function GridConstructorReact({ hoaId }) {
           kind: 'warehouse', borderColor, fillColor: null, label: '',
         }]);
       }
+    } else if (d.mode === 'marquee' && e) {
+      finishMarqueeSelection(e, e.ctrlKey || e.metaKey || e.shiftKey);
     }
     setGhost(null);
     dragRef.current = null;
@@ -283,6 +315,16 @@ export default function GridConstructorReact({ hoaId }) {
 
   function handleSlotPointerDown(e, slot) {
     e.stopPropagation();
+    if (e.ctrlKey || e.metaKey) {
+      // 2026-09-03: Хэрэглэгчийн хүсэлт - Ctrl (Mac дээр Cmd) + дарах
+      // үед зөвхөн сонголтыг нэмэх/хасах, зввхгүй (multi-select).
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(slot.id)) next.delete(slot.id); else next.add(slot.id);
+        return next;
+      });
+      return;
+    }
     const ids = selectedIds.has(slot.id) ? Array.from(selectedIds) : [slot.id];
     if (!selectedIds.has(slot.id)) setSelectedIds(new Set([slot.id]));
     moveRef.current = {
@@ -320,7 +362,7 @@ export default function GridConstructorReact({ hoaId }) {
 
   useEffect(() => {
     function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); }
-    function onUp(e) { handleGridPointerUp(); handleSlotPointerUp(e); }
+    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
@@ -449,6 +491,12 @@ export default function GridConstructorReact({ hoaId }) {
         {lastSavedAt && (
           <span className="text-[10.5px] text-mutedtext">Сүүлд хадгалсан: {lastSavedAt.toLocaleTimeString()}</span>
         )}
+        {selectedIds.size > 0 && (
+          <>
+            <span className="text-[10.5px] text-customBlue">{selectedIds.size} слот сонгогдсон</span>
+            <button className="ds-btn-secondary" onClick={() => setSelectedIds(new Set())}>Сонголт цэвэрлэх</button>
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={handleImportFile} />
           <button className="ds-btn-secondary" onClick={() => fileInputRef.current?.click()}>JSON импортлох</button>
@@ -503,7 +551,7 @@ export default function GridConstructorReact({ hoaId }) {
 
       <div className="text-[10.5px] text-mutedtext">
         Зогсоол: хоосон нүднээс зэргэлдээ нүд рүү чирж 2 нүд холбоход слот үүснэ · Агуулах: хоосон нүд дээр дарахад 1 нүдэд слот үүснэ ·
-        Слот дээр дарж чирвэл байрлал өөрчлөгднө, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална.
+        Слот дээр дарж чирвэл байрлал өөрчлөгднө, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална · Ctrl+дарах (эсвэл Cmd) - олон слот сонгох, хоосон нүднээс хол чирэх - рүүгүүлээр олноор сонгох, Escape - сонголт цэвэрлэх.
       </div>
 
       {/* ---------------- canvas ---------------- */}
@@ -514,6 +562,8 @@ export default function GridConstructorReact({ hoaId }) {
           onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
+            touchAction: 'none', // 2026-09-03: iPad/tablet+pen дэмжлэг - хүлээгдэхгүй scroll/zoom
+            // gesture-ийг браузерт саатуулж, pointer event бүгдийг манай handler-т шилжүүлнэ.
             backgroundImage: `repeating-linear-gradient(180deg, rgba(143,168,192,0.16) 0, rgba(143,168,192,0.16) 1px, transparent 1px, transparent ${ec}px),`
               + `repeating-linear-gradient(90deg, rgba(143,168,192,0.16) 0, rgba(143,168,192,0.16) 1px, transparent 1px, transparent ${ec}px)`,
           }}
@@ -562,6 +612,14 @@ export default function GridConstructorReact({ hoaId }) {
               width: ghost.horizontal ? ec * 2 : ec, height: ghost.horizontal ? ec : ec * 2,
               background: ghost.ok ? 'rgba(95,224,208,0.35)' : 'rgba(242,84,91,0.35)',
               border: `1px dashed ${ghost.ok ? '#5fe0d0' : '#f2545b'}`, pointerEvents: 'none', zIndex: 40,
+            }} />
+          )}
+
+          {/* 2026-09-03: "чирж хүрээгээр сонгох" (marquee) үзүүлэлт */}
+          {marqueeRect && (
+            <div style={{
+              position: 'absolute', left: marqueeRect.x, top: marqueeRect.y, width: marqueeRect.w, height: marqueeRect.h,
+              background: 'rgba(59,130,246,0.15)', border: '1px dashed #3b82f6', pointerEvents: 'none', zIndex: 60,
             }} />
           )}
 
