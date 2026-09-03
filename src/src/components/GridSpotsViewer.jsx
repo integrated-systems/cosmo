@@ -19,13 +19,29 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // Tailwind-ийн text-* классаар stroke/fill-ийг theme-aware болгов.
 const CELL = 24;
 
-function cellsRange(slots) {
+function cellsRange(slots, lines, texts, compasses, cellSize) {
   let maxCol = 20, maxRow = 15;
   slots.forEach((s) => {
     const w = s.kind === 'warehouse' ? 1 : (s.horizontal ? 2 : 1);
     const h = s.kind === 'warehouse' ? 1 : (s.horizontal ? 1 : 2);
     maxCol = Math.max(maxCol, s.col + w);
     maxRow = Math.max(maxRow, s.row + h);
+  });
+  // 2026-09-04: шулуун зураас/текст/компасс слотоос хол байрлаж
+  // болзошгүй тул canvas-ийн хэмжээг тэдгээрийг ч тооцож үүсгэнэ
+  // (эс үгүй бол canvas-ийн ирмэгээс гадуур таслагдаж үзэгдэхгүй
+  // болно).
+  lines.forEach((l) => {
+    maxCol = Math.max(maxCol, Math.ceil(l.x1 / cellSize), Math.ceil(l.x2 / cellSize));
+    maxRow = Math.max(maxRow, Math.ceil(l.y1 / cellSize), Math.ceil(l.y2 / cellSize));
+  });
+  texts.forEach((t) => {
+    maxCol = Math.max(maxCol, Math.ceil(t.x / cellSize) + 2);
+    maxRow = Math.max(maxRow, Math.ceil(t.y / cellSize) + 1);
+  });
+  compasses.forEach((c) => {
+    maxCol = Math.max(maxCol, c.col + 1);
+    maxRow = Math.max(maxRow, c.row + 1);
   });
   return { cols: maxCol + 2, rows: maxRow + 2 };
 }
@@ -56,7 +72,10 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   const floor = floors.find((f) => f.floor_key === activeFloor) || floors[0];
   const slots = floor.layout_json?.slots || [];
   const polygons = floor.layout_json?.polygons || [];
-  const { cols, rows } = cellsRange(slots);
+  const texts = floor.layout_json?.texts || [];
+  const lines = floor.layout_json?.lines || [];
+  const compasses = floor.layout_json?.compasses || [];
+  const { cols, rows } = cellsRange(slots, lines, texts, compasses, CELL);
   const ec = CELL * zoom;
 
   return (
@@ -158,7 +177,45 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 </g>
               );
             })}
+            {/* 2026-09-04 ОЛСОН БОДИТ АЛДАА - Конструктороос нийтэлсэн
+                шулуун зураас/текст/компасс энд огт харагдаагүй байсныг
+                засав (GridSpotsViewer.jsx-д эдгээрийг render хийх код
+                огт байгаагүй). */}
+            {lines.map((l, i) => (
+              <line
+                key={i} x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom}
+                stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap="round"
+              />
+            ))}
           </svg>
+          {texts.map((t, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute', left: t.x * zoom, top: t.y * zoom, pointerEvents: 'none',
+                fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
+                color: t.color || undefined,
+              }}
+              className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
+            >
+              {t.text}
+            </div>
+          ))}
+          {compasses.map((c, i) => (
+            <svg
+              key={i} viewBox="0 0 100 100" width={48 * zoom} height={48 * zoom}
+              style={{
+                position: 'absolute', left: c.col * ec - 24 * zoom, top: c.row * ec - 24 * zoom,
+                transform: `rotate(${c.rotation || 0}deg)`, transformOrigin: '50% 50%', pointerEvents: 'none',
+              }}
+              className="text-slate-600 dark:text-slate-300"
+            >
+              <circle cx="50" cy="54" r="38" fill="none" stroke="currentColor" strokeWidth="4" />
+              <text x="50" y="15" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor">N</text>
+              <path d="M50,20 L38,70 L50,58 Z" fill="currentColor" />
+              <path d="M50,20 L62,70 L50,58 Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            </svg>
+          ))}
         </div>
       </div>
     </div>
