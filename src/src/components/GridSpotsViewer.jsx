@@ -17,6 +17,14 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // dark:text-mutedtext) хэрэгжүүлж, зөвхөн ЗОРИУДААР сонгосон внгвг
 // л inline style-аар дарж бичнэ. SVG-д "currentColor" trick ашиглаж,
 // Tailwind-ийн text-* классаар stroke/fill-ийг theme-aware болгов.
+//
+// 2026-09-04 (2): Хэрэглэгчийн тодруулга - "link" (эзэмшигчтэй эсэх)
+// үвр нь слот/полигоныг хагас тунгалаг УЛААНААР үзүүлдэг байсныг
+// АРИЛГАВ. Эзэмшигчтэй байх нь ТОГТМОЛ (урт хугацаат) байдал тул
+// визуал ялгаа үүсгэх ёсгүй - зөвхөн CLICK-ийн үр дүнд (Инфо модаль
+// vv, Нэмэх модаль vv) л ялгаатай үйлдэл хийнэ. Богино хугацаат
+// (төлбөр, мессеж, сонгуулийн санал өнгөлөлт гэх мэт) ДИНАМИК дохио
+// л ирээдүйд слот/полигон/тоотын хүрээ-фон внгвгүүр илэрхийлэгдэнэ.
 const CELL = 24;
 
 function cellsRange(slots, lines, texts, compasses, cellSize) {
@@ -117,10 +125,10 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 title={s.label || ''}
               >
                 <div
-                  className={`absolute inset-[1px] rounded-[1px] border transition-colors ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!link && !hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute inset-[1px] rounded-[1px] border transition-colors ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
-                    ...(link ? { background: 'rgba(239,85,85,0.22)' } : hasCustomFill ? { background: s.fillColor } : {}),
+                    ...(hasCustomFill ? { background: s.fillColor } : {}),
                   }}
                 />
                 {s.label && (
@@ -157,8 +165,8 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 >
                   <polygon
                     points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
-                    fill={link ? 'rgba(239,85,85,0.22)' : (hasCustomFill ? p.fillColor : 'currentColor')}
-                    fillOpacity={link || hasCustomFill ? 1 : 0.10}
+                    fill={hasCustomFill ? p.fillColor : 'currentColor'}
+                    fillOpacity={hasCustomFill ? 1 : 0.10}
                     stroke={hasCustomStroke ? p.strokeColor : 'currentColor'}
                     strokeOpacity={hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3)}
                     strokeWidth={p.strokeWidth}
