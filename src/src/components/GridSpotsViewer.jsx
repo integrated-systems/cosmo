@@ -85,6 +85,11 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   const compasses = floor.layout_json?.compasses || [];
   const { cols, rows } = cellsRange(slots, lines, texts, compasses, CELL);
   const ec = CELL * zoom;
+  // 2026-09-04: Зогсоол/Агуулахын тоо - Конструктор дэх ижил
+  // мвнхмал үзүүлэлт (менежерүүдэд алга болох/давхардахыг хурдан
+  // чеклэхэд зориулав).
+  const parkingCount = slots.filter((s) => s.kind === 'slot').length;
+  const warehouseCount = slots.filter((s) => s.kind === 'warehouse').length;
 
   return (
     <div className="ds-card p-3" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -109,6 +114,13 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
       <div className="text-[10.5px] text-mutedtext">Слот, агуулах, талбай дээр дарж дэлгэрэнгүй харах эсвэл шинээр бүртгэх</div>
       <div className="overflow-auto overscroll-contain" style={{ maxHeight: 'calc(100vh - 320px)' }}>
         <div style={{ position: 'relative', width: cols * ec, height: rows * ec }}>
+          <div
+            style={{ position: 'absolute', left: ec, top: ec, zIndex: 45, pointerEvents: 'none' }}
+            className="bg-white/90 dark:bg-sidebg/90 rounded px-2 py-1 text-[10.5px] font-semibold text-slate-700 dark:text-mutedtext leading-tight shadow-sm border border-slate-200 dark:border-bordercol"
+          >
+            <div>Зогсоол: {parkingCount} ш.</div>
+            <div>Агуулах: {warehouseCount} ш.</div>
+          </div>
           {slots.map((s, i) => {
             const w = s.kind === 'warehouse' ? ec : (s.horizontal ? ec * 2 : ec);
             const h = s.kind === 'warehouse' ? ec : (s.horizontal ? ec : ec * 2);

@@ -650,6 +650,11 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   const editingSlot = useMemo(() => slots.find((s) => s.id === editingSlotId), [slots, editingSlotId]);
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - тухайн давхаргад зурагдсан
+  // Зогсоол/Агуулахын тоог менежерүүдэд хурдан харуулж, алга болох/
+  // давхардахыг чеклэхэд туслах зорилготой.
+  const parkingCount = useMemo(() => slots.filter((s) => s.kind === 'slot').length, [slots]);
+  const warehouseCount = useMemo(() => slots.filter((s) => s.kind === 'warehouse').length, [slots]);
   const editingPolygon = useMemo(() => polygons.find((p) => p.id === editingPolygonId), [polygons, editingPolygonId]);
   const editingText = useMemo(() => texts.find((t) => t.id === editingTextId), [texts, editingTextId]);
   const editingLine = useMemo(() => lines.find((l) => l.id === editingLineId), [lines, editingLineId]);
@@ -768,6 +773,17 @@ export default function GridConstructorReact({ hoaId }) {
               + `repeating-linear-gradient(90deg, rgba(143,168,192,0.16) 0, rgba(143,168,192,0.16) 1px, transparent 1px, transparent ${ec}px)`,
           }}
         >
+          {/* 2026-09-04: Зогсоол/Агуулахын тоо - зүүн дээд (1,1) нүдэнд
+              байнга харагдах динамик мвр (менежерүүдэд алга болох/
+              давхардахыг хурдан чеклэхэд зориулав). */}
+          <div
+            style={{ position: 'absolute', left: ec, top: ec, zIndex: 45, pointerEvents: 'none' }}
+            className="bg-white/90 dark:bg-sidebg/90 rounded px-2 py-1 text-[10.5px] font-semibold text-slate-700 dark:text-mutedtext leading-tight shadow-sm border border-slate-200 dark:border-bordercol"
+          >
+            <div>Зогсоол: {parkingCount} ш.</div>
+            <div>Агуулах: {warehouseCount} ш.</div>
+          </div>
+
           {/* слот/агуулах */}
           {slots.map((s) => {
             const w = s.kind === 'warehouse' ? ec : (s.horizontal ? ec * 2 : ec);
