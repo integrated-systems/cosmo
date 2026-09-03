@@ -70,7 +70,11 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
   // модаль/хүснэгэл автоматаар шинэчлэгдэнэ - төлбөр тооцоход ч
   // тохиромжтой, зврчилдввнгүй болно).
   useEffect(() => {
-    setForm((f) => ({ ...f, sqm: sumLinkedSqm(f.gridLandPlots, gridLandPlots) ?? '' }));
+    setForm((f) => {
+      const next = sumLinkedSqm(f.gridLandPlots, gridLandPlots) ?? '';
+      if (next === f.sqm) return f; // 2026-09-04: үнэн өөрчлөлт байхгүй л бол state-г бариулгүй (setForm/re-render саатуулж, эффектийн давталтаас урьдчилан сэргийлнэ).
+      return { ...f, sqm: next };
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gridLandPlots, form.gridLandPlots]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
@@ -79,8 +79,17 @@ export function useGridSpots(hoaId) {
     return () => { cancelled = true; };
   }, [hoaId]);
 
-  const { parking, storage } = toParkingWarehouse(floors);
-  const landPlots = toLandPlots(floors);
+  // 2026-09-04 ОЛСОН БОДИТ АЛДАА (ноцтой, CPU 100% infinite loop
+  // үүсгэдэг) - toParkingWarehouse/toLandPlots өмнө РЕНДЕР БүРД
+  // ШИНЭ array reference буцаадаг байсан (useMemo-гүй). EditClientModal.jsx
+  // шиг эдгээрийг useEffect-ийн dependency болгож ашигласан кодод
+  // ЭНЭ нь: reference өөрчлвгдсвн гэж үзэгдэж -> effect ажиллана ->
+  // setForm дуудна -> re-render -> ШИНЭ reference дахин үүснэ ->
+  // effect дахин ажиллана -> ХЯЗГААРГүй ДАВТАЛТ (browser гацна, CPU
+  // 100%). Одоо useMemo-оор "floors" өөрчлвгдввгүй л бол ЯГ ТЭР
+  // reference-ыг хэвээр үлдээнэ.
+  const { parking, storage } = useMemo(() => toParkingWarehouse(floors), [floors]);
+  const landPlots = useMemo(() => toLandPlots(floors), [floors]);
   return { gridParkingSpots: parking, gridStorageSpots: storage, gridLandPlots: landPlots, loading };
 }
 
