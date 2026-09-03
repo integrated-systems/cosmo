@@ -37,7 +37,7 @@ function YesNoCell({ value }) {
 export default function NewsAggregateTable({ rows, loading, onRowClick, onEdit, onDelete, onToggleStatus, canEdit = true, canDelete = true }) {
   return (
     <div className="ds-table-wrap">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
             <tr>

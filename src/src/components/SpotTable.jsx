@@ -6,7 +6,7 @@ import { EditIcon } from './icons/Icons';
 export default function SpotTable({ rows, emptyLabel }) {
   return (
     <div className="ds-table-wrap">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
             <tr>

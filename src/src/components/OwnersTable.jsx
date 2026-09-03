@@ -25,7 +25,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
 
   return (
     <div className="ds-table-wrap">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
             <tr>

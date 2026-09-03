@@ -19,15 +19,15 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
   const { gridParkingSpots, gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
   return (
     <div className="ds-table-wrap">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
             <tr>
               <th className="py-2.5 px-3 w-10 text-center"></th>
               <th className="py-2.5 px-3 w-[160px]">ХУУЛИЙН ЭТГЭЭД</th>
               <th className="py-2.5 px-3 w-[100px]">РЕГИСТР</th>
-              <th className="py-2.5 px-3 w-[70px]">М2</th>
-              <th className="py-2.5 px-3 w-[140px]">вМЧИЙН УЛСЫН БүРТГЭЛИЙН ДУГААР</th>
+              <th className="py-2.5 px-3 w-[70px]">М²</th>
+              <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БүРТГЭЛИЙН ДУГААР</th>
               <th className="py-2.5 px-3 w-[140px]">ГүЙЦЭТГЭХ УДИРДЛАГА</th>
               <th className="py-2.5 px-3 w-[100px]">ГАР УТАС</th>
               <th className="py-2.5 px-3 w-[100px]">УТАС</th>

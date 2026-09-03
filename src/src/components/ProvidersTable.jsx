@@ -11,7 +11,7 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 export default function ProvidersTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true }) {
   return (
     <div className="ds-table-wrap">
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
             <tr>

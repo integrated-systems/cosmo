@@ -14,7 +14,7 @@ const ACTION_LABELS = {
   reject_tenant: 'СӨХ татгалзсан',
   change_status: 'Төлбөрийн статус өөрчилсөн',
   change_plan: 'Багц өөрчилсөн',
-  edit_tenant_info: 'СӨХ-ийн мэдээлэл зассан',
+  edit_tenant_info: 'СӨХ-ны мэдээлэл зассан',
   delete_tenant: 'СӨХ устгасан',
   reassign_admin: 'Админ сольсон',
   create_user: 'Хэрэглэгч үүсгэсэн',
@@ -76,7 +76,7 @@ export default function Logs() {
       </div>
 
       <div className="ds-table-wrap">
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
             <thead>
               <tr>

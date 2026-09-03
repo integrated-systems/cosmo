@@ -129,7 +129,7 @@ export default function RealEstateMarket() {
           <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Сар нэмэх</button>
         </div>
         <div className="ds-table-wrap">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto overscroll-contain">
             <table className="ds-table">
               <thead>
                 <tr>

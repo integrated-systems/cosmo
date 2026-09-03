@@ -9,7 +9,7 @@ import TabButton from '../components/TabButton';
 // үвр нь ямар ч route/компонент/хүснэгэлгүй placeholder цэс байсныг
 // бүрэн ажилладаг болгов. Owner OwnerApp-ийн "Зочин урих" хуудсаар
 // зочны машины дугаар бүртгүүлж, энд admin/staff тэдгээрийг харж
-// (нэвтэрсэн огноо, хэтэрсэн минут, твлвх дүн, твлвв) удирдана.
+// (нэвтэрсэн огноо, хэтэрсэн минут, төлөх дүн, төлөө) удирдана.
 //
 // 2026-08-31 (2) ЗАЛРУУЛГА: хэрэглэгч тодруулав —
 //   1) "Түр зогссон машин" -> "Түр нэвтэрсэн машин"
@@ -107,7 +107,7 @@ export default function ParkingPage() {
         <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Энэ таб түн удахгүй нэмэгдэнэ.</div>
       ) : (
         <div className="ds-table-wrap">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto overscroll-contain">
             <table className="ds-table">
               <thead>
                 <tr>

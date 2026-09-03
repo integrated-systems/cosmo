@@ -107,7 +107,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
         </div>
       </div>
       <div className="text-[10.5px] text-mutedtext">Слот, агуулах, талбай дээр дарж дэлгэрэнгүй харах эсвэл шинээр бүртгэх</div>
-      <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+      <div className="overflow-auto overscroll-contain" style={{ maxHeight: 'calc(100vh - 320px)' }}>
         <div style={{ position: 'relative', width: cols * ec, height: rows * ec }}>
           {slots.map((s, i) => {
             const w = s.kind === 'warehouse' ? ec : (s.horizontal ? ec * 2 : ec);
