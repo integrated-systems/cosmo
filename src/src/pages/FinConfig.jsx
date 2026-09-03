@@ -268,6 +268,118 @@ function InProgress({ label }) {
   );
 }
 
+
+// 2026-09-04 (4): "Орлогын дэд ангилал" - НББ модуль хийх үед
+// ашиглагдах жинхэнэ бүтэц, гэхдээ ОДООГООР placeholder (гүйлгээ
+// бүртгэл, дансны холболт огт байхгүй, зөвхөн жагсаалт+тайлбар).
+const INCOME_CATEGORIES = [
+  'Айл, врх, зогсоол, агуулах',
+  'Аж ахуйн нэгж',
+  'Антены, лифтний самбарын түрээс',
+  'Банкны хүүгийн орлого',
+  'Зогсоолын хураамж',
+  'Чипний орлого',
+  'Ажилчдаас авах авлага',
+  'Хохирлын нвхвн төлбөр',
+  'Бусад',
+  'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр',
+];
+
+function IncomeCategoriesPlaceholder() {
+  return (
+    <div>
+      <div className="ds-card p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Орлогын дэд ангилал</div>
+          <button className="ds-btn-primary" disabled title="НББ модуль хийгдсэний дараа идэвхжинэ">+ Шинэ дэд ангилал нэмэх</button>
+        </div>
+        <table className="ds-table w-full">
+          <thead>
+            <tr>
+              <th className="py-2 px-2">НЭР</th>
+              <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+            {INCOME_CATEGORIES.map((name) => (
+              <tr key={name}>
+                <td className="py-2 px-2 text-customBlue">{name}</td>
+                <td className="py-2 px-2 text-right whitespace-nowrap opacity-40">
+                  <button className="ds-icon-btn" disabled><EditIcon /></button>
+                  <button className="ds-icon-btn danger" disabled><DeleteIcon /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed">
+        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг, юу хийдэггүй вэ</div>
+        <p className="mb-2">Эндээс тохируулсан нэрс нь зөвхөн "Гүйлгээ бүртгэл — Орлого — Орлого нэмэх" модалийн "Дэд ангилал" dropdown жагсаалтад харагдана. Энэ жагсаалт нь ямар нэг тодорхой дансанд шууд заагдаагүй, чөлөөт текст шинж чанартай.</p>
+        <p className="mb-2"><b>НББ-ийн дансанд хэрхэн твсдэглэгдэх вэ:</b> Та дээрх жагсаалтаас аль нь сонгосон ч, гүйлгээ бүр яг ижил нэг данс — 5600 "Бусад орлого"-нд бичигдэнэ (дэд ангиллын нэрээс үл хамаарна). өөрөөр хэлбэл, "Банкны хүүгийн орлого" эсвэл "Зогсоолын хураамж" аль алийг сонгосон ч, журналын бичилт адилхан 5600 дансанд орно — зөвхөн гүйлгээний тайлбар (сар, зорилго) л ялгаатай харагдана.</p>
+        <p className="mb-2"><b>Тэгэхээр яагаад энэ тохиргоо хэрэгтэй вэ:</b> Дансанд нвлввгүй ч, СӨХ-ны дотоод санхүүгийн бүртгэлийг цэгцтэй, ойлгомжтой байлгах зорилготой (жиш нь тайлан, жагсаалт харахад "юу вэ" гэдгийг тодорхой ялгах). Нэр солих, нэмэх, устгах, дараалал өөрчлөх нь Нягтлан бодох бүртгэлийн модульд хамааралтай.</p>
+        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГүй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хвлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зввлвдэггүй.</p>
+      </div>
+    </div>
+  );
+}
+
+function InvoiceScheduleCard({ hoaId }) {
+  const { settings, loading, save } = useFinSettings(hoaId);
+  const [form, setForm] = useState({
+    invoice_register_day: '', invoice_send_day: '', invoice_due_day: '',
+    notify_mail: false, notify_sms: false, notify_messenger: true,
+  });
+  useEffect(() => {
+    if (settings) setForm({
+      invoice_register_day: settings.invoice_register_day ?? 1,
+      invoice_send_day: settings.invoice_send_day ?? 2,
+      invoice_due_day: settings.invoice_due_day ?? 20,
+      notify_mail: settings.notify_mail ?? false,
+      notify_sms: settings.notify_sms ?? false,
+      notify_messenger: settings.notify_messenger ?? true,
+    });
+  }, [settings]);
+  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 460 }}>
+      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Нэхэмжлэх илгээх хуваарь</div>
+      <SettingsField
+        label="Нэхэмжлэл бүртгэх календарийн вдвр"
+        hint='Энэ вдвр "Нягтлан бодох бүртгэл — Журналд нэхэмжлэх бүртгэх" табын "Энэ сарын нэхэмжлэл бүртгэх" товч автоматаар дарагдана.'
+        value={form.invoice_register_day} onChange={(v) => setForm((f) => ({ ...f, invoice_register_day: v }))}
+      />
+      <SettingsField
+        label="Нэхэмжлэл илгээх календарийн вдвр"
+        hint="Энэ вдвр бүртгэгдсэн нэхэмжлэлийг автоматаар илгээнэ."
+        value={form.invoice_send_day} onChange={(v) => setForm((f) => ({ ...f, invoice_send_day: v }))}
+      />
+      <div className="mb-4">
+        <label className="block text-[11.5px] font-medium text-slate-700 dark:text-mutedtext mb-1.5">Илгээх суваг</label>
+        <div className="flex gap-4">
+          {[['notify_mail', 'Мэйл'], ['notify_sms', 'СМС'], ['notify_messenger', 'Мессенжер']].map(([key, label]) => (
+            <label key={key} className="flex items-center gap-1.5 text-[12px] text-slate-700 dark:text-mutedtext cursor-pointer">
+              <input type="checkbox" checked={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))} />
+              {label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <SettingsField
+        label="Төлбөр твлвх календарийн сүүлчийн вдвр"
+        hint='Нэхэмжлэлийн мэдэгдэлд "[ХХ]-ний дотор твлнэ vv" гэж харагдана.'
+        value={form.invoice_due_day} onChange={(v) => setForm((f) => ({ ...f, invoice_due_day: v }))}
+      />
+      <button className="ds-btn-primary" onClick={() => save({
+        invoice_register_day: +form.invoice_register_day || 1,
+        invoice_send_day: +form.invoice_send_day || 1,
+        invoice_due_day: +form.invoice_due_day || 1,
+        notify_mail: form.notify_mail, notify_sms: form.notify_sms, notify_messenger: form.notify_messenger,
+      })}>Хадгалах</button>
+    </div>
+  );
+}
+
 const TARIFF_TABS = [
   { key: 'owner', label: 'Сууц өмчлөгчийн СӨХ-ны төлбөр' },
   { key: 'client', label: 'Талбай өмчлөгч (ААН)-ийн СӨХ-ны төлбөр' },
@@ -277,8 +389,8 @@ const TARIFF_TABS = [
 // Нэхэмжлэл - Төлбөрийн хоцрогдол - Хүримтлалын сан - Нэмэгдэл -
 // Татвар, шимтгэл.
 const NBB_TABS = [
-  { key: 'income_cats', label: 'Орлогын дэд ангилал нэрс' },
-  { key: 'invoice', label: 'Нэхэмжлэл' },
+  { key: 'income_cats', label: 'Орлогын дэд ангилал' },
+  { key: 'invoice', label: 'Нэхэмжлэх' },
   { key: 'overdue', label: 'Төлбөрийн хоцрогдол' },
   { key: 'reserve', label: 'Хуримтлалын сан' },
   { key: 'bonuses', label: 'Нэмэгдэл' },
@@ -335,9 +447,11 @@ export default function FinConfig() {
               </button>
             ))}
           </div>
+          {nbbTab === 'income_cats' && <IncomeCategoriesPlaceholder />}
+          {nbbTab === 'invoice' && <InvoiceScheduleCard hoaId={hoaId} />}
           {nbbTab === 'overdue' && <OverdueCard hoaId={hoaId} />}
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
-          {['income_cats', 'invoice', 'bonuses', 'taxes'].includes(nbbTab) && (
+          {['bonuses', 'taxes'].includes(nbbTab) && (
             <InProgress label={NBB_TABS.find((t) => t.key === nbbTab)?.label} />
           )}
         </>
