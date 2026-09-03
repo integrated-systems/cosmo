@@ -21,7 +21,12 @@ function toParkingWarehouse(floors) {
   floors.forEach((f) => {
     (f.layout_json?.slots || []).forEach((s) => {
       if (!s.label) return;
-      const item = { id: `${f.floor_key}:${s.id}`, floorLevel: f.floor_key, code: s.label };
+      // 2026-09-04: Хэрэглэгчийн хүсэлт - Агуулах (warehouse) нь
+      // цаашид төлбөр тооцоход м2-ыг ашиглах магадлалтай тул, staff
+      // гараар оруулсан м2-ыг код-т нь "(Nм2)" гэж нэмж үзүүлнэ
+      // (Инфо/Засах модаль дотор аль хэдийн харагдана).
+      const code = s.kind === 'warehouse' && s.sqm != null ? `${s.label} (${s.sqm}м2)` : s.label;
+      const item = { id: `${f.floor_key}:${s.id}`, floorLevel: f.floor_key, code };
       if (s.kind === 'warehouse') storage.push(item);
       else parking.push(item);
     });
@@ -33,7 +38,8 @@ function toLandPlots(floors) {
   floors.forEach((f) => {
     (f.layout_json?.polygons || []).forEach((p) => {
       if (!p.label) return;
-      plots.push({ id: `${f.floor_key}:${p.id}`, floorLevel: f.floor_key, code: p.label });
+      const code = p.sqm != null ? `${p.label} (${p.sqm}м2)` : p.label;
+      plots.push({ id: `${f.floor_key}:${p.id}`, floorLevel: f.floor_key, code });
     });
   });
   return plots;

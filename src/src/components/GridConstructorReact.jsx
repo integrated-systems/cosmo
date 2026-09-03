@@ -635,8 +635,8 @@ export default function GridConstructorReact({ hoaId }) {
   function exportJson() {
     const data = {
       cellSize: CELL, cols, rows,
-      slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0 })),
-      polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0 })),
+      slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0, sqm: s.sqm ?? null })),
+      polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0, sqm: p.sqm ?? null })),
       texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14 })),
       lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2 })),
       compasses: compasses.map((c) => ({ id: c.id, col: c.col, row: c.row, rotation: c.rotation || 0 })),
@@ -844,6 +844,15 @@ export default function GridConstructorReact({ hoaId }) {
                       {p.label}
                     </text>
                   )}
+                  {p.label && p.sqm != null && (
+                    <text
+                      x={cx} y={cy + 13 * zoom} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={9 * zoom} fontWeight={600} opacity={0.8}
+                      textAnchor="middle" dominantBaseline="middle"
+                      transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                    >
+                      {p.sqm}м2
+                    </text>
+                  )}
                 </g>
               );
             })}
@@ -925,6 +934,13 @@ export default function GridConstructorReact({ hoaId }) {
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Слот засах</div>
             <label className="block text-[10.5px] text-mutedtext mb-1">Дугаар / бичвэр</label>
             <input className="ds-input w-full mb-3" maxLength={8} value={editingSlot.label} onChange={(e) => updateSlot(editingSlot.id, { label: e.target.value })} />
+            {editingSlot.kind === 'warehouse' && (
+              <>
+                <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн хэмжээ (м2) - газар дээр хэмжсэнээр гараар оруулна</label>
+                <input type="number" min={0} step="0.01" className="ds-input w-full mb-3" value={editingSlot.sqm ?? ''} onChange={(e) => updateSlot(editingSlot.id, { sqm: e.target.value === '' ? null : Math.max(0, +e.target.value || 0) })} />
+              </>
+            )}
+
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Дугаарын өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
@@ -971,6 +987,9 @@ export default function GridConstructorReact({ hoaId }) {
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Талбай засах</div>
             <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн нэр / дугаар (жиш нь "Э-01")</label>
             <input className="ds-input w-full mb-3" maxLength={16} value={editingPolygon.label || ''} onChange={(e) => updatePolygon(editingPolygon.id, { label: e.target.value })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн хэмжээ (м2) - газар дээр хэмжсэнээр гараар оруулна</label>
+            <input type="number" min={0} step="0.01" className="ds-input w-full mb-3" value={editingPolygon.sqm ?? ''} onChange={(e) => updatePolygon(editingPolygon.id, { sqm: e.target.value === '' ? null : Math.max(0, +e.target.value || 0) })} />
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Нэрийн өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">

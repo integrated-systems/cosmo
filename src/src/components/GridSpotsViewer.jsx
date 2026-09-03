@@ -182,6 +182,15 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                       {p.label}
                     </text>
                   )}
+                  {p.label && p.sqm != null && (
+                    <text
+                      x={cx} y={cy + 13 * zoom} fill={hasCustomLabel ? p.labelColor : 'currentColor'}
+                      fontSize={9 * zoom} fontWeight={600} opacity={0.8} textAnchor="middle" dominantBaseline="middle"
+                      transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                    >
+                      {p.sqm}м2
+                    </text>
+                  )}
                 </g>
               );
             })}
