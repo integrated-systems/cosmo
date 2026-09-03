@@ -63,6 +63,11 @@ export default function GridConstructorReact({ hoaId }) {
   // автоматаар хадгалж, сүлжээгүй үед ч алдахгүй байх аюулгүйн сүлжээ
   // болгоно, (г) JSON импорт/экспорт (архивлах, устсан үед сэргээх).
   const [floorKey, setFloorKey] = useState('B1');
+  const [floorList, setFloorList] = useState([]); // Supabase-с татсан бодит давхаргын нэрс
+  const [addingFloor, setAddingFloor] = useState(false);
+  const [newFloorName, setNewFloorName] = useState('');
+  const [renamingFloor, setRenamingFloor] = useState(false);
+  const [renameFloorValue, setRenameFloorValue] = useState('');
   const [status, setStatus] = useState('draft');
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -72,11 +77,15 @@ export default function GridConstructorReact({ hoaId }) {
   const [cols, setCols] = useState(40);
   const [rows, setRows] = useState(30);
   const [zoom, setZoom] = useState(1);
-  const [tool, setTool] = useState('slot'); // 'slot' | 'warehouse' | 'polygon'
+  const [tool, setTool] = useState('slot'); // 'slot' | 'warehouse' | 'polygon' | 'text' | 'line'
   const [slots, setSlots] = useState(() => []);
   const [polygons, setPolygons] = useState(() => []);
+  const [texts, setTexts] = useState(() => []);
+  const [lines, setLines] = useState(() => []);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [editingSlotId, setEditingSlotId] = useState(null);
+  const [editingTextId, setEditingTextId] = useState(null);
+  const [editingLineId, setEditingLineId] = useState(null);
   const [strokeColor, setStrokeColor] = useState(null);
   const [borderColor, setBorderColor] = useState(null);
 
@@ -87,7 +96,7 @@ export default function GridConstructorReact({ hoaId }) {
   const redoStackRef = useRef([]);
   const [, forceHistoryRender] = useState(0);
 
-  const snapshot = useCallback(() => JSON.stringify({ cols, rows, slots, polygons }), [cols, rows, slots, polygons]);
+  const snapshot = useCallback(() => JSON.stringify({ cols, rows, slots, polygons, texts, lines }), [cols, rows, slots, polygons, texts, lines]);
   const pushHistory = useCallback(() => {
     undoStackRef.current.push(snapshot());
     if (undoStackRef.current.length > MAX_HISTORY) undoStackRef.current.shift();
@@ -138,10 +147,14 @@ export default function GridConstructorReact({ hoaId }) {
     // UUID автоматаар хуваарилна.
     const slotsWithIds = (layout.slots || []).map((s) => (s.id ? s : { ...s, id: crypto.randomUUID() }));
     const polysWithIds = (layout.polygons || []).map((p) => (p.id ? p : { ...p, id: crypto.randomUUID() }));
+    const textsWithIds = (layout.texts || []).map((t) => (t.id ? t : { ...t, id: crypto.randomUUID() }));
+    const linesWithIds = (layout.lines || []).map((l) => (l.id ? l : { ...l, id: crypto.randomUUID() }));
     setCols(layout.cols || 40);
     setRows(layout.rows || 30);
     setSlots(slotsWithIds);
     setPolygons(polysWithIds);
+    setTexts(textsWithIds);
+    setLines(linesWithIds);
     undoStackRef.current = [];
     redoStackRef.current = [];
   }, []);
@@ -165,11 +178,46 @@ export default function GridConstructorReact({ hoaId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoaId, floorKey]);
 
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - "B1"/"B2"/"B3" хатуу нэрсийг
+  // тухайн hoaId-ийн бодит давхаргын нэрсээр солив (тэмдэглэгээ
+  // хотхон бүрд харьцангуй тул). Supabase-с бодитоор татна.
+  useEffect(() => {
+    if (!hoaId) return;
+    supabase.from('basement_floors').select('floor_key').eq('tenant_id', hoaId).then(({ data }) => {
+      const names = (data || []).map((r) => r.floor_key);
+      setFloorList((prev) => {
+        const merged = Array.from(new Set([...names, ...prev, floorKey]));
+        return merged.length ? merged : ['B1'];
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId]);
+
+  function handleAddFloor() {
+    const name = newFloorName.trim();
+    if (!name) return;
+    if (!floorList.includes(name)) setFloorList((prev) => [...prev, name]);
+    setFloorKey(name);
+    setNewFloorName('');
+    setAddingFloor(false);
+  }
+
+  async function handleRenameFloor() {
+    const newName = renameFloorValue.trim();
+    if (!newName || newName === floorKey) { setRenamingFloor(false); return; }
+    if (floorList.includes(newName)) { alert('Ийм нэртэй давхарга аль хэдийн байна.'); return; }
+    // Supabase дээр аль хэдийн хадгалагдсан бол floor_key-г шинэчилнэ.
+    await supabase.from('basement_floors').update({ floor_key: newName }).eq('tenant_id', hoaId).eq('floor_key', floorKey);
+    setFloorList((prev) => prev.map((f) => (f === floorKey ? newName : f)));
+    setFloorKey(newName);
+    setRenamingFloor(false);
+  }
+
   // ---------------- localStorage-д автомат хадгалалт (аюлгвүйн сүлжээ) ----------------
   useEffect(() => {
     if (isFirstLoadRef.current) return; // ачаалж дуусаагүй үед бичихгүй
-    try { localStorage.setItem(localStorageKey, JSON.stringify({ cols, rows, slots, polygons })); } catch { /* quota — үл тоомсорноно */ }
-  }, [cols, rows, slots, polygons, localStorageKey]);
+    try { localStorage.setItem(localStorageKey, JSON.stringify({ cols, rows, slots, polygons, texts, lines })); } catch { /* quota — үл тоомсорноно */ }
+  }, [cols, rows, slots, polygons, texts, lines, localStorageKey]);
 
   // ---------------- Supabase хадгалах/нийтлэх ----------------
   async function saveToSupabase(publish) {
@@ -177,7 +225,7 @@ export default function GridConstructorReact({ hoaId }) {
     setSaving(true);
     const payload = {
       tenant_id: hoaId, floor_key: floorKey,
-      layout_json: { cols, rows, slots, polygons },
+      layout_json: { cols, rows, slots, polygons, texts, lines },
       ...(publish ? { status: 'published' } : {}),
     };
     const { error } = await supabase.from('basement_floors').upsert(payload, { onConflict: 'tenant_id,floor_key' });
@@ -220,15 +268,30 @@ export default function GridConstructorReact({ hoaId }) {
 
   function handleGridPointerDown(e) {
     if (e.target.closest('[data-slot-id]')) return; // одоо буй слот өврийн listener-тэй
-    if (tool === 'polygon') return; // полигон өврийн listener-тэй
+    if (tool === 'polygon' || tool === 'text') return; // өврийн listener-тэй
+    if (tool === 'line') {
+      const rect = gridRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      dragRef.current = { mode: 'line', startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY };
+      return;
+    }
     const { col, row } = clientToCell(e.clientX, e.clientY);
     if (!inBounds(col, row, cols, rows)) return;
     dragRef.current = { startCol: col, startRow: row, startClientX: e.clientX, startClientY: e.clientY, mode: 'undecided' };
   }
 
+  const [lineGhost, setLineGhost] = useState(null);
   function handleGridPointerMove(e) {
     const d = dragRef.current;
     if (!d) return;
+    if (d.mode === 'line') {
+      const rect = gridRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / zoom;
+      const y = (e.clientY - rect.top) / zoom;
+      setLineGhost({ x1: d.startX, y1: d.startY, x2: x, y2: y });
+      return;
+    }
     const { col, row } = clientToCell(e.clientX, e.clientY);
     const dx = col - d.startCol, dy = row - d.startRow;
     const movedPx = Math.hypot(e.clientX - d.startClientX, e.clientY - d.startClientY);
@@ -289,6 +352,21 @@ export default function GridConstructorReact({ hoaId }) {
   function handleGridPointerUp(e) {
     const d = dragRef.current;
     if (!d) return;
+    if (d.mode === 'line') {
+      if (e) {
+        const rect = gridRef.current.getBoundingClientRect();
+        const x2 = (e.clientX - rect.left) / zoom;
+        const y2 = (e.clientY - rect.top) / zoom;
+        const distPx = Math.hypot(x2 - d.startX, y2 - d.startY) * zoom;
+        if (distPx > 5) {
+          pushHistory();
+          setLines((prev) => [...prev, { id: crypto.randomUUID(), x1: d.startX, y1: d.startY, x2, y2, color: strokeColor, strokeWidth: 2 }]);
+        }
+      }
+      setLineGhost(null);
+      dragRef.current = null;
+      return;
+    }
     if (d.mode === 'draw' && d.pending) {
       pushHistory();
       setSlots((prev) => [...prev, {
@@ -405,6 +483,37 @@ export default function GridConstructorReact({ hoaId }) {
     setPolyPoints((prev) => [...prev, pt]);
   }
 
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - "Текст нэмэх" горим үед хоосон
+  // цэг дээр дарахад шинэ текст үүсгэж, шууд засах модалыг нээнэ.
+  function handleTextToolClick(e) {
+    if (tool !== 'text') return;
+    if (e.target.closest('[data-text-id]')) return; // одоо буй текст өврийн onClick-тэй
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+    pushHistory();
+    const id = crypto.randomUUID();
+    setTexts((prev) => [...prev, { id, x, y, text: '', color: null, fontSize: 14 }]);
+    setEditingTextId(id);
+  }
+  function updateText(id, patch) {
+    setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }
+  function deleteText(id) {
+    pushHistory();
+    setTexts((prev) => prev.filter((t) => t.id !== id));
+    setEditingTextId(null);
+  }
+
+  function updateLine(id, patch) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+  function deleteLine(id) {
+    pushHistory();
+    setLines((prev) => prev.filter((l) => l.id !== id));
+    setEditingLineId(null);
+  }
+
   // ---------------- бэлэн полигон дээр дарж нэр (label) оноох ----------------
   // 2026-09-02: Хэрэглэгчийн хүсэлт — талбай эзэмшигчийг "Тоот" засах
   // модал доторх dropdown-оор холбохын тулд полигон ч мвн slot шиг
@@ -454,6 +563,8 @@ export default function GridConstructorReact({ hoaId }) {
       cellSize: CELL, cols, rows,
       slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0 })),
       polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0 })),
+      texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14 })),
+      lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2 })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -465,13 +576,15 @@ export default function GridConstructorReact({ hoaId }) {
 
   const editingSlot = useMemo(() => slots.find((s) => s.id === editingSlotId), [slots, editingSlotId]);
   const editingPolygon = useMemo(() => polygons.find((p) => p.id === editingPolygonId), [polygons, editingPolygonId]);
+  const editingText = useMemo(() => texts.find((t) => t.id === editingTextId), [texts, editingTextId]);
+  const editingLine = useMemo(() => lines.find((l) => l.id === editingLineId), [lines, editingLineId]);
 
   return (
     <div className="ds-card p-3" style={{ height: 'calc(100vh - 220px)', display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* 2026-08-31 (2): давхарга сонгох + хадгалах/нийтлэх/импорт — талбайн ажилтан тусгаар (draft/published 2 түвшин) хандалахад зориулав. */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
-          {['B1', 'B2', 'B3'].map((fk) => (
+          {floorList.map((fk) => (
             <button
               key={fk}
               onClick={() => setFloorKey(fk)}
@@ -481,6 +594,32 @@ export default function GridConstructorReact({ hoaId }) {
             </button>
           ))}
         </div>
+        {addingFloor ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus className="ds-input w-24" placeholder="жиш. F1" value={newFloorName}
+              onChange={(e) => setNewFloorName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddFloor(); if (e.key === 'Escape') setAddingFloor(false); }}
+            />
+            <button className="ds-btn-primary" onClick={handleAddFloor}>Нэмэх</button>
+            <button className="ds-btn-secondary" onClick={() => { setAddingFloor(false); setNewFloorName(''); }}>Болих</button>
+          </div>
+        ) : (
+          <button className="ds-btn-secondary" onClick={() => setAddingFloor(true)}>+ Шинэ давхарга</button>
+        )}
+        {renamingFloor ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus className="ds-input w-24" value={renameFloorValue}
+              onChange={(e) => setRenameFloorValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameFloor(); if (e.key === 'Escape') setRenamingFloor(false); }}
+            />
+            <button className="ds-btn-primary" onClick={handleRenameFloor}>Хадгалах</button>
+            <button className="ds-btn-secondary" onClick={() => setRenamingFloor(false)}>Болих</button>
+          </div>
+        ) : (
+          <button className="ds-btn-secondary" title="Одоогийн давхаргын нэрийг өөрчлөх" onClick={() => { setRenameFloorValue(floorKey); setRenamingFloor(true); }}>үүсгэх нэр</button>
+        )}
         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${status === 'published' ? 'bg-customGreen text-white' : 'bg-customOrange text-white'}`}>
           {status === 'published' ? 'Нийтлэгдсэн' : 'Ноорог'}
         </span>
@@ -506,7 +645,7 @@ export default function GridConstructorReact({ hoaId }) {
       {/* ---------------- toolbar ---------------- */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
-          {[['slot', 'Зогсоол зурах'], ['warehouse', 'Агуулах зурах'], ['polygon', 'Полигон зурах']].map(([key, label]) => (
+          {[['slot', 'Зогсоол зурах'], ['warehouse', 'Агуулах зурах'], ['polygon', 'Полигон зурах'], ['text', 'Текст нэмэх'], ['line', 'Шулуун зураас']].map(([key, label]) => (
             <button
               key={key}
               onClick={() => { setTool(key); setPolyPoints([]); }}
@@ -524,7 +663,7 @@ export default function GridConstructorReact({ hoaId }) {
           <label className="text-[11px] text-mutedtext">Мвр</label>
           <input type="number" min={MIN_ROWS} className="ds-input w-16" value={rows} onChange={(e) => setRows(Math.max(MIN_ROWS, +e.target.value || MIN_ROWS))} />
         </div>
-        {tool === 'polygon' ? (
+        {tool === 'polygon' || tool === 'line' ? (
           <div className="flex items-center gap-1">
             <label className="text-[11px] text-mutedtext">Зураасны өнгө</label>
             <button onClick={() => setStrokeColor(null)} className={`w-5 h-5 rounded border ${!strokeColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
@@ -532,7 +671,7 @@ export default function GridConstructorReact({ hoaId }) {
               <button key={c} onClick={() => setStrokeColor(c)} style={{ background: c }} className={`w-5 h-5 rounded ${strokeColor === c ? 'ring-2 ring-customBlue' : ''}`} />
             ))}
           </div>
-        ) : (
+        ) : tool === 'text' ? null : (
           <div className="flex items-center gap-1">
             <label className="text-[11px] text-mutedtext">Хүрээний өнгө</label>
             <button onClick={() => setBorderColor(null)} className={`w-5 h-5 rounded border ${!borderColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
@@ -559,7 +698,7 @@ export default function GridConstructorReact({ hoaId }) {
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}
-          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); }}
+          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); handleTextToolClick(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
             touchAction: 'none', // 2026-09-03: iPad/tablet+pen дэмжлэг - хүлээгдэхгүй scroll/zoom
@@ -656,7 +795,32 @@ export default function GridConstructorReact({ hoaId }) {
             {tool === 'polygon' && polyPoints.map((pt, i) => (
               <circle key={i} cx={pt.x * zoom} cy={pt.y * zoom} r={4} fill={i === 0 ? '#5fe0d0' : strokeColor} />
             ))}
+            {lines.map((l) => (
+              <g key={l.id} style={{ pointerEvents: 'auto', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setEditingLineId(l.id); }}>
+                {/* Даралт үзэх талбайг түүнлүүлж, дарахад амар болгох тулд тунгалаг вргвн зураас (hit-area) */}
+                <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke="transparent" strokeWidth={Math.max(16, (l.strokeWidth || 2) * zoom)} />
+                <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap="round" />
+              </g>
+            ))}
+            {lineGhost && (
+              <line x1={lineGhost.x1 * zoom} y1={lineGhost.y1 * zoom} x2={lineGhost.x2 * zoom} y2={lineGhost.y2 * zoom} stroke={strokeColor || '#94a3b8'} strokeWidth={2} strokeDasharray="4,3" />
+            )}
           </svg>
+          {texts.map((t) => (
+            <div
+              key={t.id}
+              data-text-id={t.id}
+              onClick={(e) => { e.stopPropagation(); setEditingTextId(t.id); }}
+              style={{
+                position: 'absolute', left: t.x * zoom, top: t.y * zoom, cursor: 'pointer',
+                fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
+                color: t.color || undefined, padding: 2,
+              }}
+              className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
+            >
+              {t.text || '(хоосон текст)'}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -750,6 +914,57 @@ export default function GridConstructorReact({ hoaId }) {
             <div className="flex justify-between gap-2">
               <button className="ds-btn-secondary text-customRed" onClick={() => deletePolygon(editingPolygon.id)}>Талбай устгах</button>
               <button className="ds-btn-primary" onClick={() => setEditingPolygonId(null)}>Дуусгах</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- текст засах модал ---------------- */}
+      {editingText && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setEditingTextId(null)}>
+          <div className="ds-card p-4" style={{ width: 300, maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Текст засах</div>
+            <label className="block text-[10.5px] text-mutedtext mb-1">Бичвэр</label>
+            <input className="ds-input w-full mb-3" maxLength={40} autoFocus value={editingText.text || ''} onChange={(e) => updateText(editingText.id, { text: e.target.value })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Хэмжээ (px)</label>
+            <input type="number" min={8} max={40} className="ds-input w-full mb-3" value={editingText.fontSize || 14} onChange={(e) => updateText(editingText.id, { fontSize: Math.max(8, +e.target.value || 14) })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Внгв</label>
+            <div className="flex gap-1.5 mb-4 flex-wrap">
+              <button onClick={() => updateText(editingText.id, { color: null })} className={`w-6 h-6 rounded border ${!editingText.color ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updateText(editingText.id, { color: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingText.color === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <div className="flex justify-between gap-2">
+              <button className="ds-btn-secondary text-customRed" onClick={() => deleteText(editingText.id)}>Текст устгах</button>
+              <button className="ds-btn-primary" onClick={() => setEditingTextId(null)}>Дуусгах</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- шулуун зураас засах модал ---------------- */}
+      {editingLine && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(5,9,15,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }} onClick={() => setEditingLineId(null)}>
+          <div className="ds-card p-4" style={{ width: 300, maxHeight: '85vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Зураас засах</div>
+            <label className="block text-[10.5px] text-mutedtext mb-1">өргөн (px)</label>
+            <input type="number" min={1} max={10} className="ds-input w-full mb-3" value={editingLine.strokeWidth || 2} onChange={(e) => updateLine(editingLine.id, { strokeWidth: Math.max(1, +e.target.value || 1) })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Внгв</label>
+            <div className="flex gap-1.5 mb-4 flex-wrap">
+              <button onClick={() => updateLine(editingLine.id, { color: null })} className={`w-6 h-6 rounded border ${!editingLine.color ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
+              {PALETTE.map((c) => (
+                <button key={c} onClick={() => updateLine(editingLine.id, { color: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingLine.color === c ? 'ring-2 ring-customBlue' : ''}`} />
+              ))}
+            </div>
+
+            <div className="flex justify-between gap-2">
+              <button className="ds-btn-secondary text-customRed" onClick={() => deleteLine(editingLine.id)}>Зураас устгах</button>
+              <button className="ds-btn-primary" onClick={() => setEditingLineId(null)}>Дуусгах</button>
             </div>
           </div>
         </div>
