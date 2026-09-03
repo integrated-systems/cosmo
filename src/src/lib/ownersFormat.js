@@ -3,7 +3,7 @@
 // (Clientele.jsx-д ч ашиглагддаг) тул spotVehicleFormat.js-ээс дахин
 // экспортолно (Rule of two, 2026-08-16).
 
-export { summarizeSpots, summarizeVehicles } from './spotVehicleFormat';
+export { summarizeSpots, summarizeVehicles, summarizeGridSpots } from './spotVehicleFormat';
 
 // 2026-08-19 хэрэглэгчийн тодорхой заасан дүрэм: Байр-Давхар-Тоот
 // (structure_type='floor') үед ДАВХАР 2 оронтой + ТООТ 2 оронтой.

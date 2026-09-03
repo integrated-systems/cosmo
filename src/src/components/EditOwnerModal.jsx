@@ -37,6 +37,29 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     fetchTakenGridIds(hoaId, 'grid_storages', owner?.id, null).then(setTakenGridStorageIds);
   }, [open, hoaId, owner?.id]);
 
+  // 2026-09-03 ОЛСОН БОДИТ АЛДАА — грид (Конструктор)-оос сонгосон
+  // слотын "code" (дэлгэцэнд харагдах текст) нь СОНГОСОН үеийн
+  // snapshot тул слотыг хожим дахин нэрлэвэл ("A 333" -> "A 336")
+  // Засах модал нээхэд хуучин нэр хэвээр харагддаг байв (холбоос
+  // үнэн хэрэгтээ id-аар зввв хэвээрээ, зөвхөн ТЕКСТ л сэргээгдэхгүй
+  // байсан). ҮҮнийг useGridSpots-ийн LIVE жагсаалттай тааруулж
+  // шинэчилнэ (ачаалагдаж дуусмагц НЭГ удаа).
+  useEffect(() => {
+    if (gridSpotsLoading) return;
+    setForm((f) => ({
+      ...f,
+      gridParkings: f.gridParkings.map((it) => {
+        const live = gridParkingSpots.find((g) => g.id === it.id);
+        return live ? { ...it, code: live.code, floorLevel: live.floorLevel } : it;
+      }),
+      gridStorages: f.gridStorages.map((it) => {
+        const live = gridStorageSpots.find((g) => g.id === it.id);
+        return live ? { ...it, code: live.code, floorLevel: live.floorLevel } : it;
+      }),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gridSpotsLoading]);
+
   // 2026-08-15: owner нь одоо Supabase-ийн бодит мөр (snake_case багана)
   // — өмнө mock EXAMPLE_OWNERS-ийн бүтэц (building/phone/email г.м)
   // ашигладаг байсныг бодит DB талбарын нэртэй уялдуулав. 2026-08-17:

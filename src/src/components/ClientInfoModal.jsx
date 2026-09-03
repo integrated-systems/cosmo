@@ -1,10 +1,18 @@
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles } from '../lib/spotVehicleFormat';
+import { useParams } from 'react-router-dom';
+import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
+import { useGridSpots } from '../hooks/useGridSpots';
 import Modal from './Modal';
 
-// Clientele.jsx-ийн мөр дарахад гарах Инфо модаль — OwnerInfoModal.jsx-ийн
+// Clientele.jsx-ийн мүр дарахад гарах Инфо модаль - OwnerInfoModal.jsx-ийн
 // загварыг дахин ашигласан (Rule of two).
+// 2026-09-03 ОЛСОН БОДИТ АЛДАА - грид (Конструктор)-оос сонгосон
+// Зогсоол/Агуулах/Талбай огт харуулагдаж байгаагүй, "Талбай" (полигон)
+// мвр огт байхгүй байсан. "Талбай" нэрийг м2 талбартай зврчилдвхгүй
+// байхын тулд "Эзэмшдэг талбай" гэж тусад нь нэрлэв.
 export default function ClientInfoModal({ client, onClose, onEdit }) {
+  const { hoaId } = useParams();
+  const { gridParkingSpots, gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
   return (
     <Modal
       open={!!client}
@@ -33,8 +41,9 @@ export default function ClientInfoModal({ client, onClose, onEdit }) {
           <div className="ds-detail-row"><span className="ds-detail-label">Имэйл</span><span className="ds-detail-value">{client.email || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гэрээ №</span><span className="ds-detail-value">{client.contract_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гэрээ эхлэх / дуусах</span><span className="ds-detail-value">{client.contract_start ? formatDate(client.contract_start) : '—'} / {client.contract_end ? formatDate(client.contract_end) : '—'}</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{summarizeSpots(client.parkings)}</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{summarizeSpots(client.storages)}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{[summarizeSpots(client.parkings), summarizeGridSpots(client.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{[summarizeSpots(client.storages), summarizeGridSpots(client.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Эзэмшдэг талбай</span><span className="ds-detail-value">{summarizeGridSpots(client.grid_land_plots, gridLandPlots)}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Машин</span><span className="ds-detail-value">{summarizeVehicles(client.vehicles)}</span></div>
           <div className="pt-2 pb-1">
             <div className="ds-detail-label mb-1">Тайлбар</div>

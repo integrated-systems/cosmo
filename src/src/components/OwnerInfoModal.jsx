@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles, formatUnitCode } from '../lib/ownersFormat';
+import { summarizeSpots, summarizeVehicles, summarizeGridSpots, formatUnitCode } from '../lib/ownersFormat';
+import { useGridSpots } from '../hooks/useGridSpots';
 import { supabase } from '../lib/supabaseClient';
 import Modal from './Modal';
 
@@ -17,6 +18,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
   const { hoaId } = useParams();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
+  const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
   const layoutRow = owner && unitLayouts.find(
     (u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no
   );
@@ -68,8 +70,8 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
           <div className="ds-detail-row"><span className="ds-detail-label">өмчлөх огноо</span><span className="ds-detail-value">{owner.own_date ? formatDate(owner.own_date) : '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Ам бүл</span><span className="ds-detail-value">{owner.people_count ?? '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">0-6 / 6-18 нас</span><span className="ds-detail-value">{owner.child_0_5 ?? 0} / {owner.child_6_18 ?? 0}</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{summarizeSpots(owner.parkings)}</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{summarizeSpots(owner.storages)}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{[summarizeSpots(owner.parkings), summarizeGridSpots(owner.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{[summarizeSpots(owner.storages), summarizeGridSpots(owner.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Машин</span><span className="ds-detail-value">{summarizeVehicles(owner.vehicles)}</span></div>
           <div className="pt-2 pb-1">
             <div className="ds-detail-label mb-1">Тайлбар</div>

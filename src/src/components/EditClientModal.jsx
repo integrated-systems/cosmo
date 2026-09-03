@@ -18,6 +18,29 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     fetchTakenGridIds(hoaId, 'grid_land_plots', null, client?.id).then(setTakenGridLandIds);
   }, [open, hoaId, client?.id]);
 
+  // 2026-09-03: EditOwnerModal.jsx-той ижил засвар — грид слотын
+  // "code" snapshot-ыг useGridSpots-ийн LIVE жагсаалттай тааруулж
+  // шинэчилнэ (дахин нэрлэсэн слотын шинэ нэрийг харуулна).
+  useEffect(() => {
+    if (gridSpotsLoading) return;
+    setForm((f) => ({
+      ...f,
+      gridParkings: f.gridParkings.map((it) => {
+        const live = gridParkingSpots.find((g) => g.id === it.id);
+        return live ? { ...it, code: live.code, floorLevel: live.floorLevel } : it;
+      }),
+      gridStorages: f.gridStorages.map((it) => {
+        const live = gridStorageSpots.find((g) => g.id === it.id);
+        return live ? { ...it, code: live.code, floorLevel: live.floorLevel } : it;
+      }),
+      gridLandPlots: f.gridLandPlots.map((it) => {
+        const live = gridLandPlots.find((g) => g.id === it.id);
+        return live ? { ...it, code: live.code, floorLevel: live.floorLevel } : it;
+      }),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gridSpotsLoading]);
+
   const [form, setForm] = useState(() => ({
     legalEntityName: client?.legal_entity_name || '',
     regNo: client?.reg_no || '',
