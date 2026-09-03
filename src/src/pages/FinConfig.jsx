@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { useConfirm } from '../hooks/useConfirm';
 import { DeleteIcon, EditIcon } from '../components/icons/Icons';
+import { formatMoney } from '../lib/format';
 
 // "Санхүүгийн тохиргоо" (СИСАДМИН, /finconfig) — 2026-09-04 хэрэглэгчийн
 // шийдвэрээр хуучин, тусдаа "НББ тохиргоо" (accconfig) болон "Тариф
@@ -15,8 +16,8 @@ import { DeleteIcon, EditIcon } from '../components/icons/Icons';
 // тус бүрийн дотор дэд таб гэсэн 2 давхаргатай зохион байгуулалттай.
 const CALC_METHODS = [
   { value: 'count', label: 'Тоогоор (ш./сар)' },
-  { value: 'area', label: 'Талбайгаар (F/м2/сар)' },
-  { value: 'fixed', label: 'Тогтмол (F/сар)' },
+  { value: 'area', label: 'Талбайгаар (₮/м²/сар)' },
+  { value: 'fixed', label: 'Тогтмол (₮/сар)' },
 ];
 
 function calcMethodLabel(v) {
@@ -101,7 +102,7 @@ function TariffCatalog({ hoaId, category, title }) {
               <tr key={r.id}>
                 <td className="py-2 px-2 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2 px-2 text-mutedtext">{calcMethodLabel(r.calc_method)}</td>
-                <td className="py-2 px-2">{r.amount.toLocaleString()}F</td>
+                <td className="py-2 px-2">{formatMoney(r.amount)}₮</td>
                 <td className="py-2 px-2">
                   <button onClick={() => toggleActive(r)} className={`text-[11px] font-medium ${r.active ? 'text-customGreen' : 'text-mutedtext'}`}>
                     {r.active ? 'Идэвхтэй' : 'Идэвхгүй'}
@@ -126,7 +127,7 @@ function TariffCatalog({ hoaId, category, title }) {
             <select className="ds-input" value={form.calc_method} onChange={(e) => setForm((f) => ({ ...f, calc_method: e.target.value }))}>
               {CALC_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <input type="number" className="ds-input" placeholder="Хэмжээ (F)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+            <input type="number" className="ds-input" placeholder="Хэмжээ (₮)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
           </div>
           <div className="flex gap-2">
             <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
@@ -151,7 +152,7 @@ function InProgress({ label }) {
 
 const TARIFF_TABS = [
   { key: 'owner', label: 'Сууц өмчлөгчийн СӨХ-ны төлбөр' },
-  { key: 'client', label: 'ААН-ий СӨХ-ны төлбөр' },
+  { key: 'client', label: 'Талбай өмчлөгч (ААН)-ийн СӨХ-ны төлбөр' },
   { key: 'reserve', label: 'Хүримтлалын сан' },
   { key: 'closure', label: 'Хаалтны тариф' },
 ];
@@ -194,7 +195,7 @@ export default function FinConfig() {
             ))}
           </div>
           {tariffTab === 'owner' && <TariffCatalog hoaId={hoaId} category="owner" title="Сууц өмчлөгч" />}
-          {tariffTab === 'client' && <TariffCatalog hoaId={hoaId} category="client" title="ААН" />}
+          {tariffTab === 'client' && <TariffCatalog hoaId={hoaId} category="client" title="Талбай өмчлөгч" />}
           {tariffTab === 'reserve' && <InProgress label="Хүримтлалын сан" />}
           {tariffTab === 'closure' && <InProgress label="Хаалтны тариф" />}
         </>

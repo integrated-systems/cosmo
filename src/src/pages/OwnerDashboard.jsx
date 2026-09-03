@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { formatMoney } from '../lib/format';
 
 // 2026-08-27: Хуучин "suh" (userapp-react) төслийн Dashboard.jsx-ийн зах
 // зээлийн үнэлгээний sparkline chart-ыг (Catmull-Rom smooth path,
@@ -97,7 +98,7 @@ function MultiSparkline({ series, rows }) {
               {d && <path d={d} fill="none" stroke={s.color} strokeWidth={0.5} strokeLinecap="round" strokeLinejoin="round" />}
               {coords.map((c) => {
                 const monthLabel = rows?.[c.i] ? MONTH_ABBR[monthNumFromStr(rows[c.i].month) - 1] : '';
-                const text = `${monthLabel}: ${c.v.toLocaleString()}₮`;
+                const text = `${monthLabel}: ${formatMoney(c.v)}₮`;
                 return (
                   <g key={c.i}>
                     <circle cx={c.x} cy={c.y} r={1.5} fill={s.color} style={{ pointerEvents: 'none' }} />
@@ -194,7 +195,7 @@ export default function OwnerDashboard({ hoaId }) {
                       <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--text-secondary)' }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: MV_COLORS[i], display: 'inline-block' }} />
                         {!isSingleField && <>{c.labels[i]}: </>}
-                        <b style={{ color: 'var(--text-primary)', fontSize: isSingleField ? 18 : undefined }}>{lastVal.toLocaleString()}₮</b>
+                        <b style={{ color: 'var(--text-primary)', fontSize: isSingleField ? 18 : undefined }}>{formatMoney(lastVal)}₮</b>
                         {change != null && (
                           <span style={{ color: changeUp ? 'var(--success)' : 'var(--danger)', fontWeight: 600, fontSize: 11 }}>
                             {changeUp ? '▲' : '▼'} {Math.abs(change).toFixed(1)}%

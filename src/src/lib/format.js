@@ -1,6 +1,7 @@
-// Глобал формат дүрэм — бүх SaaS хэмжээнд ижил байх ёстой (2026-08-13
-// хэрэглэгчийн тодорхой заавар). Огноо YYYY/MM/DD, цаг HH:MM:SS, мөнгө
-// 000'000.00 (апостроф бүлэглэлт, 2 орны бүтэн хувиар).
+// Глобал формат дүрэм - бүх SaaS хэмжээнд ижил байх ёстой. Огноо
+// YYYY/MM/DD, цаг HH:MM:SS, мөнгө 1,000.00 (таслал бүлэглэлт, 2 орны
+// бүтэн хувиар - 2026-09-04 хэрэглэгчийн тодорхой заасны дагуу
+// апостроф ('000'000.00)-оос энэ форматад шилжив).
 
 export function formatDate(date) {
   const d = date instanceof Date ? date : new Date(date);
@@ -25,6 +26,6 @@ export function formatDateTime(date) {
 export function formatMoney(amount) {
   const num = Number(amount) || 0;
   const [intPart, decPart] = num.toFixed(2).split('.');
-  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `${grouped}.${decPart}`;
 }
