@@ -224,6 +224,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 position: 'absolute', left: t.x * zoom, top: t.y * zoom, pointerEvents: 'none',
                 fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
                 color: t.color || undefined,
+                transform: t.rotation ? `rotate(${t.rotation}deg)` : undefined, transformOrigin: 'left top',
               }}
               className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
             >

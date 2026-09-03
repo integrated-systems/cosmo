@@ -637,7 +637,7 @@ export default function GridConstructorReact({ hoaId }) {
       cellSize: CELL, cols, rows,
       slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0, sqm: s.sqm ?? null })),
       polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0, sqm: p.sqm ?? null })),
-      texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14 })),
+      texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14, rotation: t.rotation || 0 })),
       lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2 })),
       compasses: compasses.map((c) => ({ id: c.id, col: c.col, row: c.row, rotation: c.rotation || 0 })),
     };
@@ -903,6 +903,7 @@ export default function GridConstructorReact({ hoaId }) {
                   position: 'absolute', left: pos.x * zoom, top: pos.y * zoom, cursor: 'grab',
                   fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
                   color: t.color || undefined, padding: 2,
+                  transform: t.rotation ? `rotate(${t.rotation}deg)` : undefined, transformOrigin: 'left top',
                 }}
                 className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
               >
@@ -1065,6 +1066,12 @@ export default function GridConstructorReact({ hoaId }) {
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updateText(editingText.id, { color: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingText.color === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
+            </div>
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Одоогийн эргэлт: {editingText.rotation || 0}°</label>
+            <div className="flex gap-2 mb-4">
+              <button className="ds-btn-secondary flex-1" onClick={() => updateText(editingText.id, { rotation: ((editingText.rotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүүн)</button>
+              <button className="ds-btn-secondary flex-1" onClick={() => updateText(editingText.id, { rotation: ((editingText.rotation || 0) + 90) % 360 })}>↻ 90° (баруун)</button>
             </div>
 
             <div className="flex justify-between gap-2">
