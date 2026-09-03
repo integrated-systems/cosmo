@@ -15,7 +15,7 @@ import { supabase } from '../lib/supabaseClient';
 //      шинэчлэгдэнэ.
 //   3) Undo/redo snapshot-ыг useRef stack-д хадгалж, зөвхөн
 //      "canUndo/canRedo" boolean-ыг state болгоно (товчны disabled
-//      төлввнд л render хэрэгтэй тул).
+//      төлөөнд л render хэрэгтэй тул).
 //
 // ХАМРАХ ХүРЭЭ (энэ туршилтын шатанд): Слот (2:1/1:2), Агуулах (1:1),
 // Полигон зурах, зөөх, устгах, undo/redo, JSON export, zoom. Чөлөөт
@@ -80,6 +80,7 @@ export default function GridConstructorReact({ hoaId }) {
   const [polygons, setPolygons] = useState(() => []);
   const [texts, setTexts] = useState(() => []);
   const [lines, setLines] = useState(() => []);
+  const [compasses, setCompasses] = useState(() => []);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [editingSlotId, setEditingSlotId] = useState(null);
   const [editingTextId, setEditingTextId] = useState(null);
@@ -94,7 +95,7 @@ export default function GridConstructorReact({ hoaId }) {
   const redoStackRef = useRef([]);
   const [, forceHistoryRender] = useState(0);
 
-  const snapshot = useCallback(() => JSON.stringify({ cols, rows, slots, polygons, texts, lines }), [cols, rows, slots, polygons, texts, lines]);
+  const snapshot = useCallback(() => JSON.stringify({ cols, rows, slots, polygons, texts, lines, compasses }), [cols, rows, slots, polygons, texts, lines, compasses]);
   const pushHistory = useCallback(() => {
     undoStackRef.current.push(snapshot());
     if (undoStackRef.current.length > MAX_HISTORY) undoStackRef.current.shift();
@@ -147,12 +148,14 @@ export default function GridConstructorReact({ hoaId }) {
     const polysWithIds = (layout.polygons || []).map((p) => (p.id ? p : { ...p, id: crypto.randomUUID() }));
     const textsWithIds = (layout.texts || []).map((t) => (t.id ? t : { ...t, id: crypto.randomUUID() }));
     const linesWithIds = (layout.lines || []).map((l) => (l.id ? l : { ...l, id: crypto.randomUUID() }));
+    const compassesWithIds = (layout.compasses || []).map((c) => (c.id ? c : { ...c, id: crypto.randomUUID() }));
     setCols(layout.cols || 40);
     setRows(layout.rows || 30);
     setSlots(slotsWithIds);
     setPolygons(polysWithIds);
     setTexts(textsWithIds);
     setLines(linesWithIds);
+    setCompasses(compassesWithIds);
     undoStackRef.current = [];
     redoStackRef.current = [];
   }, []);
@@ -215,8 +218,8 @@ export default function GridConstructorReact({ hoaId }) {
   // ---------------- localStorage-д автомат хадгалалт (аюлгвүйн сүлжээ) ----------------
   useEffect(() => {
     if (isFirstLoadRef.current) return; // ачаалж дуусаагүй үед бичихгүй
-    try { localStorage.setItem(localStorageKey, JSON.stringify({ cols, rows, slots, polygons, texts, lines })); } catch { /* quota — үл тоомсорноно */ }
-  }, [cols, rows, slots, polygons, texts, lines, localStorageKey]);
+    try { localStorage.setItem(localStorageKey, JSON.stringify({ cols, rows, slots, polygons, texts, lines, compasses })); } catch { /* quota — үл тоомсорноно */ }
+  }, [cols, rows, slots, polygons, texts, lines, compasses, localStorageKey]);
 
   // ---------------- Supabase хадгалах/нийтлэх ----------------
   async function saveToSupabase(publish) {
@@ -224,7 +227,7 @@ export default function GridConstructorReact({ hoaId }) {
     setSaving(true);
     const payload = {
       tenant_id: hoaId, floor_key: floorKey,
-      layout_json: { cols, rows, slots, polygons, texts, lines },
+      layout_json: { cols, rows, slots, polygons, texts, lines, compasses },
       ...(publish ? { status: 'published' } : {}),
     };
     const { error } = await supabase.from('basement_floors').upsert(payload, { onConflict: 'tenant_id,floor_key' });
@@ -267,11 +270,11 @@ export default function GridConstructorReact({ hoaId }) {
 
   function handleGridPointerDown(e) {
     if (e.target.closest('[data-slot-id]')) return; // одоо буй слот өврийн listener-тэй
-    if (tool === 'polygon' || tool === 'text') return; // өврийн listener-тэй
+    if (tool === 'polygon' || tool === 'text' || tool === 'compass') return; // өврийн listener-тэй
     if (tool === 'line') {
       const rect = gridRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / zoom;
-      const y = (e.clientY - rect.top) / zoom;
+      const x = Math.round(((e.clientX - rect.left) / zoom) / polySnap) * polySnap;
+      const y = Math.round(((e.clientY - rect.top) / zoom) / polySnap) * polySnap;
       dragRef.current = { mode: 'line', startX: x, startY: y, startClientX: e.clientX, startClientY: e.clientY };
       return;
     }
@@ -286,8 +289,8 @@ export default function GridConstructorReact({ hoaId }) {
     if (!d) return;
     if (d.mode === 'line') {
       const rect = gridRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / zoom;
-      const y = (e.clientY - rect.top) / zoom;
+      const x = Math.round(((e.clientX - rect.left) / zoom) / polySnap) * polySnap;
+      const y = Math.round(((e.clientY - rect.top) / zoom) / polySnap) * polySnap;
       setLineGhost({ x1: d.startX, y1: d.startY, x2: x, y2: y });
       return;
     }
@@ -354,8 +357,8 @@ export default function GridConstructorReact({ hoaId }) {
     if (d.mode === 'line') {
       if (e) {
         const rect = gridRef.current.getBoundingClientRect();
-        const x2 = (e.clientX - rect.left) / zoom;
-        const y2 = (e.clientY - rect.top) / zoom;
+        const x2 = Math.round(((e.clientX - rect.left) / zoom) / polySnap) * polySnap;
+        const y2 = Math.round(((e.clientY - rect.top) / zoom) / polySnap) * polySnap;
         const distPx = Math.hypot(x2 - d.startX, y2 - d.startY) * zoom;
         if (distPx > 5) {
           pushHistory();
@@ -528,6 +531,28 @@ export default function GridConstructorReact({ hoaId }) {
   function updateText(id, patch) {
     setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
+
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - "Компасс" горим үед хоосон
+  // цэг дээр дарахад тор (grid)-ийн ХАМГИЙН ОЙР огтлолцол дээр
+  // төв болгож байрлуулна. Компасс дээр дарах бүрд баруун тийш
+  // 45 хэмээр эргүүлнэ.
+  function handleCompassToolClick(e) {
+    if (tool !== 'compass') return;
+    if (e.target.closest('[data-compass-id]')) return; // одоо буй компасс өврийн onClick-тэй
+    const rect = gridRef.current.getBoundingClientRect();
+    const col = Math.round((e.clientX - rect.left) / ec);
+    const row = Math.round((e.clientY - rect.top) / ec);
+    pushHistory();
+    setCompasses((prev) => [...prev, { id: crypto.randomUUID(), col, row, rotation: 0 }]);
+  }
+  function rotateCompass(id) {
+    pushHistory();
+    setCompasses((prev) => prev.map((c) => (c.id === id ? { ...c, rotation: ((c.rotation || 0) + 45) % 360 } : c)));
+  }
+  function deleteCompass(id) {
+    pushHistory();
+    setCompasses((prev) => prev.filter((c) => c.id !== id));
+  }
   function deleteText(id) {
     pushHistory();
     setTexts((prev) => prev.filter((t) => t.id !== id));
@@ -614,6 +639,7 @@ export default function GridConstructorReact({ hoaId }) {
       polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0 })),
       texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14 })),
       lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2 })),
+      compasses: compasses.map((c) => ({ id: c.id, col: c.col, row: c.row, rotation: c.rotation || 0 })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -679,7 +705,7 @@ export default function GridConstructorReact({ hoaId }) {
       {/* ---------------- toolbar ---------------- */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
-          {[['slot', 'Зогсоол зурах'], ['warehouse', 'Агуулах зурах'], ['polygon', 'Полигон зурах'], ['text', 'Текст нэмэх'], ['line', 'Шулуун зураас']].map(([key, label]) => (
+          {[['slot', 'Зогсоол зурах'], ['warehouse', 'Агуулах зурах'], ['polygon', 'Полигон зурах'], ['text', 'Текст нэмэх'], ['line', 'Шулуун зураас'], ['compass', 'Компасс']].map(([key, label]) => (
             <button
               key={key}
               onClick={() => { setTool(key); setPolyPoints([]); }}
@@ -733,7 +759,7 @@ export default function GridConstructorReact({ hoaId }) {
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}
-          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); handleTextToolClick(e); }}
+          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); handleTextToolClick(e); handleCompassToolClick(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
             touchAction: 'none', // 2026-09-03: iPad/tablet+pen дэмжлэг - хүлээгдэхгүй scroll/zoom
@@ -832,7 +858,7 @@ export default function GridConstructorReact({ hoaId }) {
             ))}
             {lines.map((l) => (
               <g key={l.id} style={{ pointerEvents: 'auto', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setEditingLineId(l.id); }}>
-                {/* Даралт үзэх талбайг түүнлүүлж, дарахад амар болгох тулд тунгалаг вргвн зураас (hit-area) */}
+                {/* Даралт үзэх талбайг түүнлүүлж, дарахад амар болгох тулд тунгалаг өргөн зураас (hit-area) */}
                 <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke="transparent" strokeWidth={Math.max(16, (l.strokeWidth || 2) * zoom)} />
                 <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap="round" />
               </g>
@@ -859,6 +885,28 @@ export default function GridConstructorReact({ hoaId }) {
               </div>
             );
           })}
+          {/* 2026-09-04: Компасс - 48px диаметртэй, тор (grid) огтлолцол
+              дээр төвтөй гөвр байрлана, дарах бүрд 45 хэмээр эргэнэ. */}
+          {compasses.map((c) => (
+            <svg
+              key={c.id}
+              data-compass-id={c.id}
+              viewBox="0 0 100 100"
+              width={48 * zoom} height={48 * zoom}
+              onClick={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) deleteCompass(c.id); else rotateCompass(c.id); }}
+              style={{
+                position: 'absolute', left: c.col * ec - 24 * zoom, top: c.row * ec - 24 * zoom,
+                transform: `rotate(${c.rotation || 0}deg)`, transformOrigin: '50% 50%', cursor: 'pointer',
+              }}
+              className="text-slate-600 dark:text-slate-300"
+              title="Дарж эргүүлэх · Ctrl+дарж устгах"
+            >
+              <circle cx="50" cy="54" r="38" fill="none" stroke="currentColor" strokeWidth="4" />
+              <text x="50" y="15" textAnchor="middle" fontSize="20" fontWeight="700" fill="currentColor">N</text>
+              <path d="M50,20 L38,70 L50,58 Z" fill="currentColor" />
+              <path d="M50,20 L62,70 L50,58 Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+            </svg>
+          ))}
         </div>
       </div>
 
