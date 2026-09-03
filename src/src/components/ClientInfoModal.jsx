@@ -1,7 +1,7 @@
 import { formatDate } from '../lib/format';
 import { useParams } from 'react-router-dom';
 import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
-import { useGridSpots } from '../hooks/useGridSpots';
+import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import Modal from './Modal';
 
 // Clientele.jsx-ийн мүр дарахад гарах Инфо модаль - OwnerInfoModal.jsx-ийн
@@ -33,7 +33,7 @@ export default function ClientInfoModal({ client, onClose, onEdit }) {
       {client && (
         <div>
           <div className="ds-detail-row"><span className="ds-detail-label">Регистр</span><span className="ds-detail-value">{client.reg_no || '—'}</span></div>
-          <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{client.sqm ?? '—'} м²</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Талбай</span><span className="ds-detail-value">{sumLinkedSqm(client.grid_land_plots, gridLandPlots) ?? client.sqm ?? '—'} м²</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Өмчийн Улсын бүртгэлийн дугаар</span><span className="ds-detail-value">{client.property_no || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гүйцэтгэх удирдлага</span><span className="ds-detail-value">{client.ceo_first_name_last_name || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Гар утас</span><span className="ds-detail-value">{client.mobile || '—'}</span></div>

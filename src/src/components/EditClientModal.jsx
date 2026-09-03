@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SpotSelectField, VehicleListField } from './formFields/ListFields';
-import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
+import { useGridSpots, fetchTakenGridIds, sumLinkedSqm } from '../hooks/useGridSpots';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
 // EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
@@ -63,6 +63,18 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     note: client?.note || '',
   }));
 
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - "Талбай (м2)" талбарыг гараар
+  // засварлахгүй, харин Конструктор дээр холбогдсон полигоны бодит
+  // хэмжээгээр АВТОМАТААР бүглэнэ (талбай ховор л өөрчлвгддвг тул
+  // ЯГ НЭГ л газар - Конструктор дээр - засвар хийгдэж, үлдсэн бүх
+  // модаль/хүснэгэл автоматаар шинэчлэгдэнэ - төлбөр тооцоход ч
+  // тохиромжтой, зврчилдввнгүй болно).
+  useEffect(() => {
+    setForm((f) => ({ ...f, sqm: sumLinkedSqm(f.gridLandPlots, gridLandPlots) ?? '' }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gridLandPlots, form.gridLandPlots]);
+
+
   function set(field, val) {
     setForm((f) => ({ ...f, [field]: val }));
   }
@@ -91,8 +103,8 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
         </div>
       </div>
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²)</label>
-        <input type="number" step="0.01" className="ds-input w-full" value={form.sqm} onChange={(e) => set('sqm', e.target.value)} />
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²) - Конструктороос автоматаар</label>
+        <input type="number" step="0.01" readOnly className="ds-input w-full opacity-70 cursor-not-allowed" value={form.sqm} title="Энэ талбарыг зөвхөн Конструктор дээр вврчилнэ" />
       </div>
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>

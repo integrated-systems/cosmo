@@ -1,6 +1,6 @@
 import { formatDate } from '../lib/format';
 import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
-import { useGridSpots } from '../hooks/useGridSpots';
+import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import PaymentBadges, { EXAMPLE_PAID_THROUGH } from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
@@ -59,7 +59,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.legal_entity_name || '—'}</td>
                 <td className="py-2.5 px-3">{r.reg_no || '—'}</td>
-                <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
+                <td className="py-2.5 px-3">{sumLinkedSqm(r.grid_land_plots, gridLandPlots) ?? r.sqm ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.property_no || '—'}</td>
                 <td className="py-2.5 px-3">{r.ceo_first_name_last_name || '—'}</td>
                 <td className="py-2.5 px-3">{r.mobile || '—'}</td>

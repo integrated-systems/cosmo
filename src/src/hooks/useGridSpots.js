@@ -39,10 +39,28 @@ function toLandPlots(floors) {
     (f.layout_json?.polygons || []).forEach((p) => {
       if (!p.label) return;
       const code = p.sqm != null ? `${p.label} (${p.sqm}м2)` : p.label;
-      plots.push({ id: `${f.floor_key}:${p.id}`, floorLevel: f.floor_key, code });
+      plots.push({ id: `${f.floor_key}:${p.id}`, floorLevel: f.floor_key, code, sqm: p.sqm ?? null });
     });
   });
   return plots;
+}
+
+// 2026-09-04: Хэрэглэгчийн хүсэлт - Талбай өмчлөгчийн м2 нь үнэн
+// хэрэгтээ гэрээт полигоны бодит хэмжээ тул (заавал өөрчлвгддэггүй,
+// Конструктор дээр л ЯГ НЭГ л газар засварлагдах ёстой) - холбогдсон
+// бүх талбайн LIVE sqm-ийг нийлбэрлэж үзүүлнэ (стандарт тохиолдолд
+// ганцхан талбайтай тул нийлбэр = тэр ганц утга).
+export function sumLinkedSqm(gridLandPlots, liveList) {
+  if (!gridLandPlots || gridLandPlots.length === 0) return null;
+  const liveMap = new Map((liveList || []).map((l) => [l.id, l]));
+  let sum = 0;
+  let found = false;
+  gridLandPlots.forEach((it) => {
+    const live = liveMap.get(it.id);
+    const sqm = live?.sqm;
+    if (sqm != null) { sum += sqm; found = true; }
+  });
+  return found ? sum : null;
 }
 
 export function useGridSpots(hoaId) {
