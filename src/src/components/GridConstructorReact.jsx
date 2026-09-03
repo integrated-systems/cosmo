@@ -544,7 +544,7 @@ export default function GridConstructorReact({ hoaId }) {
                     className={!s.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}
                     style={{
                       position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${s.labelRotation || 0}deg)`,
-                      fontSize: 10 * zoom, fontWeight: 700, pointerEvents: 'none', whiteSpace: 'nowrap',
+                      fontSize: 10 * zoom, fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap',
                       ...(s.labelColor ? { color: s.labelColor } : {}),
                     }}
                   >
@@ -579,7 +579,7 @@ export default function GridConstructorReact({ hoaId }) {
                   />
                   {p.label && (
                     <text
-                      x={cx} y={cy} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={12 * zoom} fontWeight={700}
+                      x={cx} y={cy} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={12 * zoom} fontWeight={600}
                       textAnchor="middle" dominantBaseline="middle"
                       transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
                     >

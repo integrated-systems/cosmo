@@ -35,6 +35,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   const [activeFloor, setActiveFloor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
+  const [hoveredPolyIdx, setHoveredPolyIdx] = useState(null);
 
   useEffect(() => {
     if (!hoaId) return;
@@ -92,11 +93,12 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
               <button
                 key={i}
                 onClick={() => onSlotClick?.(floor.floor_key, s, link)}
+                className="group"
                 style={{ position: 'absolute', left: s.col * ec, top: s.row * ec, width: w, height: h, cursor: 'pointer' }}
                 title={s.label || ''}
               >
                 <div
-                  className={`absolute inset-[1px] rounded-[1px] border ${!hasCustomBorder ? 'border-slate-500/30' : ''} ${!link && !hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute inset-[1px] rounded-[1px] border transition-colors ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!link && !hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
                     ...(link ? { background: 'rgba(239,85,85,0.22)' } : hasCustomFill ? { background: s.fillColor } : {}),
@@ -107,7 +109,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                     className={!hasCustomLabel ? 'text-slate-400 dark:text-mutedtext' : ''}
                     style={{
                       position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${s.labelRotation || 0}deg)`,
-                      fontSize: 10 * zoom, fontWeight: 700, pointerEvents: 'none', whiteSpace: 'nowrap',
+                      fontSize: 10 * zoom, fontWeight: 600, pointerEvents: 'none', whiteSpace: 'nowrap',
                       ...(hasCustomLabel ? { color: s.labelColor } : {}),
                     }}
                   >
@@ -131,20 +133,23 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                   className={!hasCustomStroke || !hasCustomLabel ? 'text-slate-400 dark:text-mutedtext' : ''}
                   style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                   onClick={() => onPolygonClick?.(floor.floor_key, p, link)}
+                  onMouseEnter={() => setHoveredPolyIdx(i)}
+                  onMouseLeave={() => setHoveredPolyIdx((prev) => (prev === i ? null : prev))}
                 >
                   <polygon
                     points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
                     fill={link ? 'rgba(239,85,85,0.22)' : (hasCustomFill ? p.fillColor : 'currentColor')}
                     fillOpacity={link || hasCustomFill ? 1 : 0.10}
                     stroke={hasCustomStroke ? p.strokeColor : 'currentColor'}
-                    strokeOpacity={hasCustomStroke ? 1 : 0.3}
+                    strokeOpacity={hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3)}
                     strokeWidth={p.strokeWidth}
                     strokeLinejoin="round"
+                    style={{ transition: 'stroke-opacity 0.15s' }}
                   />
                   {p.label && (
                     <text
                       x={cx} y={cy} fill={hasCustomLabel ? p.labelColor : 'currentColor'}
-                      fontSize={12 * zoom} fontWeight={700} textAnchor="middle" dominantBaseline="middle"
+                      fontSize={12 * zoom} fontWeight={600} textAnchor="middle" dominantBaseline="middle"
                       transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
                     >
                       {p.label}
