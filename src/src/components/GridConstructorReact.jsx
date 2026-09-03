@@ -66,8 +66,6 @@ export default function GridConstructorReact({ hoaId }) {
   const [floorList, setFloorList] = useState([]); // Supabase-с татсан бодит давхаргын нэрс
   const [addingFloor, setAddingFloor] = useState(false);
   const [newFloorName, setNewFloorName] = useState('');
-  const [renamingFloor, setRenamingFloor] = useState(false);
-  const [renameFloorValue, setRenameFloorValue] = useState('');
   const [status, setStatus] = useState('draft');
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -202,15 +200,16 @@ export default function GridConstructorReact({ hoaId }) {
     setAddingFloor(false);
   }
 
-  async function handleRenameFloor() {
-    const newName = renameFloorValue.trim();
-    if (!newName || newName === floorKey) { setRenamingFloor(false); return; }
-    if (floorList.includes(newName)) { alert('Ийм нэртэй давхарга аль хэдийн байна.'); return; }
-    // Supabase дээр аль хэдийн хадгалагдсан бол floor_key-г шинэчилнэ.
-    await supabase.from('basement_floors').update({ floor_key: newName }).eq('tenant_id', hoaId).eq('floor_key', floorKey);
-    setFloorList((prev) => prev.map((f) => (f === floorKey ? newName : f)));
-    setFloorKey(newName);
-    setRenamingFloor(false);
+  // 2026-09-04 (2): Хэрэглэгчийн хүсэлт - идэвхтэй давхаргыг устгах
+  // товч ("+ Шинэ давхарга" товчийг санамсаргүй хоёр дахин дарж
+  // үүссэн илүүдэл давхаргыг цэвэрлэхэд зориулав).
+  async function handleDeleteFloor() {
+    if (floorList.length <= 1) { alert('Хамгийн багадаа нэг давхарга үлдэх ёстой.'); return; }
+    if (!window.confirm(`"${floorKey}" давхаргыг бүрмөсөн устгах vv? ҮҮнийг буцаах боломжгүй.`)) return;
+    await supabase.from('basement_floors').delete().eq('tenant_id', hoaId).eq('floor_key', floorKey);
+    const remaining = floorList.filter((f) => f !== floorKey);
+    setFloorList(remaining);
+    setFloorKey(remaining[0]);
   }
 
   // ---------------- localStorage-д автомат хадгалалт (аюлгвүйн сүлжээ) ----------------
@@ -391,6 +390,36 @@ export default function GridConstructorReact({ hoaId }) {
   // ---------------- одоо буй слот зөөх / дарж засах (5px "click" босго) ----------------
   const moveRef = useRef(null);
 
+  // ---------------- текст чирж зөөх / дарж засах (5px "click" босго) ----------------
+  const textMoveRef = useRef(null);
+  const [draggingTextPos, setDraggingTextPos] = useState(null); // {id, x, y} - чирж буй үед л үзүүлэлт болгож ашиглана
+  function handleTextPointerDown(e, text) {
+    e.stopPropagation();
+    textMoveRef.current = { id: text.id, startClientX: e.clientX, startClientY: e.clientY, startX: text.x, startY: text.y };
+  }
+  function handleTextPointerMove(e) {
+    const m = textMoveRef.current;
+    if (!m) return;
+    const dx = (e.clientX - m.startClientX) / zoom;
+    const dy = (e.clientY - m.startClientY) / zoom;
+    m.candidate = { x: m.startX + dx, y: m.startY + dy };
+    setDraggingTextPos({ id: m.id, x: m.candidate.x, y: m.candidate.y });
+  }
+  function handleTextPointerUp(e) {
+    const m = textMoveRef.current;
+    if (!m) return;
+    const movedPx = Math.hypot((e?.clientX || 0) - m.startClientX, (e?.clientY || 0) - m.startClientY);
+    if (movedPx < 5) {
+      setEditingTextId(m.id);
+    } else if (m.candidate) {
+      pushHistory();
+      setTexts((prev) => prev.map((t) => (t.id === m.id ? { ...t, x: m.candidate.x, y: m.candidate.y } : t)));
+    }
+    setDraggingTextPos(null);
+    textMoveRef.current = null;
+  }
+
+
   function handleSlotPointerDown(e, slot) {
     e.stopPropagation();
     if (e.ctrlKey || e.metaKey) {
@@ -439,8 +468,8 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   useEffect(() => {
-    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); }
-    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); }
+    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); }
+    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
@@ -528,13 +557,33 @@ export default function GridConstructorReact({ hoaId }) {
     }
     return inside;
   }
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = x1 + t * dx, cy = y1 + t * dy;
+    return Math.hypot(px - cx, py - cy);
+  }
+  // 2026-09-04: Хэрэглэгчийн хүсэлт - ямар ч дүүргэлт (талбай)-гүй,
+  // шулуун зураас шиг нарийн полигоныг (pointInPolygon-ийн талбай
+  // үндэслэсэн шалгалт бараг хэзээ ч үнэн болдоггүй тул) идэвхжүүлж
+  // чадахгүй байсныг засав - одоо полигоны зураас (edge)-тэй ойрхон
+  // (6px/zoom дотор) дарвал ч мвн зөвшөөрнэ.
   function handleCanvasClickForPolygonSelect(e) {
     if (tool === 'polygon') return; // энэ үед шинэ полигон зурж байгаа тул алгасна
     if (e.target.closest('[data-slot-id]')) return;
     const rect = gridRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / zoom;
     const y = (e.clientY - rect.top) / zoom;
-    const hit = polygons.find((p) => pointInPolygon(x, y, p.points));
+    const edgeThreshold = 6 / zoom;
+    const hit = polygons.find((p) => {
+      if (pointInPolygon(x, y, p.points)) return true;
+      for (let i = 0, j = p.points.length - 1; i < p.points.length; j = i++) {
+        if (distToSegment(x, y, p.points[i].x, p.points[i].y, p.points[j].x, p.points[j].y) < edgeThreshold) return true;
+      }
+      return false;
+    });
     if (hit) setEditingPolygonId(hit.id);
   }
   function updatePolygon(id, patch) {
@@ -607,19 +656,7 @@ export default function GridConstructorReact({ hoaId }) {
         ) : (
           <button className="ds-btn-secondary" onClick={() => setAddingFloor(true)}>+ Шинэ давхарга</button>
         )}
-        {renamingFloor ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus className="ds-input w-24" value={renameFloorValue}
-              onChange={(e) => setRenameFloorValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleRenameFloor(); if (e.key === 'Escape') setRenamingFloor(false); }}
-            />
-            <button className="ds-btn-primary" onClick={handleRenameFloor}>Хадгалах</button>
-            <button className="ds-btn-secondary" onClick={() => setRenamingFloor(false)}>Болих</button>
-          </div>
-        ) : (
-          <button className="ds-btn-secondary" title="Одоогийн давхаргын нэрийг өөрчлөх" onClick={() => { setRenameFloorValue(floorKey); setRenamingFloor(true); }}>үүсгэх нэр</button>
-        )}
+        <button className="ds-btn-secondary text-customRed" onClick={handleDeleteFloor} title="Идэвхтэй давхаргыг устгах">Давхарга устгах</button>
         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${status === 'published' ? 'bg-customGreen text-white' : 'bg-customOrange text-white'}`}>
           {status === 'published' ? 'Нийтлэгдсэн' : 'Ноорог'}
         </span>
@@ -636,10 +673,7 @@ export default function GridConstructorReact({ hoaId }) {
             <button className="ds-btn-secondary" onClick={() => setSelectedIds(new Set())}>Сонголт цэвэрлэх</button>
           </>
         )}
-        <div className="ml-auto flex items-center gap-2">
-          <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={handleImportFile} />
-          <button className="ds-btn-secondary" onClick={() => fileInputRef.current?.click()}>JSON импортлох</button>
-        </div>
+        <input ref={fileInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={handleImportFile} />
       </div>
 
       {/* ---------------- toolbar ---------------- */}
@@ -685,6 +719,7 @@ export default function GridConstructorReact({ hoaId }) {
           <span className="text-[11px] text-customBlue w-10 text-center">{Math.round(zoom * 100)}%</span>
           <button className="ds-btn-secondary" onClick={() => setZoom((z) => Math.min(2, z + 0.1))}>+</button>
         </div>
+        <button className="ds-btn-secondary" onClick={() => fileInputRef.current?.click()}>JSON импортлох</button>
         <button className="ds-btn-primary" onClick={exportJson}>JSON export</button>
       </div>
 
@@ -806,21 +841,24 @@ export default function GridConstructorReact({ hoaId }) {
               <line x1={lineGhost.x1 * zoom} y1={lineGhost.y1 * zoom} x2={lineGhost.x2 * zoom} y2={lineGhost.y2 * zoom} stroke={strokeColor || '#94a3b8'} strokeWidth={2} strokeDasharray="4,3" />
             )}
           </svg>
-          {texts.map((t) => (
-            <div
-              key={t.id}
-              data-text-id={t.id}
-              onClick={(e) => { e.stopPropagation(); setEditingTextId(t.id); }}
-              style={{
-                position: 'absolute', left: t.x * zoom, top: t.y * zoom, cursor: 'pointer',
-                fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
-                color: t.color || undefined, padding: 2,
-              }}
-              className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
-            >
-              {t.text || '(хоосон текст)'}
-            </div>
-          ))}
+          {texts.map((t) => {
+            const pos = draggingTextPos && draggingTextPos.id === t.id ? draggingTextPos : t;
+            return (
+              <div
+                key={t.id}
+                data-text-id={t.id}
+                onPointerDown={(e) => handleTextPointerDown(e, t)}
+                style={{
+                  position: 'absolute', left: pos.x * zoom, top: pos.y * zoom, cursor: 'grab',
+                  fontSize: (t.fontSize || 14) * zoom, fontWeight: 600, whiteSpace: 'nowrap',
+                  color: t.color || undefined, padding: 2,
+                }}
+                className={!t.color ? 'text-slate-400 dark:text-mutedtext' : ''}
+              >
+                {t.text || '(хоосон текст)'}
+              </div>
+            );
+          })}
         </div>
       </div>
 
