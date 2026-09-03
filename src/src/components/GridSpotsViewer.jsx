@@ -3,11 +3,20 @@ import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
 // 2026-09-02: "Тоот, Зогсоол, Агуулах" хуудасны шинэ "Зогсоол,
-// Агуулах, Талбай" таб — "Хаягжилт тохиргоо → Зогсоол, Агуулах,
+// Агуулах, Талбай" таб — "Хаягжилт тохиргоо -> Зогсоол, Агуулах,
 // Талбай" табаас "Нийтлэх" дарсан (status='published') грид зургийг
 // зөвхөн УНШИХ (READ-ONLY) горимоор харуулж, слот/агуулах/талбай дээр
 // дарахад parent-руу callback дуудна ("Тоот" табтай ижил интерактив
 // зарчим).
+//
+// 2026-09-03: Хэрэглэгчийн хүсэлт - staff зориудаар хүрээ/дүүргэлтийн
+// внгв вгввгүй л бол, default харагдац "Тоот" таб (UnitGridCard.jsx)-
+// тай ЯГ ИЖИЛ (саарал, theme-aware) байх ёстой - Dark/Light mode
+// хоёуланд адилхан үйлчилнэ. ҮҮнийг Tailwind-ийн className-аар
+// (border-slate-500/30, bg-slate-500/[0.10], text-slate-400
+// dark:text-mutedtext) хэрэгжүүлж, зөвхөн ЗОРИУДААР сонгосон внгвг
+// л inline style-аар дарж бичнэ. SVG-д "currentColor" trick ашиглаж,
+// Tailwind-ийн text-* классаар stroke/fill-ийг theme-aware болгов.
 const CELL = 24;
 
 function cellsRange(slots) {
@@ -41,7 +50,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   }, [hoaId]);
 
   if (loading) return <div className="ds-card p-8 text-center text-darktext text-sm">Ачаалж байна...</div>;
-  if (floors.length === 0) return <div className="ds-card p-8 text-center text-darktext text-sm">Нийтлэгдсэн грид зураг олдсонгүй — "Хаягжилт тохиргоо → Зогсоол, Агуулах, Талбай" табаас зурж, "Нийтлэх" дарна уу.</div>;
+  if (floors.length === 0) return <div className="ds-card p-8 text-center text-darktext text-sm">Нийтлэгдсэн грид зураг олдсонгүй - "Хаягжилт тохиргоо -&gt; Зогсоол, Агуулах, Талбай" табаас зурж, "Нийтлэх" дарна уу.</div>;
 
   const floor = floors.find((f) => f.floor_key === activeFloor) || floors[0];
   const slots = floor.layout_json?.slots || [];
@@ -70,12 +79,15 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
         </div>
       </div>
       <div className="text-[10.5px] text-mutedtext">Слот, агуулах, талбай дээр дарж дэлгэрэнгүй харах эсвэл шинээр бүртгэх</div>
-      <div className="overflow-auto rounded border border-bordercol" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+      <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
         <div style={{ position: 'relative', width: cols * ec, height: rows * ec }}>
           {slots.map((s, i) => {
             const w = s.kind === 'warehouse' ? ec : (s.horizontal ? ec * 2 : ec);
             const h = s.kind === 'warehouse' ? ec : (s.horizontal ? ec : ec * 2);
             const link = s.label ? resolveSlot?.(floor.floor_key, s.id, s.kind) : null;
+            const hasCustomBorder = !!s.borderColor;
+            const hasCustomFill = !!s.fillColor;
+            const hasCustomLabel = !!s.labelColor;
             return (
               <button
                 key={i}
@@ -83,15 +95,22 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 style={{ position: 'absolute', left: s.col * ec, top: s.row * ec, width: w, height: h, cursor: 'pointer' }}
                 title={s.label || ''}
               >
-                <div style={{
-                  position: 'absolute', inset: 1, border: `1px solid ${s.borderColor || '#e2e8f0'}`, borderRadius: 1,
-                  background: link ? 'rgba(239,85,85,0.22)' : (s.fillColor || 'rgba(232,237,242,0.03)'),
-                }} />
+                <div
+                  className={`absolute inset-[1px] rounded-[1px] border ${!hasCustomBorder ? 'border-slate-500/30' : ''} ${!link && !hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  style={{
+                    ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
+                    ...(link ? { background: 'rgba(239,85,85,0.22)' } : hasCustomFill ? { background: s.fillColor } : {}),
+                  }}
+                />
                 {s.label && (
-                  <div style={{
-                    position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${s.labelRotation || 0}deg)`,
-                    fontSize: 10 * zoom, fontWeight: 700, color: s.labelColor || '#f1f5f9', pointerEvents: 'none', whiteSpace: 'nowrap',
-                  }}>
+                  <div
+                    className={!hasCustomLabel ? 'text-slate-400 dark:text-mutedtext' : ''}
+                    style={{
+                      position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${s.labelRotation || 0}deg)`,
+                      fontSize: 10 * zoom, fontWeight: 700, pointerEvents: 'none', whiteSpace: 'nowrap',
+                      ...(hasCustomLabel ? { color: s.labelColor } : {}),
+                    }}
+                  >
                     {s.label}
                   </div>
                 )}
@@ -103,15 +122,31 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
               const cx = (p.points.reduce((sum, pt) => sum + pt.x, 0) / p.points.length) * zoom;
               const cy = (p.points.reduce((sum, pt) => sum + pt.y, 0) / p.points.length) * zoom;
               const link = p.label ? resolvePolygon?.(floor.floor_key, p.id) : null;
+              const hasCustomStroke = !!p.strokeColor;
+              const hasCustomFill = !!p.fillColor;
+              const hasCustomLabel = !!p.labelColor;
               return (
-                <g key={i} style={{ pointerEvents: 'auto', cursor: 'pointer' }} onClick={() => onPolygonClick?.(floor.floor_key, p, link)}>
+                <g
+                  key={i}
+                  className={!hasCustomStroke || !hasCustomLabel ? 'text-slate-400 dark:text-mutedtext' : ''}
+                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  onClick={() => onPolygonClick?.(floor.floor_key, p, link)}
+                >
                   <polygon
                     points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
-                    fill={link ? 'rgba(239,85,85,0.22)' : (p.fillColor || 'none')} fillOpacity={link || p.fillColor ? 1 : 0}
-                    stroke={p.strokeColor} strokeWidth={p.strokeWidth} strokeLinejoin="round"
+                    fill={link ? 'rgba(239,85,85,0.22)' : (hasCustomFill ? p.fillColor : 'currentColor')}
+                    fillOpacity={link || hasCustomFill ? 1 : 0.10}
+                    stroke={hasCustomStroke ? p.strokeColor : 'currentColor'}
+                    strokeOpacity={hasCustomStroke ? 1 : 0.3}
+                    strokeWidth={p.strokeWidth}
+                    strokeLinejoin="round"
                   />
                   {p.label && (
-                    <text x={cx} y={cy} fill={p.labelColor || '#f1f5f9'} fontSize={12 * zoom} fontWeight={700} textAnchor="middle" dominantBaseline="middle" transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}>
+                    <text
+                      x={cx} y={cy} fill={hasCustomLabel ? p.labelColor : 'currentColor'}
+                      fontSize={12 * zoom} fontWeight={700} textAnchor="middle" dominantBaseline="middle"
+                      transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                    >
                       {p.label}
                     </text>
                   )}

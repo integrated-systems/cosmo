@@ -77,8 +77,8 @@ export default function GridConstructorReact({ hoaId }) {
   const [polygons, setPolygons] = useState(() => []);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [editingSlotId, setEditingSlotId] = useState(null);
-  const [strokeColor, setStrokeColor] = useState('#3b82f6');
-  const [borderColor, setBorderColor] = useState('#e2e8f0');
+  const [strokeColor, setStrokeColor] = useState(null);
+  const [borderColor, setBorderColor] = useState(null);
 
   const gridRef = useRef(null);
 
@@ -479,6 +479,7 @@ export default function GridConstructorReact({ hoaId }) {
         {tool === 'polygon' ? (
           <div className="flex items-center gap-1">
             <label className="text-[11px] text-mutedtext">Зураасны өнгө</label>
+            <button onClick={() => setStrokeColor(null)} className={`w-5 h-5 rounded border ${!strokeColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
             {PALETTE.map((c) => (
               <button key={c} onClick={() => setStrokeColor(c)} style={{ background: c }} className={`w-5 h-5 rounded ${strokeColor === c ? 'ring-2 ring-customBlue' : ''}`} />
             ))}
@@ -486,6 +487,7 @@ export default function GridConstructorReact({ hoaId }) {
         ) : (
           <div className="flex items-center gap-1">
             <label className="text-[11px] text-mutedtext">Хүрээний өнгө</label>
+            <button onClick={() => setBorderColor(null)} className={`w-5 h-5 rounded border ${!borderColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
             {PALETTE.map((c) => (
               <button key={c} onClick={() => setBorderColor(c)} style={{ background: c }} className={`w-5 h-5 rounded ${borderColor === c ? 'ring-2 ring-customBlue' : ''}`} />
             ))}
@@ -530,12 +532,22 @@ export default function GridConstructorReact({ hoaId }) {
                 onPointerDown={(e) => handleSlotPointerDown(e, s)}
                 style={{ position: 'absolute', left, top, width: w, height: h, cursor: 'grab', zIndex: mCand ? 50 : 1 }}
               >
-                <div style={{
-                  position: 'absolute', inset: 1, border: `1px solid ${s.borderColor || '#e2e8f0'}`, borderRadius: 1,
-                  background: s.fillColor || (selectedIds.has(s.id) ? 'rgba(95,224,208,0.18)' : 'rgba(232,237,242,0.03)'),
-                }} />
+                <div
+                  className={`absolute inset-[1px] rounded-[1px] border ${!s.borderColor ? 'border-slate-500/30' : ''} ${!s.fillColor && !selectedIds.has(s.id) ? 'bg-slate-500/[0.10]' : ''}`}
+                  style={{
+                    ...(s.borderColor ? { borderColor: s.borderColor } : {}),
+                    ...(selectedIds.has(s.id) ? { background: 'rgba(95,224,208,0.18)' } : s.fillColor ? { background: s.fillColor } : {}),
+                  }}
+                />
                 {s.label && (
-                  <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontSize: 10 * zoom, fontWeight: 700, color: '#f1f5f9', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+                  <div
+                    className={!s.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}
+                    style={{
+                      position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${s.labelRotation || 0}deg)`,
+                      fontSize: 10 * zoom, fontWeight: 700, pointerEvents: 'none', whiteSpace: 'nowrap',
+                      ...(s.labelColor ? { color: s.labelColor } : {}),
+                    }}
+                  >
                     {s.label}
                   </div>
                 )}
@@ -559,15 +571,15 @@ export default function GridConstructorReact({ hoaId }) {
               const cx = (p.points.reduce((s, pt) => s + pt.x, 0) / p.points.length) * zoom;
               const cy = (p.points.reduce((s, pt) => s + pt.y, 0) / p.points.length) * zoom;
               return (
-                <g key={p.id}>
+                <g key={p.id} className={!p.strokeColor || !p.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}>
                   <polygon
                     points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
-                    fill={p.fillColor || 'none'} fillOpacity={p.fillColor ? 0.35 : 0}
-                    stroke={p.strokeColor} strokeWidth={p.strokeWidth} strokeLinejoin="round"
+                    fill={p.fillColor ? p.fillColor : 'currentColor'} fillOpacity={p.fillColor ? 0.35 : 0.10}
+                    stroke={p.strokeColor ? p.strokeColor : 'currentColor'} strokeOpacity={p.strokeColor ? 1 : 0.3} strokeWidth={p.strokeWidth} strokeLinejoin="round"
                   />
                   {p.label && (
                     <text
-                      x={cx} y={cy} fill={p.labelColor || '#f1f5f9'} fontSize={12 * zoom} fontWeight={700}
+                      x={cx} y={cy} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={12 * zoom} fontWeight={700}
                       textAnchor="middle" dominantBaseline="middle"
                       transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
                     >
@@ -600,13 +612,15 @@ export default function GridConstructorReact({ hoaId }) {
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Дугаарын өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
+              <button onClick={() => updateSlot(editingSlot.id, { labelColor: null })} className={`w-6 h-6 rounded border ${!editingSlot.labelColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updateSlot(editingSlot.id, { labelColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingSlot.labelColor === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
             </div>
 
-            <label className="block text-[10.5px] text-mutedtext mb-1">Хү рээний өнгө</label>
+            <label className="block text-[10.5px] text-mutedtext mb-1">Хүрээний өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
+              <button onClick={() => updateSlot(editingSlot.id, { borderColor: null })} className={`w-6 h-6 rounded border ${!editingSlot.borderColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updateSlot(editingSlot.id, { borderColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingSlot.borderColor === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
@@ -644,6 +658,7 @@ export default function GridConstructorReact({ hoaId }) {
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Нэрийн өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
+              <button onClick={() => updatePolygon(editingPolygon.id, { labelColor: null })} className={`w-6 h-6 rounded border ${!editingPolygon.labelColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updatePolygon(editingPolygon.id, { labelColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingPolygon.labelColor === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
@@ -654,6 +669,7 @@ export default function GridConstructorReact({ hoaId }) {
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Зураасны өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
+              <button onClick={() => updatePolygon(editingPolygon.id, { strokeColor: null })} className={`w-6 h-6 rounded border ${!editingPolygon.strokeColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
               {PALETTE.map((c) => (
                 <button key={c} onClick={() => updatePolygon(editingPolygon.id, { strokeColor: c })} style={{ background: c }} className={`w-6 h-6 rounded ${editingPolygon.strokeColor === c ? 'ring-2 ring-customBlue' : ''}`} />
               ))}
