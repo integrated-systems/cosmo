@@ -1,5 +1,6 @@
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles, formatDoorNo, formatStructureValue } from '../lib/ownersFormat';
+import { summarizeSpots, summarizeVehicles, summarizeGridSpots, formatDoorNo, formatStructureValue } from '../lib/ownersFormat';
+import { useGridSpots } from '../hooks/useGridSpots';
 import PaymentBadges, { EXAMPLE_PAID_THROUGH } from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
@@ -14,7 +15,8 @@ function findLayoutRow(unitLayouts, r) {
   );
 }
 
-export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true }) {
+export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId }) {
+  const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
   // Ихэнх тохиолдолд tenant бүхэлдээ НЭГ дугаарлалтын бүтэц ашиглана
   // (анхны байрны утгаар баганын гарчгийг тодорхойлно, мөр бүр өөрийн
   // бодит утгыг харуулна).
@@ -82,8 +84,8 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
                 <td className="py-2.5 px-3">{r.people_count ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.child_0_5 ?? 0}</td>
                 <td className="py-2.5 px-3">{r.child_6_18 ?? 0}</td>
-                <td className="py-2.5 px-3">{summarizeSpots(r.parkings)}</td>
-                <td className="py-2.5 px-3">{summarizeSpots(r.storages)}</td>
+                <td className="py-2.5 px-3">{[summarizeSpots(r.parkings), summarizeGridSpots(r.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
+                <td className="py-2.5 px-3">{[summarizeSpots(r.storages), summarizeGridSpots(r.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
                 <td className="py-2.5 px-3"><PaymentBadges paidThroughMonth={EXAMPLE_PAID_THROUGH[idx % EXAMPLE_PAID_THROUGH.length]} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>

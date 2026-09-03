@@ -111,6 +111,7 @@ export default function Clientele() {
         onDelete={handleDelete}
         canEdit={can('clientele', 'edit')}
         canDelete={can('clientele', 'delete')}
+        hoaId={hoaId}
       />
 
       <ClientInfoModal

@@ -138,6 +138,7 @@ export default function Owners() {
         onDelete={handleDelete}
         canEdit={can('owners', 'edit')}
         canDelete={can('owners', 'delete')}
+        hoaId={hoaId}
       />
 
       <OwnerInfoModal
