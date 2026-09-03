@@ -131,7 +131,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 <g
                   key={i}
                   className={!hasCustomStroke || !hasCustomLabel ? 'text-slate-400 dark:text-mutedtext' : ''}
-                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  style={{ pointerEvents: p.label ? 'auto' : 'none', cursor: p.label ? 'pointer' : 'default' }}
                   onClick={() => onPolygonClick?.(floor.floor_key, p, link)}
                   onMouseEnter={() => setHoveredPolyIdx(i)}
                   onMouseLeave={() => setHoveredPolyIdx((prev) => (prev === i ? null : prev))}
