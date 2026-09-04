@@ -151,6 +151,20 @@ export default function UserAppConfig() {
   function removePhoneRow(id) {
     setPhoneRows((r) => r.filter((row) => row.id !== id));
   }
+  // 2026-09-04 (11): Хэрэглэгчийн хүсэлт - Утасны жагсаалтын мврийг
+  // дээш/доош зөвж, харагдах дарааллыг өөрчлөх боломж. Хадгалах үед
+  // (savePhonebook) массивын одоогийн дарааллаас order_index үүсгэдэг
+  // тул зөвхөн array-г л зөвхэд хангалттай.
+  function movePhoneRow(id, direction) {
+    setPhoneRows((r) => {
+      const idx = r.findIndex((row) => row.id === id);
+      const swapIdx = idx + direction;
+      if (idx === -1 || swapIdx < 0 || swapIdx >= r.length) return r;
+      const next = [...r];
+      [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+      return next;
+    });
+  }
   async function savePhonebook() {
     setPhoneSaving(true);
     const clean = phoneRows.filter((r) => r.label.trim() && r.phone.trim());
@@ -174,10 +188,6 @@ export default function UserAppConfig() {
 
   return (
     <div className="ds-card p-0 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-bordercol">
-        <span className="text-[14px] font-semibold text-slate-900 dark:text-white">UserApp тохиргоо</span>
-      </div>
-
       <div className="flex border-b border-slate-200 dark:border-bordercol px-2">
         {TABS.map((t) => (
           <button
@@ -257,9 +267,13 @@ export default function UserAppConfig() {
               <div className="text-[12px] text-darktext py-4">Ачаалж байна...</div>
             ) : (
               <div className="flex flex-col gap-2 max-w-xl">
-                {phoneRows.map((r) => (
+                {phoneRows.map((r, i) => (
                   <div key={r.id} className="flex items-center gap-2">
-                    <input className="ds-input flex-1" placeholder="Нэр (жиш: Гал түймэр)" value={r.label} onChange={(e) => updatePhoneRow(r.id, 'label', e.target.value)} />
+                    <div className="flex flex-col shrink-0">
+                      <button className="ds-icon-btn" disabled={i === 0} onClick={() => movePhoneRow(r.id, -1)} title="Дээш зүүх">▲</button>
+                      <button className="ds-icon-btn" disabled={i === phoneRows.length - 1} onClick={() => movePhoneRow(r.id, 1)} title="Доош зүүх">▼</button>
+                    </div>
+                    <input className="ds-input flex-1" placeholder="Нэр (жиш: Гал түүмэр)" value={r.label} onChange={(e) => updatePhoneRow(r.id, 'label', e.target.value)} />
                     <input className="ds-input w-40" placeholder="Утасны дугаар" value={r.phone} onChange={(e) => updatePhoneRow(r.id, 'phone', e.target.value)} />
                     <button className="ds-icon-btn danger shrink-0" onClick={() => removePhoneRow(r.id)}>✕</button>
                   </div>
