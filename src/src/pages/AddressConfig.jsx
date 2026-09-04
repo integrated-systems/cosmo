@@ -6,6 +6,7 @@ import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons
 import UnitEditModal from '../components/UnitEditModal';
 import GridConstructorReact from '../components/GridConstructorReact';
 import TabButton from '../components/TabButton';
+import { SectionLockBadge } from '../components/SectionLockBadge';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -464,12 +465,15 @@ export default function AddressConfig() {
 
   return (
     <>
-      <div className="flex gap-2">
-        {ADDRESSING_TABS.map((t) => (
-          <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
-            {t.label}
-          </TabButton>
-        ))}
+      <div className="flex gap-2 items-center justify-between">
+        <div className="flex gap-2">
+          {ADDRESSING_TABS.map((t) => (
+            <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
+              {t.label}
+            </TabButton>
+          ))}
+        </div>
+        <SectionLockBadge tenantId={hoaId} sectionKey={tab === 'unit' ? 'addressing_units' : 'addressing_grid'} />
       </div>
 
       {tab === 'unit' && <UnitLayoutDesigner />}
