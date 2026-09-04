@@ -380,6 +380,233 @@ function InvoiceScheduleCard({ hoaId }) {
   );
 }
 
+const LIABILITY_TYPES = [
+  'Хувьцаат компани',
+  'Хязгаарлагдмал хариуцлагатай компани',
+  'Бүх гишүүд нь хариуцлагатай нөхөрлөл',
+  'Зарим гишүүд нь хариуцлагатай нөхөрлөл',
+  'Хоршоо',
+  'Тврийн вмчит үйлдвэрийн газар',
+  'Орон нутгийн вмчит үйлдвэрийн газар',
+  'Төсвөт байгууллага',
+  'үүнээс: Цэрэг цагдаагийн',
+  'Тврийн бус байгууллага',
+  'Бусад',
+];
+const OWNERSHIP_GROUPS = [
+  { group: 'Тврийн', options: ['вмчийн', 'вмчийн оролцоотой', 'хамтарсан'] },
+  { group: 'Орон нутгийн', options: ['вмчийн', 'вмчийн оролцоотой', 'хамтарсан'] },
+  { group: 'Хувийн', options: ['Монгол Улсын', 'гадаадтай хамтарсан', 'гадаад улсын'] },
+];
+
+// 2026-09-04 (5): "Тайланд дуудагдах мэдээлэл" - Сангийн яам/Татварын
+// ерөнхий газар/НДЕГ-т цахимаар тайлан илгээхэд шаардлагатай
+// байгууллагын үндсэн бүртгэлийн мэдээлэл. Ганц мврт тохиргоо
+// (org_report_info, tenant бүрт НЭГ мвр).
+function useOrgReportInfo(hoaId) {
+  const [info, setInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('org_report_info').select('*').eq('tenant_id', hoaId).maybeSingle();
+    setInfo(data || { tenant_id: hoaId, bank_accounts: [] });
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+
+  async function save(patch) {
+    const payload = { tenant_id: hoaId, ...info, ...patch, updated_at: new Date().toISOString() };
+    await supabase.from('org_report_info').upsert(payload, { onConflict: 'tenant_id' });
+    await load();
+  }
+  return { info, loading, save };
+}
+
+function TextField({ label, value, onChange, type = 'text' }) {
+  return (
+    <div>
+      <label className="block text-[11px] text-mutedtext mb-1">{label}</label>
+      <input type={type} className="ds-input w-full" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function OrgReportInfoCard({ hoaId }) {
+  const { info, loading, save } = useOrgReportInfo(hoaId);
+  const [form, setForm] = useState(null);
+  useEffect(() => { if (info) setForm(info); }, [info]);
+
+  function set(key, value) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+  function setAccount(idx, field, value) {
+    setForm((f) => {
+      const accounts = [...(f.bank_accounts || [])];
+      accounts[idx] = { ...accounts[idx], [field]: value };
+      return { ...f, bank_accounts: accounts };
+    });
+  }
+  function addAccount() {
+    setForm((f) => ({ ...f, bank_accounts: [...(f.bank_accounts || []), { bank: '', iban: '' }] }));
+  }
+  function removeAccount(idx) {
+    setForm((f) => ({ ...f, bank_accounts: (f.bank_accounts || []).filter((_, i) => i !== idx) }));
+  }
+
+  if (loading || !form) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      <div className="ds-card p-4 mb-4">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Байгууллагын мэдээлэл</div>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <TextField label="Байгууллагын нэр" value={form.org_name} onChange={(v) => set('org_name', v)} />
+          <TextField label="үйл ажиллагааны чиглэл" value={form.activity_direction} onChange={(v) => set('activity_direction', v)} />
+          <div>
+            <label className="block text-[11px] text-mutedtext mb-1">Хариуцлагын хэлбэр</label>
+            <select className="ds-input w-full" value={form.liability_type} onChange={(e) => set('liability_type', e.target.value)}>
+              <option value="">-- сонгох --</option>
+              {LIABILITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[11px] text-mutedtext mb-1">Вмчийн хэлбэр</label>
+            <select className="ds-input w-full" value={form.ownership_type} onChange={(e) => set('ownership_type', e.target.value)}>
+              <option value="">-- сонгох --</option>
+              {OWNERSHIP_GROUPS.map((g) => (
+                <optgroup key={g.group} label={g.group}>
+                  {g.options.map((o) => <option key={`${g.group}-${o}`} value={`${g.group} ${o}`}>{o}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <TextField label="Регистрийн дугаар" value={form.reg_no} onChange={(v) => set('reg_no', v)} />
+          <TextField label="Татвар төлөгчийн дугаар" value={form.tax_payer_no} onChange={(v) => set('tax_payer_no', v)} />
+          <TextField label="Нийгмийн даатгалын бүртгэлийн дугаар" value={form.social_insurance_no} onChange={(v) => set('social_insurance_no', v)} />
+        </div>
+      </div>
+
+      <div className="ds-card p-4 mb-4">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хаяг, холбоо барих</div>
+        <div className="grid grid-cols-2 gap-4">
+          <TextField label="Аймаг/Нийслэл" value={form.province} onChange={(v) => set('province', v)} />
+          <TextField label="Сум/Дүүрэг" value={form.district} onChange={(v) => set('district', v)} />
+          <TextField label="Баг/Хороо" value={form.bag_khoroo} onChange={(v) => set('bag_khoroo', v)} />
+          <TextField label="Гудамж, хороолол" value={form.street} onChange={(v) => set('street', v)} />
+          <TextField label="Байшин, байр" value={form.building} onChange={(v) => set('building', v)} />
+          <TextField label="Хашаа, хаалганы дугаар" value={form.gate_no} onChange={(v) => set('gate_no', v)} />
+          <TextField label="Суурин утас" value={form.phone} onChange={(v) => set('phone', v)} />
+          <TextField label="Гар утас" value={form.mobile} onChange={(v) => set('mobile', v)} />
+          <TextField label="Факс" value={form.fax} onChange={(v) => set('fax', v)} />
+          <TextField label="Имэйл" value={form.email} onChange={(v) => set('email', v)} type="email" />
+          <TextField label="Веб хуудас" value={form.website} onChange={(v) => set('website', v)} />
+        </div>
+      </div>
+
+      <div className="ds-card p-4 mb-4">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Харилцах данс</div>
+        {(form.bank_accounts || []).map((acc, i) => (
+          <div key={i} className="flex gap-2 mb-2">
+            <input className="ds-input flex-1" placeholder="Банкны нэр" value={acc.bank || ''} onChange={(e) => setAccount(i, 'bank', e.target.value)} />
+            <input className="ds-input flex-1" placeholder="IBAN дугаар" value={acc.iban || ''} onChange={(e) => setAccount(i, 'iban', e.target.value)} />
+            <button className="ds-icon-btn danger" onClick={() => removeAccount(i)}>×</button>
+          </div>
+        ))}
+        <button className="ds-btn-secondary" onClick={addAccount}>+ Данс нэмэх</button>
+      </div>
+
+      <div className="ds-card p-4 mb-4">
+        <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Гарын үсэг зурах албан тушаалтнууд</div>
+        <div className="text-[10.5px] text-mutedtext mb-3">"Ажилтны бүртгэл"-д тухайн албан тушаалтай ажилтнаас автоматаар татагдана — гараар засах шаардлагагүй.</div>
+        <div className="grid grid-cols-2 gap-4">
+          <TextField label="Захирал (Дарга)" value={form.ceo_name} onChange={(v) => set('ceo_name', v)} />
+          <TextField label="Нягтлан бодогч" value={form.accountant_name} onChange={(v) => set('accountant_name', v)} />
+        </div>
+      </div>
+
+      <button className="ds-btn-primary" onClick={() => save(form)}>Хадгалах</button>
+    </div>
+  );
+}
+
+// 2026-09-04 (5): "Албан тушаал" - Ажилтны бүртгэлд ашиглагдах бэлэн
+// жагсаалт (job_positions).
+function JobPositionsList({ hoaId }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [name, setName] = useState('');
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  async function load() {
+    setLoading(true);
+    const { data } = await fetchAllRows(() => supabase.from('job_positions').select('*').eq('tenant_id', hoaId).order('sort_order').order('created_at'));
+    setRows(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+
+  function startAdd() { setName(''); setEditingId(null); setAdding(true); }
+  function startEdit(row) { setName(row.name); setEditingId(row.id); setAdding(true); }
+  async function save() {
+    if (!name.trim()) return;
+    if (editingId) {
+      await supabase.from('job_positions').update({ name: name.trim() }).eq('id', editingId);
+    } else {
+      await supabase.from('job_positions').insert({ tenant_id: hoaId, name: name.trim(), sort_order: rows.length });
+    }
+    setAdding(false);
+    setEditingId(null);
+    load();
+  }
+  async function remove(row) {
+    const ok = await confirm(`"${row.name}" албан тушаалыг устгах уу?`);
+    if (!ok) return;
+    await supabase.from('job_positions').delete().eq('id', row.id);
+    load();
+  }
+
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 640 }}>
+      <table className="ds-table w-full mb-3">
+        <thead>
+          <tr>
+            <th className="py-2 px-2">АЛБАН ТУШААЛ</th>
+            <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+          {loading ? (
+            <tr><td colSpan={2} className="py-6 text-center text-mutedtext">Ачаалж байна...</td></tr>
+          ) : rows.length === 0 ? (
+            <tr><td colSpan={2} className="py-6 text-center text-mutedtext">Албан тушаал бүртгэгдээгүй байна</td></tr>
+          ) : rows.map((r) => (
+            <tr key={r.id}>
+              <td className="py-2 px-2 text-customBlue">{r.name}</td>
+              <td className="py-2 px-2 text-right whitespace-nowrap">
+                <button className="ds-icon-btn" onClick={() => startEdit(r)}><EditIcon /></button>
+                <button className="ds-icon-btn danger" onClick={() => remove(r)}><DeleteIcon /></button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {adding ? (
+        <div className="flex gap-2">
+          <input className="ds-input flex-1" placeholder="Албан тушаалын нэр" value={name} onChange={(e) => setName(e.target.value)} />
+          <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
+          <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Болих</button>
+        </div>
+      ) : (
+        <button className="ds-btn-primary" onClick={startAdd}>+ Албан тушаал нэмэх</button>
+      )}
+      <ConfirmDialog />
+    </div>
+  );
+}
+
 const TARIFF_TABS = [
   { key: 'owner', label: 'Сууц өмчлөгчийн СӨХ-ны төлбөр' },
   { key: 'client', label: 'Талбай өмчлөгч (ААН)-ийн СӨХ-ны төлбөр' },
@@ -395,6 +622,8 @@ const NBB_TABS = [
   { key: 'reserve', label: 'Хуримтлалын сан' },
   { key: 'bonuses', label: 'Цалин - Нэмэгдэл' },
   { key: 'taxes', label: 'Цалин - Татвар, шимтгэл' },
+  { key: 'org_info', label: 'Тайланд дуудагдах мэдээлэл' },
+  { key: 'positions', label: 'Албан тушаал' },
 ];
 
 export default function FinConfig() {
@@ -451,6 +680,8 @@ export default function FinConfig() {
           {nbbTab === 'invoice' && <InvoiceScheduleCard hoaId={hoaId} />}
           {nbbTab === 'overdue' && <OverdueCard hoaId={hoaId} />}
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
+          {nbbTab === 'org_info' && <OrgReportInfoCard hoaId={hoaId} />}
+          {nbbTab === 'positions' && <JobPositionsList hoaId={hoaId} />}
           {['bonuses', 'taxes'].includes(nbbTab) && (
             <InProgress label={NBB_TABS.find((t) => t.key === nbbTab)?.label} />
           )}
