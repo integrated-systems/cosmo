@@ -6,11 +6,16 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 
-// "Төлбөр төлөлт" (/payments) — 2026-09-04 (6) хэрэглэгчийн шийдвэрээр
-// СӨХ төлбөрийн нэхэмжлэх үүсгэх эхний алхам: "Тариф -> Нэхэмжлэл"
-// урсгалыг хэрэгжүүлнэ (Төлбөр тааруулалт, НББ журнал зэрэг дараагийн
-// үе шат). Аюулгүйн үүднээс АВТОМАТ cron БИШ, staff өөрвө дарж
-// үүсгэдэг ГАР ТОВЧ хэлбэрээр эхлүүлнэ (тооцооллыг батлах хүртэл).
+// "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-04 (7) хэрэглэгчийн
+// тодруулгаар: нэхэмжлэл үүсгэх нь Нягтлан бодогчийн (accounting)
+// ажил тул зөвхөн "Төлбөр төлөлт" (үНДСЭН, ЕРӨӨНХИЙ бүлэг)-д БИШ,
+// харин "САНХүү" бүлгийн ЯГ үүнд зориулагдсан "Нэхэмжлэх" линк дор л
+// байх ёстой гэдгийг олж, "Төлбөр төлөлт"-ээс энд шилжүүлэв.
+// "Тариф -> Нэхэмжлэл" урсгалыг хэрэгжүүлнэ (Төлбөр тааруулалт, НББ
+// журнал зэрэг дараагийн үе шат). Аюулгүйн үүднээс АВТОМАТ cron БИШ,
+// staff өөрвө дарж үүсгэдэг ГАР ТОВЧ хэлбэрээр эхлүүлнэ (тооцооллыг
+// батлах хүртэл).
+
 
 function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
   const items = [];
@@ -57,7 +62,7 @@ function calcClientItems(client, tariffItems, gridStorageSpots, gridLandPlots) {
   return items;
 }
 
-export default function Payments() {
+export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
   const now = new Date();
@@ -152,7 +157,7 @@ export default function Payments() {
   return (
     <>
       <div className="mb-3">
-        <div className="text-[15px] font-semibold text-slate-900 dark:text-white mb-1">Төлбөр төлөлт</div>
+        <div className="text-[15px] font-semibold text-slate-900 dark:text-white mb-1">Нэхэмжлэх</div>
         <div className="text-[11.5px] text-mutedtext">СӨХ төлбөрийн нэхэмжлэх үүсгэх, харах</div>
       </div>
 
