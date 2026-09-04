@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { sortFloors } from '../lib/floorSort';
 
 // 2026-08-31: Хэрэглэгчийн хүсэлт — "__parking_grid_drawer_v5.html"
 // (standalone, imperative DOM-той хэрэгсэл)-ийг React-т зохимжтой
@@ -471,8 +472,8 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   useEffect(() => {
-    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); }
-    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); }
+    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); handlePolygonPointerMove(e); handleLinePointerMove(e); }
+    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); handlePolygonPointerUp(e); handleLinePointerUp(e); }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
@@ -573,44 +574,6 @@ export default function GridConstructorReact({ hoaId }) {
   // модал доторх dropdown-оор холбохын тулд полигон ч мвн slot шиг
   // тодорхой нэртэй (жиш нь "Э-01") байх шаардлагатай болов.
   const [editingPolygonId, setEditingPolygonId] = useState(null);
-  function pointInPolygon(x, y, points) {
-    let inside = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const xi = points[i].x, yi = points[i].y, xj = points[j].x, yj = points[j].y;
-      const intersect = (yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-  function distToSegment(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1, dy = y2 - y1;
-    const lenSq = dx * dx + dy * dy;
-    let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
-    t = Math.max(0, Math.min(1, t));
-    const cx = x1 + t * dx, cy = y1 + t * dy;
-    return Math.hypot(px - cx, py - cy);
-  }
-  // 2026-09-04: Хэрэглэгчийн хүсэлт - ямар ч дүүргэлт (талбай)-гүй,
-  // шулуун зураас шиг нарийн полигоныг (pointInPolygon-ийн талбай
-  // үндэслэсэн шалгалт бараг хэзээ ч үнэн болдоггүй тул) идэвхжүүлж
-  // чадахгүй байсныг засав - одоо полигоны зураас (edge)-тэй ойрхон
-  // (6px/zoom дотор) дарвал ч мвн зөвшөөрнэ.
-  function handleCanvasClickForPolygonSelect(e) {
-    if (tool === 'polygon') return; // энэ үед шинэ полигон зурж байгаа тул алгасна
-    if (e.target.closest('[data-slot-id]')) return;
-    const rect = gridRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / zoom;
-    const y = (e.clientY - rect.top) / zoom;
-    const edgeThreshold = 6 / zoom;
-    const hit = polygons.find((p) => {
-      if (pointInPolygon(x, y, p.points)) return true;
-      for (let i = 0, j = p.points.length - 1; i < p.points.length; j = i++) {
-        if (distToSegment(x, y, p.points[i].x, p.points[i].y, p.points[j].x, p.points[j].y) < edgeThreshold) return true;
-      }
-      return false;
-    });
-    if (hit) setEditingPolygonId(hit.id);
-  }
   function updatePolygon(id, patch) {
     setPolygons((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }
@@ -636,9 +599,9 @@ export default function GridConstructorReact({ hoaId }) {
     const data = {
       cellSize: CELL, cols, rows,
       slots: slots.map((s) => ({ id: s.id, col: s.col, row: s.row, horizontal: s.horizontal, kind: s.kind, borderColor: s.borderColor, fillColor: s.fillColor, labelColor: s.labelColor, label: s.label || '', labelRotation: s.labelRotation || 0, sqm: s.sqm ?? null })),
-      polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0, sqm: p.sqm ?? null })),
+      polygons: polygons.map((p) => ({ id: p.id, points: p.points, strokeColor: p.strokeColor, strokeWidth: p.strokeWidth, lineStyle: p.lineStyle || null, fillColor: p.fillColor, labelColor: p.labelColor, label: p.label || '', labelRotation: p.labelRotation || 0, sqm: p.sqm ?? null })),
       texts: texts.map((t) => ({ id: t.id, x: t.x, y: t.y, text: t.text || '', color: t.color, fontSize: t.fontSize || 14, rotation: t.rotation || 0 })),
-      lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2 })),
+      lines: lines.map((l) => ({ id: l.id, x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, color: l.color, strokeWidth: l.strokeWidth || 2, lineStyle: l.lineStyle || null })),
       compasses: compasses.map((c) => ({ id: c.id, col: c.col, row: c.row, rotation: c.rotation || 0 })),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -664,7 +627,7 @@ export default function GridConstructorReact({ hoaId }) {
       {/* 2026-08-31 (2): давхарга сонгох + хадгалах/нийтлэх/импорт — талбайн ажилтан тусгаар (draft/published 2 түвшин) хандалахад зориулав. */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
-          {floorList.map((fk) => (
+          {sortFloors(floorList).map((fk) => (
             <button
               key={fk}
               onClick={() => setFloorKey(fk)}
@@ -764,7 +727,7 @@ export default function GridConstructorReact({ hoaId }) {
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}
-          onClick={(e) => { handlePolyClick(e); handleCanvasClickForPolygonSelect(e); handleTextToolClick(e); handleCompassToolClick(e); }}
+          onClick={(e) => { handlePolyClick(e); handleTextToolClick(e); handleCompassToolClick(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
             touchAction: 'none', // 2026-09-03: iPad/tablet+pen дэмжлэг - хүлээгдэхгүй scroll/zoom
@@ -842,20 +805,30 @@ export default function GridConstructorReact({ hoaId }) {
           {/* полигон давхарга (SVG) */}
           <svg style={{ position: 'absolute', left: 0, top: 0, width: cols * ec, height: rows * ec, pointerEvents: 'none' }}>
             {polygons.map((p) => {
-              const cx = (p.points.reduce((s, pt) => s + pt.x, 0) / p.points.length) * zoom;
-              const cy = (p.points.reduce((s, pt) => s + pt.y, 0) / p.points.length) * zoom;
+              const delta = draggingPolyDelta && draggingPolyDelta.id === p.id ? draggingPolyDelta : { dx: 0, dy: 0 };
+              const pts = p.points.map((pt) => ({ x: pt.x + delta.dx, y: pt.y + delta.dy }));
+              const cx = (pts.reduce((s, pt) => s + pt.x, 0) / pts.length) * zoom;
+              const cy = (pts.reduce((s, pt) => s + pt.y, 0) / pts.length) * zoom;
               return (
-                <g key={p.id} className={!p.strokeColor || !p.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}>
+                <g
+                  key={p.id}
+                  className={!p.strokeColor || !p.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}
+                  style={{ pointerEvents: 'auto', cursor: 'grab' }}
+                  onPointerDown={(e) => handlePolygonPointerDown(e, p)}
+                >
                   <polygon
-                    points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
+                    points={pts.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
                     fill={p.fillColor ? p.fillColor : 'currentColor'} fillOpacity={p.fillColor ? 0.35 : 0.10}
                     stroke={p.strokeColor ? p.strokeColor : 'currentColor'} strokeOpacity={p.strokeColor ? 1 : 0.3} strokeWidth={p.strokeWidth} strokeLinejoin="round"
+                    strokeDasharray={p.lineStyle === 'dashed' ? `${(p.strokeWidth || 2) * 3},${(p.strokeWidth || 2) * 2}` : p.lineStyle === 'dotted' ? `${p.strokeWidth || 2},${(p.strokeWidth || 2) * 1.5}` : undefined}
+                    strokeLinecap={p.lineStyle === 'dotted' ? 'round' : 'butt'}
                   />
                   {p.label && (
                     <text
                       x={cx} y={cy} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={12 * zoom} fontWeight={600}
                       textAnchor="middle" dominantBaseline="middle"
                       transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                      style={{ pointerEvents: 'none' }}
                     >
                       {p.label}
                     </text>
@@ -865,6 +838,7 @@ export default function GridConstructorReact({ hoaId }) {
                       x={cx} y={cy + 13 * zoom} fill={p.labelColor ? p.labelColor : 'currentColor'} fontSize={9 * zoom} fontWeight={600} opacity={0.8}
                       textAnchor="middle" dominantBaseline="middle"
                       transform={`rotate(${p.labelRotation || 0} ${cx} ${cy})`}
+                      style={{ pointerEvents: 'none' }}
                     >
                       {p.sqm}м2
                     </text>
@@ -881,13 +855,19 @@ export default function GridConstructorReact({ hoaId }) {
             {tool === 'polygon' && polyPoints.map((pt, i) => (
               <circle key={i} cx={pt.x * zoom} cy={pt.y * zoom} r={4} fill={i === 0 ? '#5fe0d0' : strokeColor} />
             ))}
-            {lines.map((l) => (
-              <g key={l.id} style={{ pointerEvents: 'auto', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setEditingLineId(l.id); }}>
-                {/* Даралт үзэх талбайг түүнлүүлж, дарахад амар болгох тулд тунгалаг өргөн зураас (hit-area) */}
-                <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke="transparent" strokeWidth={Math.max(16, (l.strokeWidth || 2) * zoom)} />
-                <line x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom} stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap="round" />
-              </g>
-            ))}
+            {lines.map((l) => {
+              const delta = draggingLineDelta && draggingLineDelta.id === l.id ? draggingLineDelta : { dx: 0, dy: 0 };
+              const x1 = l.x1 + delta.dx, y1 = l.y1 + delta.dy, x2 = l.x2 + delta.dx, y2 = l.y2 + delta.dy;
+              const dashArray = l.lineStyle === 'dashed' ? `${(l.strokeWidth || 2) * 3},${(l.strokeWidth || 2) * 2}` : l.lineStyle === 'dotted' ? `${l.strokeWidth || 2},${(l.strokeWidth || 2) * 1.5}` : undefined;
+              const lineCap = l.lineStyle === 'dotted' ? 'round' : 'butt';
+              return (
+                <g key={l.id} style={{ pointerEvents: 'auto', cursor: 'grab' }} onPointerDown={(e) => handleLinePointerDown(e, l)}>
+                  {/* Даралт үзэх талбайг түүнлүүлж, дарахад амар болгох тулд тунгалаг өргөн зураас (hit-area) */}
+                  <line x1={x1 * zoom} y1={y1 * zoom} x2={x2 * zoom} y2={y2 * zoom} stroke="transparent" strokeWidth={Math.max(16, (l.strokeWidth || 2) * zoom)} />
+                  <line x1={x1 * zoom} y1={y1 * zoom} x2={x2 * zoom} y2={y2 * zoom} stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap={lineCap} strokeDasharray={dashArray} />
+                </g>
+              );
+            })}
             {lineGhost && (
               <line x1={lineGhost.x1 * zoom} y1={lineGhost.y1 * zoom} x2={lineGhost.x2 * zoom} y2={lineGhost.y2 * zoom} stroke={strokeColor || '#94a3b8'} strokeWidth={2} strokeDasharray="4,3" />
             )}
@@ -1019,6 +999,13 @@ export default function GridConstructorReact({ hoaId }) {
             <label className="block text-[10.5px] text-mutedtext mb-1">Зураасны өргөн (px)</label>
             <input type="number" min={1} max={10} className="ds-input w-full mb-3" value={editingPolygon.strokeWidth || 2} onChange={(e) => updatePolygon(editingPolygon.id, { strokeWidth: Math.max(1, +e.target.value || 1) })} />
 
+            <label className="block text-[10.5px] text-mutedtext mb-1">Хүрээний загвар</label>
+            <select className="ds-input w-full mb-3" value={editingPolygon.lineStyle || 'solid'} onChange={(e) => updatePolygon(editingPolygon.id, { lineStyle: e.target.value === 'solid' ? null : e.target.value })}>
+              <option value="solid">Тогтмол зураас</option>
+              <option value="dashed">Түүдэн зураас</option>
+              <option value="dotted">Цэгэн зураас</option>
+            </select>
+
             <label className="block text-[10.5px] text-mutedtext mb-1">Зураасны өнгө</label>
             <div className="flex gap-1.5 mb-3 flex-wrap">
               <button onClick={() => updatePolygon(editingPolygon.id, { strokeColor: null })} className={`w-6 h-6 rounded border ${!editingPolygon.strokeColor ? 'ring-2 ring-customBlue' : ''}`} style={{ background: 'repeating-linear-gradient(45deg, #2a3a4d, #2a3a4d 3px, #1a2534 3px, #1a2534 6px)' }} title="Автомат (Тоот шиг)" />
@@ -1089,6 +1076,13 @@ export default function GridConstructorReact({ hoaId }) {
             <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Зураас засах</div>
             <label className="block text-[10.5px] text-mutedtext mb-1">өргөн (px)</label>
             <input type="number" min={1} max={10} className="ds-input w-full mb-3" value={editingLine.strokeWidth || 2} onChange={(e) => updateLine(editingLine.id, { strokeWidth: Math.max(1, +e.target.value || 1) })} />
+
+            <label className="block text-[10.5px] text-mutedtext mb-1">Загвар</label>
+            <select className="ds-input w-full mb-3" value={editingLine.lineStyle || 'solid'} onChange={(e) => updateLine(editingLine.id, { lineStyle: e.target.value === 'solid' ? null : e.target.value })}>
+              <option value="solid">Тогтмол зураас</option>
+              <option value="dashed">Түүдэн зураас</option>
+              <option value="dotted">Цэгэн зураас</option>
+            </select>
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Внгв</label>
             <div className="flex gap-1.5 mb-4 flex-wrap">

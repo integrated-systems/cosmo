@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
+import { useAlert } from '../hooks/useAlert';
 
 // "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-04 (7) хэрэглэгчийн
 // тодруулгаар: нэхэмжлэл үүсгэх нь Нягтлан бодогчийн (accounting)
@@ -76,6 +77,7 @@ function calcClientItems(client, tariffItems, gridStorageSpots) {
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { gridStorageSpots } = useGridSpots(hoaId);
+  const { alert, AlertDialog } = useAlert();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -168,7 +170,6 @@ export default function Invoice() {
   return (
     <>
       <div className="mb-3">
-        <div className="text-[15px] font-semibold text-slate-900 dark:text-white mb-1">Нэхэмжлэх</div>
         <div className="text-[11.5px] text-mutedtext">СӨХ төлбөрийн нэхэмжлэх үүсгэх, харах</div>
       </div>
 
@@ -240,6 +241,7 @@ export default function Invoice() {
           </tbody>
         </table>
       </div>
+      <AlertDialog />
     </>
   );
 }

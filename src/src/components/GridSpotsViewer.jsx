@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { floorSortKey } from '../lib/floorSort';
 import { fetchAllRows } from '../lib/fetchAllRows';
 
 // 2026-09-02: "Тоот, Зогсоол, Агуулах" хуудасны шинэ "Зогсоол,
@@ -95,7 +96,12 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
     <div className="ds-card p-3" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div className="flex items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
-          {floors.map((f) => (
+          {[...floors].sort((a, b) => {
+            const ka = floorSortKey(a.floor_key), kb = floorSortKey(b.floor_key);
+            if (ka[0] !== kb[0]) return ka[0] - kb[0];
+            if (ka[1] !== kb[1]) return ka[1] - kb[1];
+            return String(ka[2]).localeCompare(String(kb[2]));
+          }).map((f) => (
             <button
               key={f.floor_key}
               onClick={() => setActiveFloor(f.floor_key)}
@@ -183,6 +189,8 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                     strokeOpacity={hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3)}
                     strokeWidth={p.strokeWidth}
                     strokeLinejoin="round"
+                    strokeDasharray={p.lineStyle === 'dashed' ? `${(p.strokeWidth || 2) * 3},${(p.strokeWidth || 2) * 2}` : p.lineStyle === 'dotted' ? `${p.strokeWidth || 2},${(p.strokeWidth || 2) * 1.5}` : undefined}
+                    strokeLinecap={p.lineStyle === 'dotted' ? 'round' : 'butt'}
                     style={{ transition: 'stroke-opacity 0.15s' }}
                   />
                   {p.label && (
@@ -213,7 +221,9 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
             {lines.map((l, i) => (
               <line
                 key={i} x1={l.x1 * zoom} y1={l.y1 * zoom} x2={l.x2 * zoom} y2={l.y2 * zoom}
-                stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom} strokeLinecap="round"
+                stroke={l.color || '#94a3b8'} strokeWidth={(l.strokeWidth || 2) * zoom}
+                strokeLinecap={l.lineStyle === 'dotted' ? 'round' : 'butt'}
+                strokeDasharray={l.lineStyle === 'dashed' ? `${(l.strokeWidth || 2) * 3},${(l.strokeWidth || 2) * 2}` : l.lineStyle === 'dotted' ? `${l.strokeWidth || 2},${(l.strokeWidth || 2) * 1.5}` : undefined}
               />
             ))}
           </svg>
