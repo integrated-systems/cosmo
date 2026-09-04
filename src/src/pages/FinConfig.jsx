@@ -26,6 +26,19 @@ const CALC_METHODS = [
   { value: 'area', label: 'Талбайгаар (₮/м²/сар)' },
   { value: 'fixed', label: 'Тогтмол (₮/сар)' },
 ];
+// 2026-09-04 (6): "Нэхэмжлэх үүсгэх" тооцооллын хүдэлгүүр ЯГ ЮУГ
+// тоолж/хэмжихийг тодорхой мэдэх ёстой тул нэмэв. "unit" = тоот
+// вврвв дээр тогтмол хураамж (жиш СӨХ-ны төлбөр), "parking"/"storage"/
+// "land" тус тус холбогдсон грид слот/талбайн тоо эсвэл м2-оор.
+const APPLIES_TO = [
+  { value: 'unit', label: 'Тоот вврвв (тогтмол)' },
+  { value: 'parking', label: 'Холбогдсон Зогсоолын тоо' },
+  { value: 'storage', label: 'Холбогдсон Агуулахын тоо/м2' },
+  { value: 'land', label: 'Холбогдсон Талбайн м2' },
+];
+function appliesToLabel(v) {
+  return APPLIES_TO.find((a) => a.value === v)?.label || v;
+}
 
 function calcMethodLabel(v) {
   return CALC_METHODS.find((m) => m.value === v)?.label || v;
@@ -37,7 +50,7 @@ function TariffCatalog({ hoaId, category, title }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', calc_method: 'count', amount: '' });
+  const [form, setForm] = useState({ name: '', calc_method: 'count', amount: '', applies_to: 'unit' });
   const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
@@ -51,12 +64,12 @@ function TariffCatalog({ hoaId, category, title }) {
   useEffect(() => { if (hoaId) load(); }, [hoaId, category]);
 
   function startAdd() {
-    setForm({ name: '', calc_method: 'count', amount: '' });
+    setForm({ name: '', calc_method: 'count', amount: '', applies_to: 'unit' });
     setEditingId(null);
     setAdding(true);
   }
   function startEdit(row) {
-    setForm({ name: row.name, calc_method: row.calc_method, amount: row.amount });
+    setForm({ name: row.name, calc_method: row.calc_method, amount: row.amount, applies_to: row.applies_to || 'unit' });
     setEditingId(row.id);
     setAdding(true);
   }
@@ -64,7 +77,7 @@ function TariffCatalog({ hoaId, category, title }) {
     if (!form.name.trim()) return;
     const payload = {
       tenant_id: hoaId, category, name: form.name.trim(),
-      calc_method: form.calc_method, amount: +form.amount || 0,
+      calc_method: form.calc_method, amount: +form.amount || 0, applies_to: form.applies_to,
     };
     if (editingId) {
       await supabase.from('tariff_items').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
@@ -99,6 +112,7 @@ function TariffCatalog({ hoaId, category, title }) {
           <thead>
             <tr>
               <th className="py-2 px-2">НЭР</th>
+              <th className="py-2 px-2">ЮУНД ХОЛБОГДОХ</th>
               <th className="py-2 px-2">ТООЦООЛЛЫН АРГА</th>
               <th className="py-2 px-2">ХЭМЖЭЭ</th>
               <th className="py-2 px-2">ИДЭВХТЭЙ</th>
@@ -109,6 +123,7 @@ function TariffCatalog({ hoaId, category, title }) {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td className="py-2 px-2 font-medium text-slate-900 dark:text-white">{r.name}</td>
+                <td className="py-2 px-2 text-mutedtext">{appliesToLabel(r.applies_to)}</td>
                 <td className="py-2 px-2 text-mutedtext">{calcMethodLabel(r.calc_method)}</td>
                 <td className="py-2 px-2">{formatMoney(r.amount)}₮</td>
                 <td className="py-2 px-2">
@@ -123,15 +138,18 @@ function TariffCatalog({ hoaId, category, title }) {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="py-6 text-center text-mutedtext">Тариф бүртгэгдээгүй байна</td></tr>
+              <tr><td colSpan={6} className="py-6 text-center text-mutedtext">Тариф бүртгэгдээгүй байна</td></tr>
             )}
           </tbody>
         </table>
       )}
       {adding ? (
         <div className="ds-card p-3" style={{ background: 'var(--surface-0, transparent)' }}>
-          <div className="grid grid-cols-3 gap-2 mb-2">
+          <div className="grid grid-cols-4 gap-2 mb-2">
             <input className="ds-input" placeholder="Төлбөрийн нэр" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <select className="ds-input" value={form.applies_to} onChange={(e) => setForm((f) => ({ ...f, applies_to: e.target.value }))}>
+              {APPLIES_TO.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
             <select className="ds-input" value={form.calc_method} onChange={(e) => setForm((f) => ({ ...f, calc_method: e.target.value }))}>
               {CALC_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
