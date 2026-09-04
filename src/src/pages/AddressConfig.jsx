@@ -7,6 +7,7 @@ import UnitEditModal from '../components/UnitEditModal';
 import GridConstructorReact from '../components/GridConstructorReact';
 import TabButton from '../components/TabButton';
 import { SectionLockBadge } from '../components/SectionLockBadge';
+import { friendlyErrorMessage } from '../lib/lockErrorMessage';
 import { useConfirm } from '../hooks/useConfirm';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -183,7 +184,7 @@ function UnitLayoutDesigner() {
       const BATCH = 500;
       for (let i = 0; i < rows.length; i += BATCH) {
         const { error } = await supabase.from('unit_layouts').insert(rows.slice(i, i + BATCH));
-        if (error) { alert(`Хадгалахад алдаа гарлаа: ${error.message}\n\n⚠️ Хуучин мэдээлэл аль хэдийн уссан байж болзошгүй — хуудасыг дахин ачаалж шалгана уу.`); setSaving(false); await loadAllBuildings(); return; }
+        if (error) { alert(friendlyErrorMessage(error)); setSaving(false); await loadAllBuildings(); return; }
       }
     }
     setSaving(false);

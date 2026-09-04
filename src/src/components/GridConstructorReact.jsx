@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { sortFloors } from '../lib/floorSort';
+import { friendlyErrorMessage } from '../lib/lockErrorMessage';
 
 // 2026-08-31: Хэрэглэгчийн хүсэлт — "__parking_grid_drawer_v5.html"
 // (standalone, imperative DOM-той хэрэгсэл)-ийг React-т зохимжтой
@@ -233,7 +234,7 @@ export default function GridConstructorReact({ hoaId }) {
     };
     const { error } = await supabase.from('basement_floors').upsert(payload, { onConflict: 'tenant_id,floor_key' });
     setSaving(false);
-    if (error) { alert(error.message); return; }
+    if (error) { alert(friendlyErrorMessage(error, 'Хадгалахад алдаа гарлаа')); return; }
     if (publish) setStatus('published');
     setLastSavedAt(new Date());
   }
