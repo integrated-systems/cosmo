@@ -27,22 +27,22 @@ const CALC_METHODS = [
   { value: 'fixed', label: 'Тогтмол (₮/сар)' },
 ];
 // 2026-09-04 (6): "Нэхэмжлэх үүсгэх" тооцооллын хүдэлгүүр ЯГ ЮУГ
-// тоолж/хэмжихийг тодорхой мэдэх ёстой тул нэмэв. "unit" = тоот
-// вврвв дээр тогтмол хураамж (жиш СӨХ-ны төлбөр), "parking"/"storage"/
-// "land" тус тус холбогдсон грид слот/талбайн тоо эсвэл м2-оор.
-const APPLIES_TO = [
-  { value: 'unit', label: 'Тоот вврвв (тогтмол)' },
-  { value: 'parking', label: 'Холбогдсон Зогсоолын тоо' },
-  { value: 'storage', label: 'Холбогдсон Агуулахын тоо/м2' },
-  { value: 'land', label: 'Холбогдсон Талбайн м2' },
-];
-function appliesToLabel(v) {
-  return APPLIES_TO.find((a) => a.value === v)?.label || v;
-}
-
+// тоолж/хэмжихийг тодорхой мэдэх ёстой (одоо код дотор шууд, ФИКС
+// нэрээр таньдаг - доор 8-р тайлбарыг үзнэ vv).
 function calcMethodLabel(v) {
   return CALC_METHODS.find((m) => m.value === v)?.label || v;
 }
+
+// 2026-09-04 (8): Хэрэглэгчийн шүүмжлэлээр "applies_to" (Юунд
+// холбогдох) баганыг АРИЛГАВ - үүнийг өөрөрөр 2 үүрэг (ЮУНД
+// ХОЛБОГДОХ vs ХЭРХЭН ХЭМЖИХ) НЭГ баганад холиход үүсгэсэн
+// зөрчилдөөнийг арилгав. Оронд нь "СӨХ-ны төлбөр"/"Зогсоол"/"Агуулах"
+// гэсэн 3 ФИКС категорийг ЯГ НЭРЭЭР нь таньж (нэр солигдохгүй,
+// устгагдахгүй, ямагт идэвхтэй), тооцооллын логикыг Invoice.jsx-д
+// шууд код дотор тодорхойлно (simplicity is everything). Бусад бүх
+// мвр = энгийн, "идэвхтэй эсэхээс шалтгаалан" нэмэгддэг тогтмол
+// хураамж.
+const FIXED_NAMES = ['СӨХ-ны төлбөр', 'Зогсоол', 'Агуулах'];
 
 // ---------------- Тарифын каталог (Сууц өмчлөгч / ААН) ----------------
 function TariffCatalog({ hoaId, category, title }) {
@@ -50,35 +50,59 @@ function TariffCatalog({ hoaId, category, title }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', calc_method: 'count', amount: '', applies_to: 'unit' });
+  const [form, setForm] = useState({ name: '', calc_method: 'count', amount: '' });
   const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
     setLoading(true);
-    const { data } = await fetchAllRows(() =>
+    let { data } = await fetchAllRows(() =>
       supabase.from('tariff_items').select('*').eq('tenant_id', hoaId).eq('category', category).order('sort_order').order('created_at')
     );
-    setRows(data || []);
+    data = data || [];
+    // 2026-09-04 (8): 3 ФИКС категори үргүй байвал автоматаар үүсгэнэ
+    // (staff санамсаргүй устгасан, эсвэл шинэ tenant үед).
+    const existingNames = data.map((r) => r.name);
+    const missing = FIXED_NAMES.filter((n) => !existingNames.includes(n));
+    if (missing.length > 0) {
+      await supabase.from('tariff_items').insert(
+        missing.map((name, i) => ({ tenant_id: hoaId, category, name, calc_method: 'fixed', amount: 0, active: true, sort_order: -100 + i }))
+      );
+      const reloaded = await fetchAllRows(() =>
+        supabase.from('tariff_items').select('*').eq('tenant_id', hoaId).eq('category', category).order('sort_order').order('created_at')
+      );
+      data = reloaded.data || [];
+    }
+    // ФИКС категори эхэнд, дараа нь үүсгэсэн дараалалаараа
+    data.sort((a, b) => {
+      const af = FIXED_NAMES.includes(a.name), bf = FIXED_NAMES.includes(b.name);
+      if (af && !bf) return -1;
+      if (!af && bf) return 1;
+      if (af && bf) return FIXED_NAMES.indexOf(a.name) - FIXED_NAMES.indexOf(b.name);
+      return 0;
+    });
+    setRows(data);
     setLoading(false);
   }
   useEffect(() => { if (hoaId) load(); }, [hoaId, category]);
 
+  function isFixed(row) { return FIXED_NAMES.includes(row.name); }
+
   function startAdd() {
-    setForm({ name: '', calc_method: 'count', amount: '', applies_to: 'unit' });
+    setForm({ name: '', calc_method: 'count', amount: '' });
     setEditingId(null);
     setAdding(true);
   }
   function startEdit(row) {
-    setForm({ name: row.name, calc_method: row.calc_method, amount: row.amount, applies_to: row.applies_to || 'unit' });
+    setForm({ name: row.name, calc_method: row.calc_method, amount: row.amount });
     setEditingId(row.id);
     setAdding(true);
   }
   async function save() {
     if (!form.name.trim()) return;
-    const payload = {
-      tenant_id: hoaId, category, name: form.name.trim(),
-      calc_method: form.calc_method, amount: +form.amount || 0, applies_to: form.applies_to,
-    };
+    const editingRow = rows.find((r) => r.id === editingId);
+    const payload = editingRow && isFixed(editingRow)
+      ? { calc_method: form.calc_method, amount: +form.amount || 0 } // ФИКС мвр - нэр/төлө өөрчлөгдөхгүй
+      : { tenant_id: hoaId, category, name: form.name.trim(), calc_method: form.calc_method, amount: +form.amount || 0 };
     if (editingId) {
       await supabase.from('tariff_items').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
     } else {
@@ -99,6 +123,9 @@ function TariffCatalog({ hoaId, category, title }) {
     load();
   }
 
+  const editingRow = editingId ? rows.find((r) => r.id === editingId) : null;
+  const editingFixed = editingRow ? isFixed(editingRow) : false;
+
   return (
     <div className="ds-card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -112,48 +139,56 @@ function TariffCatalog({ hoaId, category, title }) {
           <thead>
             <tr>
               <th className="py-2 px-2">НЭР</th>
-              <th className="py-2 px-2">ЮУНД ХОЛБОГДОХ</th>
               <th className="py-2 px-2">ТООЦООЛЛЫН АРГА</th>
-              <th className="py-2 px-2">ХЭМЖЭЭ</th>
-              <th className="py-2 px-2">ИДЭВХТЭЙ</th>
+              <th className="py-2 px-2">ХЭМЖИХ НЭГЖ</th>
+              <th className="py-2 px-2">ТӨЛӨВ</th>
               <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="py-2 px-2 font-medium text-slate-900 dark:text-white">{r.name}</td>
-                <td className="py-2 px-2 text-mutedtext">{appliesToLabel(r.applies_to)}</td>
-                <td className="py-2 px-2 text-mutedtext">{calcMethodLabel(r.calc_method)}</td>
-                <td className="py-2 px-2">{formatMoney(r.amount)}₮</td>
-                <td className="py-2 px-2">
-                  <button onClick={() => toggleActive(r)} className={`text-[11px] font-medium ${r.active ? 'text-customGreen' : 'text-mutedtext'}`}>
-                    {r.active ? 'Идэвхтэй' : 'Идэвхгүй'}
-                  </button>
-                </td>
-                <td className="py-2 px-2 text-right whitespace-nowrap">
-                  <button className="ds-icon-btn" onClick={() => startEdit(r)}><EditIcon /></button>
-                  <button className="ds-icon-btn danger" onClick={() => remove(r)}><DeleteIcon /></button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r) => {
+              const fixed = isFixed(r);
+              return (
+                <tr key={r.id}>
+                  <td className={`py-2 px-2 ${fixed ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-900 dark:text-white'}`}>{r.name}</td>
+                  <td className="py-2 px-2 text-mutedtext">{calcMethodLabel(r.calc_method)}</td>
+                  <td className="py-2 px-2">{formatMoney(r.amount)}₮</td>
+                  <td className="py-2 px-2">
+                    {fixed ? (
+                      <span className="text-[11px] font-medium text-customGreen">Идэвхтэй</span>
+                    ) : (
+                      <button onClick={() => toggleActive(r)} className={`text-[11px] font-medium ${r.active ? 'text-customGreen' : 'text-mutedtext'}`}>
+                        {r.active ? 'Идэвхтэй' : 'Идэвхгүй'}
+                      </button>
+                    )}
+                  </td>
+                  <td className="py-2 px-2 text-right whitespace-nowrap">
+                    <button className="ds-icon-btn" onClick={() => startEdit(r)}><EditIcon /></button>
+                    {!fixed && (
+                      <button className="ds-icon-btn danger" onClick={() => remove(r)}><DeleteIcon /></button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="py-6 text-center text-mutedtext">Тариф бүртгэгдээгүй байна</td></tr>
+              <tr><td colSpan={5} className="py-6 text-center text-mutedtext">Тариф бүртгэгдээгүй байна</td></tr>
             )}
           </tbody>
         </table>
       )}
       {adding ? (
         <div className="ds-card p-3" style={{ background: 'var(--surface-0, transparent)' }}>
-          <div className="grid grid-cols-4 gap-2 mb-2">
-            <input className="ds-input" placeholder="Төлбөрийн нэр" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            <select className="ds-input" value={form.applies_to} onChange={(e) => setForm((f) => ({ ...f, applies_to: e.target.value }))}>
-              {APPLIES_TO.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-            </select>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            {editingFixed ? (
+              <div className="ds-input flex items-center font-semibold text-slate-900 dark:text-white opacity-70">{form.name}</div>
+            ) : (
+              <input className="ds-input" placeholder="Төлбөрийн нэр" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            )}
             <select className="ds-input" value={form.calc_method} onChange={(e) => setForm((f) => ({ ...f, calc_method: e.target.value }))}>
               {CALC_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            <input type="number" className="ds-input" placeholder="Хэмжээ (₮)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+            <input type="number" className="ds-input" placeholder="Хэмжих нэгж (₮)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
           </div>
           <div className="flex gap-2">
             <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
@@ -168,140 +203,6 @@ function TariffCatalog({ hoaId, category, title }) {
   );
 }
 
-// ---------------- fin_settings-д тулгуурласан ганц мврт тохиргооны карт ----------------
-function useFinSettings(hoaId) {
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  async function load() {
-    setLoading(true);
-    const { data } = await supabase.from('fin_settings').select('*').eq('tenant_id', hoaId).maybeSingle();
-    setSettings(data || { tenant_id: hoaId });
-    setLoading(false);
-  }
-  useEffect(() => { if (hoaId) load(); }, [hoaId]);
-
-  async function save(patch) {
-    const payload = { tenant_id: hoaId, ...settings, ...patch, updated_at: new Date().toISOString() };
-    delete payload.id;
-    await supabase.from('fin_settings').upsert(payload, { onConflict: 'tenant_id' });
-    await load();
-  }
-  return { settings, loading, save };
-}
-
-function SettingsField({ label, hint, value, onChange }) {
-  return (
-    <div className="mb-4">
-      <label className="block text-[11.5px] font-medium text-slate-700 dark:text-mutedtext mb-1">{label}</label>
-      <input type="number" step="any" className="ds-input w-full" value={value} onChange={(e) => onChange(e.target.value)} />
-      {hint && <div className="text-[10.5px] text-mutedtext mt-1">{hint}</div>}
-    </div>
-  );
-}
-
-function ReserveFundCard({ hoaId }) {
-  const { settings, loading, save } = useFinSettings(hoaId);
-  const [amount, setAmount] = useState('');
-  useEffect(() => { if (settings) setAmount(settings.monthly_reserve_amount ?? 0); }, [settings]);
-  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
-  return (
-    <div className="ds-card p-4" style={{ maxWidth: 420 }}>
-      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хуримтлалын санд сар бүр төлөрүүлэх дүн</div>
-      <SettingsField label="Сарын хуримтлалын сан (₮/сар)" value={amount} onChange={setAmount} />
-      <button className="ds-btn-primary" onClick={() => save({ monthly_reserve_amount: +amount || 0 })}>Хадгалах</button>
-    </div>
-  );
-}
-
-function OverdueCard({ hoaId }) {
-  const { settings, loading, save } = useFinSettings(hoaId);
-  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '' });
-  useEffect(() => {
-    if (settings) setForm({
-      overdue_penalty_pct: settings.overdue_penalty_pct ?? 0,
-      overdue_days: settings.overdue_days ?? 30,
-      at_risk_days: settings.at_risk_days ?? 180,
-    });
-  }, [settings]);
-  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
-  return (
-    <div className="ds-card p-4" style={{ maxWidth: 480 }}>
-      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Төлбөрийн хоцрогдол</div>
-      <div className="text-[10.5px] text-mutedtext mb-3">Сууц өмчлөгч БОЛОН Талбай өмчлөгч хоёуланд адилхан үйлчлэх ерөнхий нэг тохиргоо</div>
-      <SettingsField label="Хугацаа хэтэрсэн торгуулийн хувь (%/сар)" value={form.overdue_penalty_pct} onChange={(v) => setForm((f) => ({ ...f, overdue_penalty_pct: v }))} />
-      <SettingsField
-        label="Төлбөр төлөлтийг хугацаа хэтэрсэнд тооцох хугацаа"
-        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос дотогш байгаа бол Хүлээлттэйд тооцогдох ба дээрх хоногоос илүү гарвал автоматаар Хугацаа хэтэрсэнд тооцогдоно."
-        value={form.overdue_days} onChange={(v) => setForm((f) => ({ ...f, overdue_days: v }))}
-      />
-      <SettingsField
-        label="Төлбөр төлөлтийг эрсдэлтэйд тооцох хугацаа"
-        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос илүү гарвал автоматаар Эрсдэлтэйд тооцогдоно."
-        value={form.at_risk_days} onChange={(v) => setForm((f) => ({ ...f, at_risk_days: v }))}
-      />
-      <button className="ds-btn-primary" onClick={() => save({
-        overdue_penalty_pct: +form.overdue_penalty_pct || 0,
-        overdue_days: +form.overdue_days || 0,
-        at_risk_days: +form.at_risk_days || 0,
-      })}>Хадгалах</button>
-    </div>
-  );
-}
-
-function GateTariffCard({ hoaId }) {
-  const { settings, loading, save } = useFinSettings(hoaId);
-  const [form, setForm] = useState({ gate_unit_minutes: '', gate_unit_price: '', gate_temp_stop_interval_minutes: '', gate_free_guest_minutes: '' });
-  useEffect(() => {
-    if (settings) setForm({
-      gate_unit_minutes: settings.gate_unit_minutes ?? 15,
-      gate_unit_price: settings.gate_unit_price ?? 0,
-      gate_temp_stop_interval_minutes: settings.gate_temp_stop_interval_minutes ?? 15,
-      gate_free_guest_minutes: settings.gate_free_guest_minutes ?? 60,
-    });
-  }, [settings]);
-  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
-  return (
-    <div className="ds-card p-4" style={{ maxWidth: 420 }}>
-      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хаалтны тариф</div>
-      <SettingsField label="Төлбөр тооцох нэгж хугацаа (минут)" value={form.gate_unit_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_unit_minutes: v }))} />
-      <SettingsField label="Нэгж хугацаанд тооцох төлбөр (₮)" value={form.gate_unit_price} onChange={(v) => setForm((f) => ({ ...f, gate_unit_price: v }))} />
-      <SettingsField label="Түр зогсолтод тооцох хугацааны интервал (минут)" value={form.gate_temp_stop_interval_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_temp_stop_interval_minutes: v }))} />
-      <SettingsField label="Зочны эдлэх үнэгүй тарифт хугацаа (макс минут)" value={form.gate_free_guest_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_free_guest_minutes: v }))} />
-      <button className="ds-btn-primary" onClick={() => save({
-        gate_unit_minutes: +form.gate_unit_minutes || 0,
-        gate_unit_price: +form.gate_unit_price || 0,
-        gate_temp_stop_interval_minutes: +form.gate_temp_stop_interval_minutes || 0,
-        gate_free_guest_minutes: +form.gate_free_guest_minutes || 0,
-      })}>Хадгалах</button>
-    </div>
-  );
-}
-
-function InProgress({ label }) {
-  return (
-    <div className="ds-card p-8 text-center text-mutedtext text-sm">
-      "{label}" хэсэг төрлөлж байгаа — удахгүй нэмэгдэнэ.
-    </div>
-  );
-}
-
-
-// 2026-09-04 (4): "Орлогын дэд ангилал" - НББ модуль хийх үед
-// ашиглагдах жинхэнэ бүтэц, гэхдээ ОДООГООР placeholder (гүйлгээ
-// бүртгэл, дансны холболт огт байхгүй, зөвхөн жагсаалт+тайлбар).
-const INCOME_CATEGORIES = [
-  'Айл, врх, зогсоол, агуулах',
-  'Аж ахуйн нэгж',
-  'Антены, лифтний самбарын түрээс',
-  'Банкны хүүгийн орлого',
-  'Зогсоолын хураамж',
-  'Чипний орлого',
-  'Ажилчдаас авах авлага',
-  'Хохирлын нөхөн төлбөр',
-  'Бусад',
-  'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр',
-];
 
 function IncomeCategoriesPlaceholder() {
   return (

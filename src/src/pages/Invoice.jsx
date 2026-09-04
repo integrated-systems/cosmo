@@ -17,15 +17,17 @@ import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 // батлах хүртэл).
 
 
+// 2026-09-04 (8): Хэрэглэгчийн шүүмжлэлээр "applies_to" баганыг
+// арилгасны дараа - тооцооллын логикыг ФИКС нэрээр (СӨХ-ны төлбөр/
+// Зогсоол/Агуулах) шууд танихаар шинэчлэв. Эдгээр 3 нэр ХЭЗЭЭ Ч
+// өөрчлөгдөхгүй тул нэрээр таних нь аюулгүй, найдвартай.
 function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
   const items = [];
-  tariffItems.forEach((t) => {
-    if (t.applies_to === 'unit') {
-      items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
-    } else if (t.applies_to === 'parking') {
+  tariffItems.filter((t) => t.active).forEach((t) => {
+    if (t.name === 'Зогсоол') {
       const qty = (owner.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
-    } else if (t.applies_to === 'storage') {
+    } else if (t.name === 'Агуулах') {
       if (t.calc_method === 'area') {
         const sqm = sumLinkedSqm(owner.grid_storages, gridStorageSpots) || 0;
         if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
@@ -33,20 +35,25 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
         const qty = (owner.grid_storages || []).length;
         if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
       }
+    } else if (t.name === 'СӨХ-ны төлбөр' && t.calc_method === 'area') {
+      const sqm = owner.sqm || 0;
+      if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
+    } else {
+      // "СӨХ-ны төлбөр" (тоо/тогтмол) БОЛОН бусад бүх идэвхтэй мвр -
+      // энгийн, нэг удаагийн тогтмол хураамж.
+      items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
     }
   });
   return items;
 }
 
-function calcClientItems(client, tariffItems, gridStorageSpots, gridLandPlots) {
+function calcClientItems(client, tariffItems, gridStorageSpots) {
   const items = [];
-  tariffItems.forEach((t) => {
-    if (t.applies_to === 'unit') {
-      items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
-    } else if (t.applies_to === 'parking') {
+  tariffItems.filter((t) => t.active).forEach((t) => {
+    if (t.name === 'Зогсоол') {
       const qty = (client.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
-    } else if (t.applies_to === 'storage') {
+    } else if (t.name === 'Агуулах') {
       if (t.calc_method === 'area') {
         const sqm = sumLinkedSqm(client.grid_storages, gridStorageSpots) || 0;
         if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
@@ -54,9 +61,13 @@ function calcClientItems(client, tariffItems, gridStorageSpots, gridLandPlots) {
         const qty = (client.grid_storages || []).length;
         if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
       }
-    } else if (t.applies_to === 'land') {
-      const sqm = sumLinkedSqm(client.grid_land_plots, gridLandPlots) || 0;
+    } else if (t.name === 'СӨХ-ны төлбөр' && t.calc_method === 'area') {
+      // client.sqm нь үүсгэх үед аль хэдийн sumLinkedSqm(grid_land_plots)-
+      // ээр автоматаар дүүргэгдсэн байдаг (EditClientModal.jsx).
+      const sqm = client.sqm || 0;
       if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
+    } else {
+      items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
     }
   });
   return items;
@@ -64,7 +75,7 @@ function calcClientItems(client, tariffItems, gridStorageSpots, gridLandPlots) {
 
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
-  const { gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
+  const { gridStorageSpots } = useGridSpots(hoaId);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -128,7 +139,7 @@ export default function Invoice() {
         created++;
       }
       for (const c of clientele || []) {
-        const lineItems = calcClientItems(c, clientTariffs, gridStorageSpots, gridLandPlots);
+        const lineItems = calcClientItems(c, clientTariffs, gridStorageSpots);
         if (lineItems.length === 0) continue;
         const total = lineItems.reduce((s, li) => s + li.amount, 0);
         const { data: inv, error } = await supabase.from('invoices')
