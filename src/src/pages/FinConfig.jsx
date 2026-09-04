@@ -243,6 +243,124 @@ function IncomeCategoriesPlaceholder() {
   );
 }
 
+// ---------------- fin_settings-д тулгуурласан ганц мврт тохиргооны карт ----------------
+function useFinSettings(hoaId) {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('fin_settings').select('*').eq('tenant_id', hoaId).maybeSingle();
+    setSettings(data || { tenant_id: hoaId });
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+
+  async function save(patch) {
+    const payload = { tenant_id: hoaId, ...settings, ...patch, updated_at: new Date().toISOString() };
+    delete payload.id;
+    await supabase.from('fin_settings').upsert(payload, { onConflict: 'tenant_id' });
+    await load();
+  }
+  return { settings, loading, save };
+}
+
+function SettingsField({ label, hint, value, onChange }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-[11.5px] font-medium text-slate-700 dark:text-mutedtext mb-1">{label}</label>
+      <input type="number" step="any" className="ds-input w-full" value={value} onChange={(e) => onChange(e.target.value)} />
+      {hint && <div className="text-[10.5px] text-mutedtext mt-1">{hint}</div>}
+    </div>
+  );
+}
+
+function ReserveFundCard({ hoaId }) {
+  const { settings, loading, save } = useFinSettings(hoaId);
+  const [amount, setAmount] = useState('');
+  useEffect(() => { if (settings) setAmount(settings.monthly_reserve_amount ?? 0); }, [settings]);
+  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 420 }}>
+      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хуримтлалын санд сар бүр төлөрүүлэх дүн</div>
+      <SettingsField label="Сарын хуримтлалын сан (₮/сар)" value={amount} onChange={setAmount} />
+      <button className="ds-btn-primary" onClick={() => save({ monthly_reserve_amount: +amount || 0 })}>Хадгалах</button>
+    </div>
+  );
+}
+
+function OverdueCard({ hoaId }) {
+  const { settings, loading, save } = useFinSettings(hoaId);
+  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '' });
+  useEffect(() => {
+    if (settings) setForm({
+      overdue_penalty_pct: settings.overdue_penalty_pct ?? 0,
+      overdue_days: settings.overdue_days ?? 30,
+      at_risk_days: settings.at_risk_days ?? 180,
+    });
+  }, [settings]);
+  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 480 }}>
+      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Төлбөрийн хоцрогдол</div>
+      <div className="text-[10.5px] text-mutedtext mb-3">Сууц өмчлөгч БОЛОН Талбай өмчлөгч хоёуланд адилхан үйлчлэх ерөнхий нэг тохиргоо</div>
+      <SettingsField label="Хугацаа хэтэрсэн торгуулийн хувь (%/сар)" value={form.overdue_penalty_pct} onChange={(v) => setForm((f) => ({ ...f, overdue_penalty_pct: v }))} />
+      <SettingsField
+        label="Төлбөр төлөлтийг хугацаа хэтэрсэнд тооцох хугацаа"
+        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос дотогш байгаа бол Хүлээлттэйд тооцогдох ба дээрх хоногоос илүү гарвал автоматаар Хугацаа хэтэрсэнд тооцогдоно."
+        value={form.overdue_days} onChange={(v) => setForm((f) => ({ ...f, overdue_days: v }))}
+      />
+      <SettingsField
+        label="Төлбөр төлөлтийг эрсдэлтэйд тооцох хугацаа"
+        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос илүү гарвал автоматаар Эрсдэлтэйд тооцогдоно."
+        value={form.at_risk_days} onChange={(v) => setForm((f) => ({ ...f, at_risk_days: v }))}
+      />
+      <button className="ds-btn-primary" onClick={() => save({
+        overdue_penalty_pct: +form.overdue_penalty_pct || 0,
+        overdue_days: +form.overdue_days || 0,
+        at_risk_days: +form.at_risk_days || 0,
+      })}>Хадгалах</button>
+    </div>
+  );
+}
+
+function GateTariffCard({ hoaId }) {
+  const { settings, loading, save } = useFinSettings(hoaId);
+  const [form, setForm] = useState({ gate_unit_minutes: '', gate_unit_price: '', gate_temp_stop_interval_minutes: '', gate_free_guest_minutes: '' });
+  useEffect(() => {
+    if (settings) setForm({
+      gate_unit_minutes: settings.gate_unit_minutes ?? 15,
+      gate_unit_price: settings.gate_unit_price ?? 0,
+      gate_temp_stop_interval_minutes: settings.gate_temp_stop_interval_minutes ?? 15,
+      gate_free_guest_minutes: settings.gate_free_guest_minutes ?? 60,
+    });
+  }, [settings]);
+  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 420 }}>
+      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хаалтны тариф</div>
+      <SettingsField label="Төлбөр тооцох нэгж хугацаа (минут)" value={form.gate_unit_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_unit_minutes: v }))} />
+      <SettingsField label="Нэгж хугацаанд тооцох төлбөр (₮)" value={form.gate_unit_price} onChange={(v) => setForm((f) => ({ ...f, gate_unit_price: v }))} />
+      <SettingsField label="Түр зогсолтод тооцох хугацааны интервал (минут)" value={form.gate_temp_stop_interval_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_temp_stop_interval_minutes: v }))} />
+      <SettingsField label="Зочны эдлэх үнэгүй тарифт хугацаа (макс минут)" value={form.gate_free_guest_minutes} onChange={(v) => setForm((f) => ({ ...f, gate_free_guest_minutes: v }))} />
+      <button className="ds-btn-primary" onClick={() => save({
+        gate_unit_minutes: +form.gate_unit_minutes || 0,
+        gate_unit_price: +form.gate_unit_price || 0,
+        gate_temp_stop_interval_minutes: +form.gate_temp_stop_interval_minutes || 0,
+        gate_free_guest_minutes: +form.gate_free_guest_minutes || 0,
+      })}>Хадгалах</button>
+    </div>
+  );
+}
+
+function InProgress({ label }) {
+  return (
+    <div className="ds-card p-8 text-center text-mutedtext text-sm">
+      "{label}" хэсэг төрлөлж байгаа — удахгүй нэмэгдэнэ.
+    </div>
+  );
+}
+
 function InvoiceScheduleCard({ hoaId }) {
   const { settings, loading, save } = useFinSettings(hoaId);
   const [form, setForm] = useState({
