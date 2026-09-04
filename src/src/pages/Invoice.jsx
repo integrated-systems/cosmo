@@ -185,7 +185,7 @@ export default function Invoice() {
           </select>
         </div>
         <button className="ds-btn-primary" onClick={generate} disabled={generating}>
-          {generating ? 'үүсгэж байна...' : 'Энэ сарын нэхэмжлэл бүртгэх'}
+          {generating ? 'Нэхэмжлэх үүсгэж байна...' : 'Нэхэмжлэх үүсгэх'}
         </button>
         <span className="text-[11px] text-mutedtext ml-auto">Нийт: {invoices.length} нэхэмжлэл, {formatMoney(totalSum)}₮</span>
       </div>

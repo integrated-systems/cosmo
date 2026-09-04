@@ -574,6 +574,66 @@ export default function GridConstructorReact({ hoaId }) {
   // модал доторх dropdown-оор холбохын тулд полигон ч мвн slot шиг
   // тодорхой нэртэй (жиш нь "Э-01") байх шаардлагатай болов.
   const [editingPolygonId, setEditingPolygonId] = useState(null);
+  // 2026-09-04 (9): Хэрэглэгчийн хүсэлт - полигон болон шулуун
+  // зураасыг чирж байрлалыг өөрчлөх боломжтой болгов (текст/слот
+  // шиг адил зарчим: 5px-ээс бага бол дарсан гэж үзэж модаль нээнэ,
+  // илүү бол чирж байрлал вврчилнэ).
+  const polygonMoveRef = useRef(null);
+  const [draggingPolyDelta, setDraggingPolyDelta] = useState(null);
+  function handlePolygonPointerDown(e, p) {
+    e.stopPropagation();
+    polygonMoveRef.current = { id: p.id, startClientX: e.clientX, startClientY: e.clientY, points: p.points };
+  }
+  function handlePolygonPointerMove(e) {
+    const m = polygonMoveRef.current;
+    if (!m) return;
+    const dx = (e.clientX - m.startClientX) / zoom;
+    const dy = (e.clientY - m.startClientY) / zoom;
+    m.candidate = { dx, dy };
+    setDraggingPolyDelta({ id: m.id, dx, dy });
+  }
+  function handlePolygonPointerUp(e) {
+    const m = polygonMoveRef.current;
+    if (!m) return;
+    const movedPx = Math.hypot((e?.clientX || 0) - m.startClientX, (e?.clientY || 0) - m.startClientY);
+    if (movedPx < 5) {
+      setEditingPolygonId(m.id);
+    } else if (m.candidate) {
+      pushHistory();
+      const { dx, dy } = m.candidate;
+      setPolygons((prev) => prev.map((p) => (p.id === m.id ? { ...p, points: p.points.map((pt) => ({ x: pt.x + dx, y: pt.y + dy })) } : p)));
+    }
+    polygonMoveRef.current = null;
+    setDraggingPolyDelta(null);
+  }
+  const lineMoveRef = useRef(null);
+  const [draggingLineDelta, setDraggingLineDelta] = useState(null);
+  function handleLinePointerDown(e, l) {
+    e.stopPropagation();
+    lineMoveRef.current = { id: l.id, startClientX: e.clientX, startClientY: e.clientY };
+  }
+  function handleLinePointerMove(e) {
+    const m = lineMoveRef.current;
+    if (!m) return;
+    const dx = (e.clientX - m.startClientX) / zoom;
+    const dy = (e.clientY - m.startClientY) / zoom;
+    m.candidate = { dx, dy };
+    setDraggingLineDelta({ id: m.id, dx, dy });
+  }
+  function handleLinePointerUp(e) {
+    const m = lineMoveRef.current;
+    if (!m) return;
+    const movedPx = Math.hypot((e?.clientX || 0) - m.startClientX, (e?.clientY || 0) - m.startClientY);
+    if (movedPx < 5) {
+      setEditingLineId(m.id);
+    } else if (m.candidate) {
+      pushHistory();
+      const { dx, dy } = m.candidate;
+      setLines((prev) => prev.map((l) => (l.id === m.id ? { ...l, x1: l.x1 + dx, y1: l.y1 + dy, x2: l.x2 + dx, y2: l.y2 + dy } : l)));
+    }
+    lineMoveRef.current = null;
+    setDraggingLineDelta(null);
+  }
   function updatePolygon(id, patch) {
     setPolygons((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }
