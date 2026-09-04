@@ -406,7 +406,12 @@ export default function GridConstructorReact({ hoaId }) {
     if (!m) return;
     const dx = (e.clientX - m.startClientX) / zoom;
     const dy = (e.clientY - m.startClientY) / zoom;
-    m.candidate = { x: m.startX + dx, y: m.startY + dy };
+    // 2026-09-04 (10): Хэрэглэгчийн хүсэлт - чирэлт чөлөөт зайгаар БИШ,
+    // торны 0.5 нүдний алхамаар (polySnap) л зөвгөддөг байх ёстой -
+    // торны тэгш хэмийг эвдэхгүйн тулд.
+    const snapX = Math.round((m.startX + dx) / polySnap) * polySnap;
+    const snapY = Math.round((m.startY + dy) / polySnap) * polySnap;
+    m.candidate = { x: snapX, y: snapY };
     setDraggingTextPos({ id: m.id, x: m.candidate.x, y: m.candidate.y });
   }
   function handleTextPointerUp(e) {
@@ -587,8 +592,8 @@ export default function GridConstructorReact({ hoaId }) {
   function handlePolygonPointerMove(e) {
     const m = polygonMoveRef.current;
     if (!m) return;
-    const dx = (e.clientX - m.startClientX) / zoom;
-    const dy = (e.clientY - m.startClientY) / zoom;
+    const dx = Math.round(((e.clientX - m.startClientX) / zoom) / polySnap) * polySnap;
+    const dy = Math.round(((e.clientY - m.startClientY) / zoom) / polySnap) * polySnap;
     m.candidate = { dx, dy };
     setDraggingPolyDelta({ id: m.id, dx, dy });
   }
@@ -615,8 +620,8 @@ export default function GridConstructorReact({ hoaId }) {
   function handleLinePointerMove(e) {
     const m = lineMoveRef.current;
     if (!m) return;
-    const dx = (e.clientX - m.startClientX) / zoom;
-    const dy = (e.clientY - m.startClientY) / zoom;
+    const dx = Math.round(((e.clientX - m.startClientX) / zoom) / polySnap) * polySnap;
+    const dy = Math.round(((e.clientY - m.startClientY) / zoom) / polySnap) * polySnap;
     m.candidate = { dx, dy };
     setDraggingLineDelta({ id: m.id, dx, dy });
   }
