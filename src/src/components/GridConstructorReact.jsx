@@ -642,6 +642,22 @@ export default function GridConstructorReact({ hoaId }) {
     lineMoveRef.current = null;
     setDraggingLineDelta(null);
   }
+  // 2026-09-04 (14): Хэрэглэгчийн тайлбарласан аргачлал - Зогсоолыг
+  // 1:2 харьцаагаар (олон улсын стандарт ойролцоогоор 3м:6м) зурдаг
+  // тул CELL=24px үндсэн торны нүд дунджаар 3м:3м (9м2) гэж үзнэ.
+  // ҮҮнээс 1px = 3/24 = 0.125м, 1px2 = 0.015625м2 гэсэн харьцаагаар
+  // ямар ч хэлбэртэй полигоны талбайг Shoelace томьёогоор ойролцоогоор
+  // тооцоолно.
+  const PX_TO_M2 = (3 / 24) ** 2;
+  function computePolygonAreaM2(points) {
+    if (!points || points.length < 3) return 0;
+    let sum = 0;
+    for (let i = 0; i < points.length; i++) {
+      const j = (i + 1) % points.length;
+      sum += points[i].x * points[j].y - points[j].x * points[i].y;
+    }
+    return Math.abs(sum / 2) * PX_TO_M2;
+  }
   function updatePolygon(id, patch) {
     setPolygons((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }
@@ -1053,7 +1069,9 @@ export default function GridConstructorReact({ hoaId }) {
             <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн нэр / дугаар (жиш нь "Э-01")</label>
             <input className="ds-input w-full mb-3" maxLength={16} value={editingPolygon.label || ''} onChange={(e) => updatePolygon(editingPolygon.id, { label: e.target.value })} />
 
-            <label className="block text-[10.5px] text-mutedtext mb-1">Талбайн хэмжээ (м2) - газар дээр хэмжсэнээр гараар оруулна</label>
+            <label className="block text-[10.5px] text-mutedtext mb-1">
+              Талбайн хэмжээ (м2) - газар дээр хэмжилт хийж оруулах, эсвэл өмчлөгчтэй байгуулсан гэрээнд үндэслэн хэмжээг бичнэ. Конструктор дээрх дүрсний тооцооллоор тухайн талбай ойролцоогоор {computePolygonAreaM2(editingPolygon.points).toFixed(2)}м2 хэмжээтэй байгааг тогтоов
+            </label>
             <input type="number" min={0} step="0.01" className="ds-input w-full mb-3" value={editingPolygon.sqm ?? ''} onChange={(e) => updatePolygon(editingPolygon.id, { sqm: e.target.value === '' ? null : Math.max(0, +e.target.value || 0) })} />
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Нэрийн өнгө</label>
