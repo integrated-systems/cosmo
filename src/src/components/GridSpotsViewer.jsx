@@ -84,7 +84,19 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   const texts = floor.layout_json?.texts || [];
   const lines = floor.layout_json?.lines || [];
   const compasses = floor.layout_json?.compasses || [];
-  const { cols, rows } = cellsRange(slots, lines, texts, compasses, CELL);
+  const { cols, rows } = (() => {
+    // 2026-09-04 (15): Хэрэглэгчийн ажигласнаар, давхарга бүр ижил
+    // хэмжээтэй (жиш 70x45) торон дээр зурсан ч, зурсан слот/полигоны
+    // байрлалаас хамааран cellsRange() тус бүрдээ ввр хэмжээ тооцож,
+    // үзэгдэх масштаб давхарга бүрт ялгаатай болж, будлиулж байсан.
+    // Одоо ЭХЛЭЭД Конструктор дээр хадгалсан бодит cols/rows (declared
+    // grid хэмжээ)-ыг ашиглана - зөвхөн эдгээр байхгүй (хуучин мвр)
+    // үед л агуулгаас тооцоолсон хэмжээ рүү унана.
+    const declaredCols = floor.layout_json?.cols;
+    const declaredRows = floor.layout_json?.rows;
+    if (declaredCols && declaredRows) return { cols: declaredCols, rows: declaredRows };
+    return cellsRange(slots, lines, texts, compasses, CELL);
+  })();
   const ec = CELL * zoom;
   // 2026-09-04: Зогсоол/Агуулахын тоо - Конструктор дэх ижил
   // мвнхмал үзүүлэлт (менежерүүдэд алга болох/давхардахыг хурдан
