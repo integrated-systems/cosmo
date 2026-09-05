@@ -58,8 +58,8 @@ function PhonePreview({ modules, enabled }) {
       <div className="userapp-root" data-theme="dark" style={{ background: 'var(--bg-page)', height: 500, overflowY: 'auto', position: 'relative' }}>
         <div className="home-header" style={{ padding: '14px 12px 6px' }}>
           <div>
-            <div className="app-title" style={{ fontSize: 17 }}>Гэрлүг Виста</div>
-            <div className="user-greeting">58/4 байрны 0703 тоот</div>
+            <div className="app-title" style={{ fontSize: 17 }}>СӨХ-ны нэр</div>
+            <div className="user-greeting">Сууц өмчлөгчийн хаяг</div>
           </div>
         </div>
         <div style={{ padding: '4px 10px 60px' }}>
@@ -208,7 +208,6 @@ export default function UserAppConfig() {
         {tab === 'modules' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">OwnerApp модулийн тохиргоо</div>
               <div className="text-[11px] text-mutedtext mb-4 max-w-md">
                 Энд идэвхжүүлсэн модулиуд ЗӨВХӨН тухайн хэрэглэгчийн эрхтэй
                 (Хандах эрхийн тохиргоо → Харах=Тийм) үед л OwnerApp-д товч
@@ -249,7 +248,6 @@ export default function UserAppConfig() {
             </div>
 
             <div>
-              <div className="text-[11.5px] font-semibold text-slate-700 dark:text-text mb-2">Урьдчилсан харагдац (OwnerApp Home)</div>
               <PhonePreview modules={MODULES} enabled={enabled} />
             </div>
           </div>

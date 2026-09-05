@@ -232,7 +232,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   // Слайдер 6: тайл/карт/Hero-ийн border-radius (4-30px) — гурвыг нь
   // ижил бүлэг мэт харагдуулна.
   useEffect(() => {
-    const r = Math.max(4, Math.min(30, prefs.card_radius ?? 20));
+    const r = Math.max(4, Math.min(30, prefs.card_radius ?? 12));
     document.documentElement.style.setProperty('--card-radius-computed', `${r}px`);
   }, [prefs.card_radius]);
 
