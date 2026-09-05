@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { sortFloors } from '../lib/floorSort';
 import { friendlyErrorMessage } from '../lib/lockErrorMessage';
+import { useAlert } from '../hooks/useAlert';
 
 // 2026-08-31: Хэрэглэгчийн хүсэлт — "__parking_grid_drawer_v5.html"
 // (standalone, imperative DOM-той хэрэгсэл)-ийг React-т зохимжтой
@@ -74,6 +75,7 @@ export default function GridConstructorReact({ hoaId }) {
   const fileInputRef = useRef(null);
   const localStorageKey = `cosmo_grid_constructor_${hoaId}_${floorKey}`;
 
+  const { alert, AlertDialog } = useAlert();
   const [cols, setCols] = useState(40);
   const [rows, setRows] = useState(30);
   const [zoom, setZoom] = useState(1);
@@ -1165,6 +1167,7 @@ export default function GridConstructorReact({ hoaId }) {
           </div>
         </div>
       )}
+      <AlertDialog />
     </div>
   );
 }
