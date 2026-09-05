@@ -80,8 +80,6 @@ export const MENU_SECTIONS = [
       { key: 'rolesrules', label: 'Хандах эрхийн тохиргоо', path: '/rolesrules' },
       { key: 'accounts', label: 'Хэрэглэгчийн удирдлага', path: '/accounts' },
       { key: 'uappconfig', label: 'UserApp тохиргоо', path: '/uappconfig' },
-      { key: 'cosmorules', label: 'Cosmo rules', path: '/cosmorules' },
-      { key: 'hoaconfig', label: 'СӨХ тохиргоо', path: '/hoaconfig' },
       { key: 'addressing', label: 'Хаягжилт тохиргоо', path: '/addressing' },
       { key: 'finconfig', label: 'Санхүүгийн тохиргоо', path: '/finconfig' },
       { key: 'fixedassconfig', label: 'Үндсэн хөрөнгө тохиргоо', path: '/fixedassconfig' },
