@@ -6,6 +6,8 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { useConfirm } from '../hooks/useConfirm';
 import { DeleteIcon, EditIcon } from '../components/icons/Icons';
 import { formatMoney } from '../lib/format';
+import TabButton from '../components/TabButton';
+import { SectionLockBadge } from '../components/SectionLockBadge';
 
 // "Санхүүгийн тохиргоо" (СИСАДМИН, /finconfig) — 2026-09-04 хэрэглэгчийн
 // шийдвэрээр хуучин, тусдаа "НББ тохиргоо" (accconfig) болон "Тариф
@@ -687,14 +689,12 @@ export default function FinConfig() {
 
   return (
     <>
-      <div className="mb-3">
-        <div className="text-[15px] font-semibold text-slate-900 dark:text-white mb-1">Санхүүгийн тохиргоо</div>
-        <div className="text-[11.5px] text-mutedtext">Тариф болон Нягтлан бодох бүртгэлийн тохиргоог нэг дор удирдана</div>
-      </div>
-
-      <div className="flex gap-2 mb-4">
-        <button className={group === 'tariff' ? 'ds-btn-primary' : 'ds-btn-secondary'} onClick={() => setGroup('tariff')}>Тариф</button>
-        <button className={group === 'nbb' ? 'ds-btn-primary' : 'ds-btn-secondary'} onClick={() => setGroup('nbb')}>НББ</button>
+      <div className="flex gap-2 mb-4 items-center justify-between">
+        <div className="flex gap-2">
+          <TabButton active={group === 'tariff'} onClick={() => setGroup('tariff')}>Тариф</TabButton>
+          <TabButton active={group === 'nbb'} onClick={() => setGroup('nbb')}>НББ</TabButton>
+        </div>
+        <SectionLockBadge tenantId={hoaId} sectionKey={group === 'tariff' ? 'finconfig_tariff' : 'finconfig_nbb'} />
       </div>
 
       {group === 'tariff' && (
