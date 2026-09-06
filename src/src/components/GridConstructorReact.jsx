@@ -274,7 +274,8 @@ export default function GridConstructorReact({ hoaId }) {
 
   function handleGridPointerDown(e) {
     if (e.target.closest('[data-slot-id]')) return; // одоо буй слот өврийн listener-тэй
-    if (tool === 'polygon' || tool === 'text' || tool === 'compass') return; // өврийн listener-тэй
+    if (tool === 'text' || tool === 'compass') return; // өврийн listener-тэй
+    if (tool === 'polygon') { polyDrawDraggingRef.current = true; return; }
     if (tool === 'line') {
       const rect = gridRef.current.getBoundingClientRect();
       const x = Math.round(((e.clientX - rect.left) / zoom) / polySnap) * polySnap;
@@ -480,8 +481,8 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   useEffect(() => {
-    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); handlePolygonPointerMove(e); handleLinePointerMove(e); }
-    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); handlePolygonPointerUp(e); handleLinePointerUp(e); }
+    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); handlePolygonPointerMove(e); handleLinePointerMove(e); handlePolyDrawPointerMove(e); }
+    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); handlePolygonPointerUp(e); handleLinePointerUp(e); handlePolyDrawPointerUp(e); }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
@@ -499,6 +500,12 @@ export default function GridConstructorReact({ hoaId }) {
 
   // ---------------- полигон зурах FSM ----------------
   const [polyPoints, setPolyPoints] = useState([]);
+  // 2026-09-07 (18): Хэрэглэгчийн хүсэлт - snap-гүй үед нарийвчлалтай
+  // өнцөг/урттай зурахад зориулж, товч ДАРААД чирж (тасархай зураас
+  // харагдана), зөв байрлал олоод гарыг release хийхэд л оройн
+  // цэгийг тавьдаг болов ("хатгах" загвар).
+  const polyDrawDraggingRef = useRef(false);
+  const [polyDragCurrent, setPolyDragCurrent] = useState(null);
   const polySnap = 12; // px, торны нарийвчлал
   // 2026-09-07 (16): Хэрэглэгчийн хүсэлт - нарийвчлалтай (чөлөөт)
   // хэлбэр зурахад зориулж snap-ыг түр унтраах боломж. Зөвхөн полигон
@@ -520,15 +527,24 @@ export default function GridConstructorReact({ hoaId }) {
     setPolygons((prev) => [...prev, { id: crypto.randomUUID(), points, strokeColor, strokeWidth: 2, fillColor: null, label: '' }]);
     setPolyPoints([]);
   }
-  function handlePolyClick(e) {
-    if (tool !== 'polygon') return;
-    const pt = polyLocalPoint(e);
+  function placePolyVertex(pt) {
     if (polyPoints.length >= 3) {
       const first = polyPoints[0];
       const dist = Math.hypot((pt.x - first.x) * zoom, (pt.y - first.y) * zoom);
       if (dist < 10) { finishPolygon(polyPoints); return; }
     }
     setPolyPoints((prev) => [...prev, pt]);
+  }
+  function handlePolyDrawPointerMove(e) {
+    if (!polyDrawDraggingRef.current || tool !== 'polygon') return;
+    setPolyDragCurrent(polyLocalPoint(e));
+  }
+  function handlePolyDrawPointerUp(e) {
+    if (!polyDrawDraggingRef.current) return;
+    polyDrawDraggingRef.current = false;
+    setPolyDragCurrent(null);
+    if (tool !== 'polygon') return;
+    placePolyVertex(polyLocalPoint(e));
   }
 
   // 2026-09-04: Хэрэглэгчийн хүсэлт - "Текст нэмэх" горим үед хоосон
@@ -824,7 +840,7 @@ export default function GridConstructorReact({ hoaId }) {
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}
-          onClick={(e) => { handlePolyClick(e); handleTextToolClick(e); handleCompassToolClick(e); }}
+          onClick={(e) => { handleTextToolClick(e); handleCompassToolClick(e); }}
           style={{
             position: 'relative', width: cols * ec, height: rows * ec, cursor: 'crosshair',
             touchAction: 'none', // 2026-09-03: iPad/tablet+pen дэмжлэг - хүлээгдэхгүй scroll/zoom
@@ -945,9 +961,12 @@ export default function GridConstructorReact({ hoaId }) {
             })}
             {tool === 'polygon' && polyPoints.length > 0 && (
               <polyline
-                points={polyPoints.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
+                points={[...polyPoints, ...(polyDragCurrent ? [polyDragCurrent] : [])].map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
                 fill="none" stroke={strokeColor} strokeWidth={2} strokeDasharray="4,3"
               />
+            )}
+            {tool === 'polygon' && polyDragCurrent && (
+              <circle cx={polyDragCurrent.x * zoom} cy={polyDragCurrent.y * zoom} r={4} fill="none" stroke={strokeColor} strokeWidth={1.5} />
             )}
             {tool === 'polygon' && polyPoints.map((pt, i) => (
               <circle key={i} cx={pt.x * zoom} cy={pt.y * zoom} r={4} fill={i === 0 ? '#5fe0d0' : strokeColor} />

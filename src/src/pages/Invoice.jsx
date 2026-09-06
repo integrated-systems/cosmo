@@ -74,6 +74,19 @@ function sortBreakdown(totals) {
   return [...fixed, ...rest];
 }
 
+// Нэг нэхэмжлэлийн задаргааны мврүүдийг харуулах үед мвн 3 ФИКС нэрийг
+// эхэнд, бусдыг үүсгэсэн (анхны) дарааллаар нь хэвээр үзүүлнэ.
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    const ai = FIXED_NAMES.indexOf(a.description);
+    const bi = FIXED_NAMES.indexOf(b.description);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return 0;
+  });
+}
+
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { gridStorageSpots } = useGridSpots(hoaId);
@@ -178,13 +191,13 @@ export default function Invoice() {
       let created = 0, skipped = 0;
       for (const row of previewRows) {
         const { data: inv, error } = await supabase.from('invoices')
-          .insert({ tenant_id: hoaId, target_type: row.target_type, target_id: row.target_id, period_year: year, period_month: month, total_amount: row.total, status: 'draft' })
+          .insert({ tenant_id: hoaId, target_type: row.target_type, target_id: row.target_id, period_year: year, period_month: month, total_amount: row.total, status: 'sent', sent_at: new Date().toISOString() })
           .select().single();
         if (error) { skipped++; continue; }
         await supabase.from('invoice_items').insert(row.items.map((li) => ({ ...li, invoice_id: inv.id })));
         created++;
       }
-      alert(`${created} нэхэмжлэл үүсгэж хадгаллаа${skipped ? `, ${skipped} аль хэдийн байсан тул алгаслаа` : ''}.`);
+      alert(`${created} нэхэмжлэл үүсгэж илгээлээ${skipped ? `, ${skipped} аль хэдийн байсан тул алгаслаа` : ''}.`);
       setPreviewRows(null);
       loadInvoices();
     } finally {
@@ -195,10 +208,10 @@ export default function Invoice() {
   async function toggleExpand(id, isPreview) {
     if (expanded === id) { setExpanded(null); return; }
     if (isPreview) {
-      setItems(previewRows.find((r) => `${r.target_type}-${r.target_id}` === id)?.items || []);
+      setItems(sortItems(previewRows.find((r) => `${r.target_type}-${r.target_id}` === id)?.items || []));
     } else {
       const { data } = await supabase.from('invoice_items').select('*').eq('invoice_id', id);
-      setItems(data || []);
+      setItems(sortItems(data || []));
     }
     setExpanded(id);
   }
@@ -240,13 +253,11 @@ export default function Invoice() {
 
   return (
     <>
-      <div className="ds-card p-4 mb-4 flex items-end gap-3 flex-wrap">
+      <div className="ds-card p-4 mb-[10px] flex items-end gap-3 flex-wrap">
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Он</label>
           <input type="number" className="ds-input" style={{ width: 100 }} value={year} onChange={(e) => setYear(+e.target.value || now.getFullYear())} disabled={!!previewRows} />
         </div>
         <div>
-          <label className="block text-[11px] text-mutedtext mb-1">Сар</label>
           <select className="ds-input" value={month} onChange={(e) => setMonth(+e.target.value)} disabled={!!previewRows}>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
@@ -260,13 +271,13 @@ export default function Invoice() {
           <>
             <button className="ds-btn-secondary" onClick={cancelPreview} disabled={saving}>Цуцлах</button>
             <button className="ds-btn-primary" onClick={commitPreview} disabled={saving}>
-              {saving ? 'Хадгалж байна...' : 'үүсгэсэн нэхэмжлэхийг хадгалах'}
+              {saving ? 'Илгээж байна...' : 'үүсгэсэн нэхэмжлэхийг илгээх'}
             </button>
           </>
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-[10px] mb-4">
+      <div className="grid grid-cols-4 gap-[10px] mb-[10px]">
         <div className="ds-card p-4">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжлэхийн тоо</div>
           <div className="text-[19px] font-bold">{displayRows.length}</div>
@@ -293,7 +304,7 @@ export default function Invoice() {
       </div>
 
       {activeBreakdown.length > 0 && (
-        <div className="ds-card mb-4 flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
+        <div className="ds-card mb-[10px] flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
           {activeBreakdown.map((b, i) => (
             <div key={b.name} className="flex-1" style={{ minWidth: 150, padding: '14px 16px' }}>
               <div className="flex items-center gap-1.5 text-[11.5px] text-mutedtext">
