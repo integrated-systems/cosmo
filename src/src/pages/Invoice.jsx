@@ -87,6 +87,18 @@ function sortItems(items) {
   });
 }
 
+// 2026-09-07 (19): Хэрэглэгчийн олсон өгөөдлийн зврчил - "[байр]
+// [тоот]" (жиш "106 5") формат нэг орцтой байрны стандарт БИШ, давхар
+// бүрийн ижил дугаартай тоотууд давтагдан ижил харагдаж, өөрөөр
+// талбарт дуудвал давхардлаас үүдэн буруу өгөөдэл үүсгэх эрсдэлтэй.
+// Одоо "[байр] [давхар 2 орон][тоот 2 орон]" (жиш "106 0705") форматтай
+// болов - үнэн зөв, давхцалгүй нэгж дугаар.
+function formatUnitAddress(buildingNo, floor, doorNo) {
+  const f = String(floor ?? '').padStart(2, '0');
+  const d = String(doorNo ?? '').padStart(2, '0');
+  return `${buildingNo || ''} ${f}${d}`.trim();
+}
+
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { gridStorageSpots } = useGridSpots(hoaId);
@@ -132,8 +144,8 @@ export default function Invoice() {
     (async () => {
       const map = {};
       if (committedIds.ownerIds.length) {
-        const { data } = await supabase.from('owners').select('id, firstname, lastname, building_no, door_no').in('id', committedIds.ownerIds);
-        (data || []).forEach((o) => { map[`owner-${o.id}`] = { name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: `${o.building_no || ''} ${o.door_no || ''}`.trim() }; });
+        const { data } = await supabase.from('owners').select('id, firstname, lastname, building_no, floor, door_no').in('id', committedIds.ownerIds);
+        (data || []).forEach((o) => { map[`owner-${o.id}`] = { name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitAddress(o.building_no, o.floor, o.door_no) }; });
       }
       if (committedIds.clientIds.length) {
         const { data } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
@@ -161,7 +173,7 @@ export default function Invoice() {
         if (lineItems.length === 0) return;
         rows.push({
           target_type: 'owner', target_id: o.id,
-          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: `${o.building_no || ''} ${o.door_no || ''}`.trim(),
+          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitAddress(o.building_no, o.floor, o.door_no),
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
       });
