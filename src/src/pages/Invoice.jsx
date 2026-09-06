@@ -253,7 +253,7 @@ export default function Invoice() {
 
   return (
     <>
-      <div className="ds-toolbar mb-[10px]">
+      <div className="ds-toolbar">
         <div>
           <input type="number" className="ds-input" style={{ width: 100 }} value={year} onChange={(e) => setYear(+e.target.value || now.getFullYear())} disabled={!!previewRows} />
         </div>
@@ -277,7 +277,7 @@ export default function Invoice() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-[10px] mb-[10px]">
+      <div className="grid grid-cols-4 gap-[10px]">
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжлэхийн тоо</div>
           <div className="text-[19px] font-bold">{displayRows.length}</div>
@@ -304,7 +304,7 @@ export default function Invoice() {
       </div>
 
       {activeBreakdown.length > 0 && (
-        <div className="ds-card mb-[10px] flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
+        <div className="ds-card flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
           {activeBreakdown.map((b, i) => (
             <div key={b.name} className="flex-1" style={{ minWidth: 150, padding: '12px 16px' }}>
               <div className="flex items-center gap-1.5 text-[11.5px] text-mutedtext">
