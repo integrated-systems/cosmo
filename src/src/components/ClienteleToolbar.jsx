@@ -7,8 +7,9 @@ import { SearchIcon } from './icons/Icons';
 // дараа холбоно (одоогоор зүгээр UI, ямар ч бодит шүүлт хийхгүй).
 const PAYMENT_FILTER_OPTIONS = [
   { key: 'all', label: 'Бүгд' },
+  { key: 'normal', label: 'Төлөлт хэвийн' },
   { key: 'pending', label: 'Хүлээлттэй' },
-  { key: 'overdue', label: 'Хэтэрсэн' },
+  { key: 'overdue', label: 'Хугацаа хэтэрсэн' },
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 

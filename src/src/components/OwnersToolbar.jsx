@@ -4,7 +4,7 @@ import { SearchIcon } from './icons/Icons';
 // хэрэглэгчийн заасны дагуу тусдаа компонент болгов (Rule of two,
 // ирээдүйд бусад хүснэгэлт хуудсанд дахин ашиглагдана).
 // 2026-08-19: "Байр" dropdown статик placeholder-ээс бодит Supabase
-// (unit_layouts) дата руу динамик болов; "Орц" dropdown БүРМвСвН
+// (unit_layouts) дата руу динамик болов; "Орц" dropdown БүРМӨСӨН
 // арилгав — 100-200 орцноос шүүх шаардлага бодит хэрэглээнд гардаггүй.
 // 2026-08-19 (2): "Байр" dropdown-ийн баруун талд Бүгд/Хүлээлттэй/
 // Хэтэрсэн/Эрсдэлтэй гэсэн placeholder шүүлтүүр нэмэв — логикийг
@@ -12,8 +12,9 @@ import { SearchIcon } from './icons/Icons';
 // зүгээр UI, ямар ч бодит шүүлт хийхгүй).
 const PAYMENT_FILTER_OPTIONS = [
   { key: 'all', label: 'Бүгд' },
+  { key: 'normal', label: 'Төлөлт хэвийн' },
   { key: 'pending', label: 'Хүлээлттэй' },
-  { key: 'overdue', label: 'Хэтэрсэн' },
+  { key: 'overdue', label: 'Хугацаа хэтэрсэн' },
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 
