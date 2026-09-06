@@ -253,7 +253,7 @@ export default function Invoice() {
 
   return (
     <>
-      <div className="ds-card p-4 mb-[10px] flex items-end gap-3 flex-wrap">
+      <div className="ds-toolbar mb-[10px]">
         <div>
           <input type="number" className="ds-input" style={{ width: 100 }} value={year} onChange={(e) => setYear(+e.target.value || now.getFullYear())} disabled={!!previewRows} />
         </div>
@@ -271,7 +271,7 @@ export default function Invoice() {
           <>
             <button className="ds-btn-secondary" onClick={cancelPreview} disabled={saving}>Цуцлах</button>
             <button className="ds-btn-primary" onClick={commitPreview} disabled={saving}>
-              {saving ? 'Илгээж байна...' : 'үүсгэсэн нэхэмжлэхийг илгээх'}
+              {saving ? 'Илгээж байна...' : 'Үүсгэсэн нэхэмжлэхийг илгээх'}
             </button>
           </>
         )}
