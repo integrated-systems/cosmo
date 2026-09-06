@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
+import { formatUnitCode } from '../lib/ownersFormat';
 import { useAlert } from '../hooks/useAlert';
 
 // "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-07 (17): Хэрэглэгчийн
@@ -87,17 +88,12 @@ function sortItems(items) {
   });
 }
 
-// 2026-09-07 (19): Хэрэглэгчийн олсон өгөөдлийн зврчил - "[байр]
-// [тоот]" (жиш "106 5") формат нэг орцтой байрны стандарт БИШ, давхар
-// бүрийн ижил дугаартай тоотууд давтагдан ижил харагдаж, өөрөөр
-// талбарт дуудвал давхардлаас үүдэн буруу өгөөдэл үүсгэх эрсдэлтэй.
-// Одоо "[байр] [давхар 2 орон][тоот 2 орон]" (жиш "106 0705") форматтай
-// болов - үнэн зөв, давхцалгүй нэгж дугаар.
-function formatUnitAddress(buildingNo, floor, doorNo) {
-  const f = String(floor ?? '').padStart(2, '0');
-  const d = String(doorNo ?? '').padStart(2, '0');
-  return `${buildingNo || ''} ${f}${d}`.trim();
-}
+
+// 2026-09-07 (19->20): Хэрэглэгчийн заасны дагуу - "давхар+тоот" формат
+// нь Хаягжилт тохиргоо (Constructor)-ийн АНХДАГЧ ЭХ СУРВАЛЖ форматтай
+// ЯГ ТОХИРОХ ёстой тул, өөрөө дахин зохион БИЧИХГүй, src/lib/
+// ownersFormat.js-ийн formatUnitCode()-ыг шууд дуудна (EditOwnerModal-
+// ийн dropdown, useUnitLayouts.js-тэй Rule of two).
 
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
@@ -113,6 +109,7 @@ export default function Invoice() {
   const [previewRows, setPreviewRows] = useState(null); // тооцоолсон ч хараахан хадгалаагүй
   const [loading, setLoading] = useState(true);
   const [names, setNames] = useState({});
+  const [structureTypeByBuilding, setStructureTypeByBuilding] = useState({});
   const [expanded, setExpanded] = useState(null);
   const [items, setItems] = useState([]);
   const [prevTotal, setPrevTotal] = useState(null);
@@ -134,6 +131,18 @@ export default function Invoice() {
   }
   useEffect(() => { if (hoaId) loadInvoices(); }, [hoaId, year, month]);
 
+  useEffect(() => {
+    if (!hoaId) return;
+    (async () => {
+      const { data } = await fetchAllRows(() =>
+        supabase.from('unit_layouts').select('building_no, structure_type').eq('tenant_id', hoaId).eq('hidden', false)
+      );
+      const map = {};
+      (data || []).forEach((r) => { const key = String(r.building_no || '').trim(); if (!(key in map)) map[key] = r.structure_type; });
+      setStructureTypeByBuilding(map);
+    })();
+  }, [hoaId]);
+
   const committedIds = useMemo(() => ({
     ownerIds: invoices.filter((i) => i.target_type === 'owner').map((i) => i.target_id),
     clientIds: invoices.filter((i) => i.target_type === 'client').map((i) => i.target_id),
@@ -145,7 +154,7 @@ export default function Invoice() {
       const map = {};
       if (committedIds.ownerIds.length) {
         const { data } = await supabase.from('owners').select('id, firstname, lastname, building_no, floor, door_no').in('id', committedIds.ownerIds);
-        (data || []).forEach((o) => { map[`owner-${o.id}`] = { name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitAddress(o.building_no, o.floor, o.door_no) }; });
+        (data || []).forEach((o) => { map[`owner-${o.id}`] = { name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) }; });
       }
       if (committedIds.clientIds.length) {
         const { data } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
@@ -173,7 +182,7 @@ export default function Invoice() {
         if (lineItems.length === 0) return;
         rows.push({
           target_type: 'owner', target_id: o.id,
-          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitAddress(o.building_no, o.floor, o.door_no),
+          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no),
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
       });
