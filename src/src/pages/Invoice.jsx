@@ -278,11 +278,11 @@ export default function Invoice() {
       </div>
 
       <div className="grid grid-cols-4 gap-[10px] mb-[10px]">
-        <div className="ds-card p-4">
+        <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжлэхийн тоо</div>
           <div className="text-[19px] font-bold">{displayRows.length}</div>
         </div>
-        <div className="ds-card p-4">
+        <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжилсэн дүн</div>
           <div className="text-[19px] font-bold">
             {formatMoney(totalSum)}₮{' '}
@@ -293,11 +293,11 @@ export default function Invoice() {
             )}
           </div>
         </div>
-        <div className="ds-card p-4">
+        <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Сууц өмчлөгч</div>
           <div className="text-[19px] font-bold">{ownerCount}</div>
         </div>
-        <div className="ds-card p-4">
+        <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Талбай өмчлөгч (ААН)</div>
           <div className="text-[19px] font-bold">{clientCount}</div>
         </div>
@@ -306,7 +306,7 @@ export default function Invoice() {
       {activeBreakdown.length > 0 && (
         <div className="ds-card mb-[10px] flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
           {activeBreakdown.map((b, i) => (
-            <div key={b.name} className="flex-1" style={{ minWidth: 150, padding: '14px 16px' }}>
+            <div key={b.name} className="flex-1" style={{ minWidth: 150, padding: '12px 16px' }}>
               <div className="flex items-center gap-1.5 text-[11.5px] text-mutedtext">
                 <span style={{ width: 7, height: 7, borderRadius: '50%', display: 'inline-block', background: BREAKDOWN_COLORS[i % BREAKDOWN_COLORS.length] }} />
                 {b.name}
