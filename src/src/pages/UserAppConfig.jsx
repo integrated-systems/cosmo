@@ -33,13 +33,6 @@ const MODULES = [
   { key: 'classifieds', label: 'Зарын самбар', built: true },
 ];
 
-// Тогтмол харагдах (энэ жагсаалтаар ХЯЗГААРЛАГДДАГГүй) зүйлс —
-// admin-д тодорхой болгохын тулд зүгээр мэдээлэл болгон үзүүлнэ.
-const FIXED_ITEMS = [
-  { label: 'Төлбөр', note: 'Доод navigation tab — үүргүй харагдана' },
-  { label: 'Профайл', note: 'Доод navigation tab — үүргүй харагдана' },
-];
-
 const TABS = [
   { key: 'modules', label: 'Модуль тохиргоо' },
   { key: 'phonebook', label: 'Утасны жагсаалт' },
@@ -209,10 +202,7 @@ export default function UserAppConfig() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <div className="text-[11px] text-mutedtext mb-4 max-w-md">
-                Энд идэвхжүүлсэн модулиуд ЗӨВХӨН тухайн хэрэглэгчийн эрхтэй
-                (Хандах эрхийн тохиргоо → Харах=Тийм) үед л OwnerApp-д товч
-                болж харагдана — энэ тохиргоо нэмэлт шүүлтүүр, эрхийг
-                орлохгүй.
+                Сонгож чеклэсэн модулийг сууц өмчлөгч өөрийн апп дээрээ уг модультай холбоотой товчийг олж харах бөгөөд дарж хуудсыг нээх боломжтой болно.
               </div>
 
               {loading ? (
@@ -234,17 +224,6 @@ export default function UserAppConfig() {
               <button className="ds-btn-primary mt-4" onClick={handleSave} disabled={saving || loading}>
                 {saving ? 'Хадгалж байна...' : 'Хадгалах'}
               </button>
-
-              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-bordercol">
-                <div className="text-[11.5px] font-semibold text-slate-700 dark:text-text mb-2">Тогтмол харагдах (энд тохируулагдахгүй)</div>
-                <div className="flex flex-col gap-1.5">
-                  {FIXED_ITEMS.map((f) => (
-                    <div key={f.label} className="text-[11px] text-mutedtext">
-                      <span className="font-medium text-slate-600 dark:text-slate-300">{f.label}</span> — {f.note}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div>
@@ -255,11 +234,8 @@ export default function UserAppConfig() {
 
         {tab === 'phonebook' && (
           <div>
-            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Утасны жагсаалт</div>
             <div className="text-[11px] text-mutedtext mb-4 max-w-xl">
-              Гал түймэр, эмнэлэг, цагдаа зэрэг онцгой дугаараас эхлээд лифтчин,
-              сантехник, цахилгаанчин зэрэг үйлчилгээний дугаар хүртэл — сууц
-              өмчлөгч дугаар дээр дарахад үүрэн утасны оператор руу шиднэ.
+              Сууц өмчлөгчийн апп дээрх "Утасны жагсаалт" товчны доторх хуудаст харагдах хэрэгцээт утасны жагсаалтыг +Мөр нэмэх товч дарж үүсгээд Хадгалах товч дарж хадгална уу.
             </div>
             {phoneLoading ? (
               <div className="text-[12px] text-darktext py-4">Ачаалж байна...</div>
@@ -287,11 +263,8 @@ export default function UserAppConfig() {
 
         {tab === 'about' && (
           <div>
-            <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">СӨХ-ны тухай</div>
             <div className="text-[11px] text-mutedtext mb-4 max-w-xl">
-              СӨХ-ны хаяг, дансны мэдээлэл болон хотхоны танилцуулга текст —
-              сууц өмчлөгч OwnerApp дээрх "СӨХ-ны тухай" тайл дээр дарж
-              харна.
+              СӨХ-ны албан ёсны хаяг, дансны дугаар, утас, имэйл болон товч танилцуулгыг энэ хуудсанд бичиж хадгалсанаар сууц өмчлөгч өөрийн апп дээрээ СӨХ-ны тухай товчийг дарж үзэх боломжтой болно.
             </div>
             {aboutLoading ? (
               <div className="text-[12px] text-darktext py-4">Ачаалж байна...</div>
