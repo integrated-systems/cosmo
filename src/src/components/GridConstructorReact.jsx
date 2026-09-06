@@ -268,7 +268,7 @@ export default function GridConstructorReact({ hoaId }) {
   // ---------------- "undecided → draw/marquee" зангилааны механизм ----------------
   // үвр кодтой ижил санаа: хоосон нүднээс эхэлсэн чирэлт эхний
   // хөдвөлгөөнөөрөө ("1 нүд зэргэлдээ" эсвэл "хол хөдлвх") шийдэгдэнэ.
-  const dragRef = useRef(null); // continuous drag төлвв — re-render үүсгэхгүй
+  const dragRef = useRef(null); // continuous drag төлөө — re-render үүсгэхгүй
   const [ghost, setGhost] = useState(null); // зөөхөн ЗУРАХ үед л үзүүлэх урьдчилсан харагдац
   const [marqueeRect, setMarqueeRect] = useState(null); // {x,y,w,h} - "чирж хүрээгээр сонгох" үзүүлэлт
 
@@ -436,7 +436,7 @@ export default function GridConstructorReact({ hoaId }) {
     e.stopPropagation();
     if (e.ctrlKey || e.metaKey) {
       // 2026-09-03: Хэрэглэгчийн хүсэлт - Ctrl (Mac дээр Cmd) + дарах
-      // үед зөвхөн сонголтыг нэмэх/хасах, зввхгүй (multi-select).
+      // үед зөвхөн сонголтыг нэмэх/хасах, зөөхгүй (multi-select).
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(slot.id)) next.delete(slot.id); else next.add(slot.id);
@@ -500,9 +500,16 @@ export default function GridConstructorReact({ hoaId }) {
   // ---------------- полигон зурах FSM ----------------
   const [polyPoints, setPolyPoints] = useState([]);
   const polySnap = 12; // px, торны нарийвчлал
+  // 2026-09-07 (16): Хэрэглэгчийн хүсэлт - нарийвчлалтай (чөлөөт)
+  // хэлбэр зурахад зориулж snap-ыг түр унтраах боломж. Зөвхөн полигон
+  // ЗУРАХ үед л (одоо буй полигон зөвх үед биш) хамрана.
+  const [polySnapEnabled, setPolySnapEnabled] = useState(true);
 
   function polyLocalPoint(e) {
     const rect = gridRef.current.getBoundingClientRect();
+    if (!polySnapEnabled) {
+      return { x: (e.clientX - rect.left) / zoom, y: (e.clientY - rect.top) / zoom };
+    }
     const x = Math.round(((e.clientX - rect.left) / zoom) / polySnap) * polySnap;
     const y = Math.round(((e.clientY - rect.top) / zoom) / polySnap) * polySnap;
     return { x, y };
@@ -585,7 +592,7 @@ export default function GridConstructorReact({ hoaId }) {
   // 2026-09-04 (9): Хэрэглэгчийн хүсэлт - полигон болон шулуун
   // зураасыг чирж байрлалыг өөрчлөх боломжтой болгов (текст/слот
   // шиг адил зарчим: 5px-ээс бага бол дарсан гэж үзэж модаль нээнэ,
-  // илүү бол чирж байрлал вврчилнэ).
+  // илүү бол чирж байрлал өөрчилнэ).
   const polygonMoveRef = useRef(null);
   const [draggingPolyDelta, setDraggingPolyDelta] = useState(null);
   function handlePolygonPointerDown(e, p) {
@@ -775,6 +782,12 @@ export default function GridConstructorReact({ hoaId }) {
           <label className="text-[11px] text-mutedtext">Мвр</label>
           <input type="number" min={MIN_ROWS} className="ds-input w-16" value={rows} onChange={(e) => setRows(Math.max(MIN_ROWS, +e.target.value || MIN_ROWS))} />
         </div>
+        {tool === 'polygon' && (
+          <label className="flex items-center gap-1.5 text-[11px] text-mutedtext cursor-pointer">
+            <input type="checkbox" checked={polySnapEnabled} onChange={(e) => setPolySnapEnabled(e.target.checked)} />
+            Торны align (snap)
+          </label>
+        )}
         {tool === 'polygon' || tool === 'line' ? (
           <div className="flex items-center gap-1">
             <label className="text-[11px] text-mutedtext">Зураасны өнгө</label>
@@ -977,11 +990,11 @@ export default function GridConstructorReact({ hoaId }) {
           })}
           {/* 2026-09-04: Компасс - 48px диаметртэй, тор (grid) огтлолцол
               дээр төвтөй гөвр байрлана, дарах бүрд 45 хэмээр эргэнэ.
-              2026-09-04 (2): Хэрэглэгчийн вгсвн дэлгэрэнгүй SVG (path-
+              2026-09-04 (2): Хэрэглэгчийн өгсөн дэлгэрэнгүй SVG (path-
               үндэслэсэн, "N" үсэг + бүтэн тойрог хүрээ + ромбо needle)
               болгож сольсон. Эх SVG-ийн хатуу "#000000" fill-ийг
               "currentColor" болгож (Dark/Light mode хоёуланд theme-
-              aware байхаар) вврчилсвн - үлдсэн бүгд яг эх хэвээрээ. */}
+              aware байхаар) өөрчилсөн - үлдсэн бүгд яг эх хэвээрээ. */}
           {compasses.map((c) => (
             <svg
               key={c.id}

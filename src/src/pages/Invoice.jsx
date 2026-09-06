@@ -74,6 +74,8 @@ function calcClientItems(client, tariffItems, gridStorageSpots) {
   return items;
 }
 
+const BREAKDOWN_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef5555', '#0a428f'];
+
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { gridStorageSpots } = useGridSpots(hoaId);
@@ -87,6 +89,7 @@ export default function Invoice() {
   const [names, setNames] = useState({}); // {`${type}-${id}`: name}
   const [expanded, setExpanded] = useState(null);
   const [items, setItems] = useState([]);
+  const [breakdown, setBreakdown] = useState([]);
 
   async function loadInvoices() {
     setLoading(true);
@@ -113,6 +116,24 @@ export default function Invoice() {
         (data || []).forEach((c) => { map[`client-${c.id}`] = c.legal_entity_name; });
       }
       setNames(map);
+    })();
+  }, [invoices]);
+
+  useEffect(() => {
+    if (invoices.length === 0) { setBreakdown([]); return; }
+    (async () => {
+      // 2026-09-07 (16): Хэрэглэгчийн хүсэлт - "СӨХ-ны төлбөр/Зогсоол/
+      // Агуулах" гэсэн 3 ФИКС карт БИШ, тухайн сард бодитоор ашиглагдсан
+      // БүХ идэвхтэй тарифыг (шинээр үүсгэсэн нэмэлт төлбөр/зардал ч
+      // хамаарна) invoice_items-ээс автоматаар бүлэглэж, динамик карт
+      // болгож үзүүлнэ.
+      const invoiceIds = invoices.map((i) => i.id);
+      const { data } = await fetchAllRows(() =>
+        supabase.from('invoice_items').select('description, amount').in('invoice_id', invoiceIds)
+      );
+      const totals = {};
+      (data || []).forEach((li) => { totals[li.description] = (totals[li.description] || 0) + Number(li.amount); });
+      setBreakdown(Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([name, amount]) => ({ name, amount })));
     })();
   }, [invoices]);
 
@@ -189,6 +210,20 @@ export default function Invoice() {
         </button>
         <span className="text-[11px] text-mutedtext ml-auto">Нийт: {invoices.length} нэхэмжлэл, {formatMoney(totalSum)}₮</span>
       </div>
+
+      {breakdown.length > 0 && (
+        <div className="ds-card mb-4 flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
+          {breakdown.map((b, i) => (
+            <div key={b.name} className="flex-1" style={{ minWidth: 160, padding: '14px 16px' }}>
+              <div className="flex items-center gap-1.5 text-[11.5px] text-mutedtext">
+                <span style={{ width: 7, height: 7, borderRadius: '50%', display: 'inline-block', background: BREAKDOWN_COLORS[i % BREAKDOWN_COLORS.length] }} />
+                {b.name}
+              </div>
+              <div className="text-[14.5px] font-bold mt-1">{formatMoney(b.amount)}₮</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="ds-card p-4">
         <table className="ds-table w-full">
