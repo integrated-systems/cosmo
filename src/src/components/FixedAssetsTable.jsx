@@ -13,6 +13,10 @@ import BarcodeImage from './BarcodeImage';
 // ийн дор) болон доод ds-table-summary footer-ыг бүрэн устгав — эдгээр
 // нь FixedAssets.jsx-ийн тойм статистик картуудтай (Нийт хөрөнгийн
 // тоо/Худалдан авсан нийт үнэ/Актлагдсан) шууд давхцаж байсан тул.
+// 2026-09-07 (7): Хэрэглэгчийн заасны дагуу мвр (хвл) БүХЭЛДЭЭ дарахад
+// AssetInfoModal нээгдэнэ (зөвхөн НЭР баганаас биш) — Баркод/Засах/
+// Устгах товчид stopPropagation нэмж мврийн click-тэй зөрчилдөхгүй
+// болгов.
 export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onPrint, onView, canEdit = true, canDelete = true }) {
   const colCount = 14;
 
@@ -49,18 +53,14 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
               <tr><td colSpan={colCount} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && rows.map((r, idx) => (
-              <tr key={r.id}>
+              <tr key={r.id} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]" onClick={() => onView?.(r)}>
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
                 <td className="py-2.5 px-3">
-                  <button type="button" className="cursor-pointer" title="Дарж шошго хэвлэх" onClick={() => onPrint?.(r)}>
+                  <button type="button" className="cursor-pointer" title="Дарж шошго хэвлэх" onClick={(e) => { e.stopPropagation(); onPrint?.(r); }}>
                     <BarcodeImage value={r.barcode} />
                   </button>
                 </td>
-                <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">
-                  <button type="button" className="text-left hover:underline" title="Дэлгэрэнгүй харах" onClick={() => onView?.(r)}>
-                    {r.name}
-                  </button>
-                </td>
+                <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.mark_serial || '—'}</td>
                 <td className="py-2.5 px-3">{r.type?.name || '—'}</td>
                 <td className="py-2.5 px-3">{r.qty} {r.unit}</td>
@@ -73,12 +73,12 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className={`py-2.5 px-3 font-semibold ${statusClassName(r.status)}`}>{statusLabel(r.status)}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && (
-                    <button className="ds-icon-btn" title="Засах" onClick={() => onEdit(r)}>
+                    <button className="ds-icon-btn" title="Засах" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>
                       <EditIcon />
                     </button>
                   )}
                   {canDelete && (
-                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => onDelete(r)}>
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={(e) => { e.stopPropagation(); onDelete(r); }}>
                       <DeleteIcon />
                     </button>
                   )}

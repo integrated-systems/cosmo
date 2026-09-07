@@ -6,10 +6,15 @@
 //
 // Аргачлал 2:
 //   - Шугаман элэгдэл (straight_line): сар бүр тэнцүү хэмжээгээр.
-//   - Хурдасгасан элэгдэл (accelerated): 2х-балансын бууралтын арга
-//     (double declining balance) — сар бүрт үлдэгдэл үнийн дээр
-//     тогтмол хувиар тооцож, үлдэгдэл үнэ (salvage value)-c доош
-//     орохгүйгээр хязгаарлана.
+//   - Хурдасгасан элэгдэл (accelerated): бууралтын үлдэгдэл (declining
+//     balance) арга, ХЭРЭГЛЭГЧИЙН ГАРААР сонгосон жилийн хувиар
+//     (annual_depreciation_rate, жиш 20%) — үлдэгдэл үнэ жил бүр тэр
+//     хувиар үржигдэн буурна. 2026-09-07 (6): өмнөх "2/ашиглах хугацаа"
+//     (double declining balance) томьёо буруу таамаглал байсныг
+//     хэрэглэгчийн зассан жишээгээр (36000₮, 36 сар, 0₮ үлдэгдэлтэй
+//     жишээ) орлуулав — Ашиглах хугацаа одоо ЗӨВХӨН Дансны үлдэгдэл үнэ
+//     0 болох мвчийг (disposal_date) тооцоход хэрэглэгдэнэ, хурдны
+//     коэффициентэд НӨЛӨӨЛӨХГүй.
 
 function monthsBetween(fromDate, toDate) {
   if (!fromDate || !toDate) return 0;
@@ -33,26 +38,31 @@ export function computeStraightLineDepreciation({ purchasePrice, salvageValue, u
   return { monthly, yearly: monthly * 12, accumulated, bookValue };
 }
 
-export function computeAcceleratedDepreciation({ purchasePrice, salvageValue, usefulLifeMonths, acquiredDate, asOfDate = new Date() }) {
+export function computeAcceleratedDepreciation({ purchasePrice, salvageValue, annualDepreciationRate, acquiredDate, asOfDate = new Date() }) {
   const price = Number(purchasePrice) || 0;
   const salvage = Number(salvageValue) || 0;
-  const months = Number(usefulLifeMonths) || 0;
-  if (months <= 0) return { firstMonth: 0, yearly: 0, accumulated: 0, bookValue: price };
+  const annualRate = Number(annualDepreciationRate) || 0;
+  if (annualRate <= 0) return { firstMonth: 0, yearly: 0, accumulated: 0, bookValue: price };
 
-  const monthlyRate = 2 / months;
-  const elapsed = Math.min(monthsBetween(acquiredDate, asOfDate), months);
+  // Жилийн хувиас сарын дүйцэх коэффициентийг гаргана: үлдэгдэл үнэ
+  // жил бүр (1 - хувь)-аар үржигдэн буурдаг тул сар бүрийн коэффициент
+  // нь тэрхүү жилийн үржүүлэгчийн 12-р үндэс.
+  const monthlyFactor = Math.pow(1 - annualRate / 100, 1 / 12);
+  const elapsed = monthsBetween(acquiredDate, asOfDate);
 
   let bookValue = price;
   let accumulated = 0;
   let firstMonth = 0;
   let yearOneTotal = 0;
-  for (let m = 1; m <= months; m += 1) {
-    const dep = Math.min(bookValue - salvage, bookValue * monthlyRate);
+  const maxMonths = 1200; // 100 жил — хязгааргүй давталтаас сэргийлэх аюулгүйн хамгаалалт
+  for (let m = 1; m <= maxMonths; m += 1) {
+    const dep = Math.max(0, Math.min(bookValue - salvage, bookValue * (1 - monthlyFactor)));
     if (dep <= 0) break;
     if (m === 1) firstMonth = dep;
     if (m <= 12) yearOneTotal += dep;
     if (m <= elapsed) accumulated += dep;
     bookValue -= dep;
+    if (m > elapsed && bookValue <= salvage) break;
   }
   return { firstMonth, yearly: yearOneTotal, accumulated, bookValue: price - accumulated };
 }

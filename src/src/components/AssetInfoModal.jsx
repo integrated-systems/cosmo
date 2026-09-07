@@ -11,23 +11,24 @@ import { computeStraightLineDepreciation, computeAcceleratedDepreciation } from 
 // аас ялгаатай нь: input БИШ, зөвхөн формат хийсэн утга харуулна.
 // "Засах" товч зөвхөн canEdit=true үед харагдана (ролиос хамаарна).
 export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit }) {
+  const isDepreciable = asset?.type?.is_depreciable !== false;
+
   const depreciation = useMemo(() => {
-    if (!asset) return null;
+    if (!asset || !isDepreciable) return null;
     const input = {
       purchasePrice: asset.purchase_price,
       salvageValue: asset.salvage_value,
-      usefulLifeMonths: asset.useful_life_months,
       acquiredDate: asset.acquired_date,
     };
     const result = asset.depreciation_method === 'accelerated'
-      ? computeAcceleratedDepreciation(input)
-      : computeStraightLineDepreciation(input);
+      ? computeAcceleratedDepreciation({ ...input, annualDepreciationRate: asset.annual_depreciation_rate })
+      : computeStraightLineDepreciation({ ...input, usefulLifeMonths: asset.useful_life_months });
     const months = Number(asset.useful_life_months) || 0;
     const elapsedPct = months > 0
       ? Math.min(100, Math.round(((result.accumulated || 0) / Math.max(1, asset.purchase_price - (asset.salvage_value || 0))) * 100))
       : 0;
     return { ...result, elapsedPct };
-  }, [asset]);
+  }, [asset, isDepreciable]);
 
   if (!asset) return null;
 
@@ -55,21 +56,33 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit }
         <div className="pt-2 mt-1 border-t border-slate-200 dark:border-bordercol text-[11px] font-semibold tracking-wide text-mutedtext uppercase">
           Элэгдлийн мэдээлэл
         </div>
-        <Row label="Ашиглах хугацаа">{asset.useful_life_months ? `${asset.useful_life_months} сар` : '—'}</Row>
-        <Row label="Аргачлал"><span className="font-semibold">{DEPRECIATION_METHODS[asset.depreciation_method] || '—'}</span></Row>
-        <Row label="Ашиглалтаас гарах огноо">{asset.disposal_date ? formatDate(asset.disposal_date) : '—'}</Row>
-        <Row label="Хуримтлагдсан элэгдэл" bold>{formatMoney(depreciation?.accumulated || 0)}₮</Row>
-        <Row label="Дансны үлдэгдэл үнэ"><span className="font-bold text-customBlue">{formatMoney(depreciation?.bookValue ?? asset.purchase_price)}₮</span></Row>
 
-        <div>
-          <div className="flex items-center justify-between text-[11px] text-mutedtext mb-1">
-            <span>Хугацааны явц</span>
-            <span>{depreciation?.elapsedPct ?? 0}%</span>
+        {!isDepreciable ? (
+          <div className="text-[12px] text-mutedtext">
+            Энэ төрөл ({asset.type?.name || '—'}) элэгддэггүй хөрөнгө. Дансны үлдэгдэл үнэ = <span className="font-bold text-customBlue">{formatMoney(asset.purchase_price)}₮</span> хэвээр байнга үлдэнэ.
           </div>
-          <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-            <div className="h-full bg-customBlue rounded-full" style={{ width: `${depreciation?.elapsedPct ?? 0}%` }} />
-          </div>
-        </div>
+        ) : (
+          <>
+            <Row label="Ашиглах хугацаа">{asset.useful_life_months ? `${asset.useful_life_months} сар` : '—'}</Row>
+            <Row label="Аргачлал"><span className="font-semibold">{DEPRECIATION_METHODS[asset.depreciation_method] || '—'}</span></Row>
+            {asset.depreciation_method === 'accelerated' && (
+              <Row label="Жилийн элэгдлийн хувь">{asset.annual_depreciation_rate != null ? `${asset.annual_depreciation_rate}%` : '—'}</Row>
+            )}
+            <Row label="Ашиглалтаас гарах огноо">{asset.disposal_date ? formatDate(asset.disposal_date) : '—'}</Row>
+            <Row label="Хуримтлагдсан элэгдэл" bold>{formatMoney(depreciation?.accumulated || 0)}₮</Row>
+            <Row label="Дансны үлдэгдэл үнэ"><span className="font-bold text-customBlue">{formatMoney(depreciation?.bookValue ?? asset.purchase_price)}₮</span></Row>
+
+            <div>
+              <div className="flex items-center justify-between text-[11px] text-mutedtext mb-1">
+                <span>Хугацааны явц</span>
+                <span>{depreciation?.elapsedPct ?? 0}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                <div className="h-full bg-customBlue rounded-full" style={{ width: `${depreciation?.elapsedPct ?? 0}%` }} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

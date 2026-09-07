@@ -84,7 +84,7 @@ export default function FixedAssets() {
     setLoadError('');
     const { data, error } = await fetchAllRows(() =>
       supabase.from('fixed_assets')
-        .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)')
+        .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)')
         .eq('tenant_id', hoaId)
         .order('created_at', { ascending: false })
     );
@@ -107,7 +107,7 @@ export default function FixedAssets() {
     const barcode = searchParams.get('asset');
     if (!barcode || !hoaId) return;
     supabase.from('fixed_assets')
-      .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)')
+      .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)')
       .eq('tenant_id', hoaId)
       .eq('barcode', barcode)
       .maybeSingle()
@@ -167,13 +167,15 @@ export default function FixedAssets() {
       location_id: form.locationId || null,
       responsible_person: form.responsiblePerson || null,
       note: form.note || null,
-      useful_life_months: form.usefulLifeMonths !== '' ? Number(form.usefulLifeMonths) : null,
-      depreciation_method: form.depreciationMethod || null,
-      salvage_value: form.salvageValue !== '' ? Number(form.salvageValue) : 0,
+      useful_life_months: form.isDepreciable && form.usefulLifeMonths !== '' ? Number(form.usefulLifeMonths) : null,
+      depreciation_method: form.isDepreciable ? (form.depreciationMethod || null) : null,
+      salvage_value: form.isDepreciable && form.salvageValue !== '' ? Number(form.salvageValue) : 0,
+      annual_depreciation_rate: form.isDepreciable && form.depreciationMethod === 'accelerated' && form.annualDepreciationRate !== ''
+        ? Number(form.annualDepreciationRate) : null,
       status: form.status,
     };
 
-    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)';
+    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)';
     if (editing) {
       const { data, error } = await supabase.from('fixed_assets').update(payload).eq('id', editing.id).select(selectClause).single();
       if (error) { window.alert(error.message); return; }

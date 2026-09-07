@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
+import { useAuth } from '../lib/AuthContext';
 import { useFixedAssetConfig } from '../hooks/useFixedAssetConfig';
 import { DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
 import { useConfirm } from '../hooks/useConfirm';
@@ -11,19 +12,26 @@ import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 
 // "Үндсэн хөрөнгө тохиргоо" (СИСАДМИН, /fixedassconfig) — 2026-09-07
 // хэрэглэгчийн "suh" прототипийн зурган жишээгээр (3 таб: Ангилал/
-// Төрөл/Байршил), ГЭХДЭЭ жагсаалтыг картаар БИШ, Cosmo-ийн стандарт
+// Терел/Байршил), ГЭХДЭЭ жагсаалтыг картаар БИШ, Cosmo-ийн стандарт
 // ds-table хүснэгэл дизайнаар (хэрэглэгчийн тодорхой заасны дагуу).
 // useFixedAssetConfig hook-ыг EditFixedAssetModal.jsx-тэй хамт дахин
 // ашигласан (Rule of two) — энд засварласан лавлах өгөгдөл тэр модальд
 // шууд тусна.
+//
+// 2026-09-07 (6): Ангилал/Терел одоо ГЛОБАЛ стандарт (Монголын НББ-ийн
+// стандарт хөрөнгийн ангилал) тул зөвхөн SUPERSYSADMIN засварлана —
+// энгийн СӨХ ажилтан зөвхөн харна (RLS-д ч мөн адил хориглосон,
+// UI-ийн хязгаарлалт бол зөвхөн тав тухтай байдлын үүднээс). Байршил
+// хэвээрээ tenant бүрд өөр өөр тул бүх ажилтан засварлаж чадна.
 const TABS = [
   { key: 'category', label: 'Ангилал' },
-  { key: 'type', label: 'Төрөл' },
+  { key: 'type', label: 'Терел' },
   { key: 'location', label: 'Байршил' },
 ];
 
 export default function FixedAssetConfig() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { isSuperSysAdmin } = useAuth();
   const [tab, setTab] = useState('category');
   const { categories, types, locations, loading, reload } = useFixedAssetConfig(hoaId);
 
@@ -37,16 +45,16 @@ export default function FixedAssetConfig() {
         ))}
       </div>
 
-      {tab === 'category' && <CategoriesTab hoaId={hoaId} categories={categories} types={types} loading={loading} reload={reload} />}
-      {tab === 'type' && <TypesTab hoaId={hoaId} categories={categories} types={types} loading={loading} reload={reload} />}
+      {tab === 'category' && <CategoriesTab canManage={isSuperSysAdmin} categories={categories} types={types} loading={loading} reload={reload} />}
+      {tab === 'type' && <TypesTab canManage={isSuperSysAdmin} categories={categories} types={types} loading={loading} reload={reload} />}
       {tab === 'location' && <LocationsTab hoaId={hoaId} locations={locations} loading={loading} reload={reload} />}
     </>
   );
 }
 
-// ---------- Ангилал ----------
+// ---------- Ангилал (ГЛОБАЛ, зөвхөн SUPERSYSADMIN засна) ----------
 
-function CategoriesTab({ hoaId, categories, types, loading, reload }) {
+function CategoriesTab({ canManage, categories, types, loading, reload }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -68,9 +76,14 @@ function CategoriesTab({ hoaId, categories, types, loading, reload }) {
 
   return (
     <>
-      <div className="ds-toolbar justify-end">
-        <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ ангилал нэмэх</button>
-      </div>
+      {canManage && (
+        <div className="ds-toolbar justify-end">
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ ангилал нэмэх</button>
+        </div>
+      )}
+      {!canManage && (
+        <div className="text-[11.5px] text-mutedtext">Энэ бол Монголын НББ-ийн стандарт ангилал — зөвхөн SUPERSYSADMIN засварлана.</div>
+      )}
 
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
@@ -98,8 +111,12 @@ function CategoriesTab({ hoaId, categories, types, loading, reload }) {
                   <td className="py-2.5 px-3">{DEPRECIATION_METHODS[c.default_depreciation_method] || c.default_depreciation_method}</td>
                   <td className="py-2.5 px-3">{typeCount.get(c.id) || 0}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(c)}><EditIcon /></button>
-                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(c)}><DeleteIcon /></button>
+                    {canManage && (
+                      <>
+                        <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(c)}><EditIcon /></button>
+                        <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(c)}><DeleteIcon /></button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -108,13 +125,13 @@ function CategoriesTab({ hoaId, categories, types, loading, reload }) {
         </div>
       </div>
 
-      <CategoryModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} category={editing} hoaId={hoaId} onSaved={reload} />
+      <CategoryModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} category={editing} onSaved={reload} />
       <ConfirmDialog />
     </>
   );
 }
 
-function CategoryModal({ open, onClose, category, hoaId, onSaved }) {
+function CategoryModal({ open, onClose, category, onSaved }) {
   const [form, setForm] = useState(() => ({
     name: category?.name || '',
     code: category?.code || '',
@@ -125,7 +142,7 @@ function CategoryModal({ open, onClose, category, hoaId, onSaved }) {
   async function save() {
     if (!form.name.trim()) { window.alert('Ангиллын нэрийг бөглөнө үү.'); return; }
     const payload = {
-      tenant_id: hoaId,
+      tenant_id: null,
       name: form.name.trim(),
       code: form.code || null,
       default_useful_life_months: Number(form.defaultUsefulLifeMonths) || 48,
@@ -172,7 +189,7 @@ function CategoryModal({ open, onClose, category, hoaId, onSaved }) {
 
 // ---------- Төрөл ----------
 
-function TypesTab({ hoaId, categories, types, loading, reload }) {
+function TypesTab({ canManage, categories, types, loading, reload }) {
   const { confirm, ConfirmDialog } = useConfirm();
   const [categoryId, setCategoryId] = useState('');
   const [editing, setEditing] = useState(null);
@@ -198,7 +215,9 @@ function TypesTab({ hoaId, categories, types, loading, reload }) {
         <div className="text-[11.5px] text-mutedtext flex-1">
           Төрөл бүр тодорхой нэг Ангилалд харьяалагдана. Дээрх dropdown-оос Ангилал сонгож, тухайн ангиллын Төрлүүдийг харна.
         </div>
-        <button className="ds-btn-primary" disabled={!activeCategoryId} onClick={() => setAdding(true)}>+ Шинэ төрөл нэмэх</button>
+        {canManage && (
+          <button className="ds-btn-primary" disabled={!activeCategoryId} onClick={() => setAdding(true)}>+ Шинэ төрөл нэмэх</button>
+        )}
       </div>
 
       <div className="ds-table-wrap">
@@ -207,20 +226,26 @@ function TypesTab({ hoaId, categories, types, loading, reload }) {
             <thead>
               <tr>
                 <th className="py-2.5 px-3">НЭР</th>
+                <th className="py-2.5 px-3 w-[130px]">ЭЛЭГДЭЛ</th>
                 <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-              {loading && <tr><td colSpan={2} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+              {loading && <tr><td colSpan={3} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
               {!loading && activeCategoryId && filteredTypes.length === 0 && (
-                <tr><td colSpan={2} className="py-8 text-center text-darktext">Энэ ангилалд төрөл бүртгэгдээгүй байна</td></tr>
+                <tr><td colSpan={3} className="py-8 text-center text-darktext">Энэ ангилалд төрөл бүртгэгдээгүй байна</td></tr>
               )}
               {!loading && filteredTypes.map((t) => (
                 <tr key={t.id}>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{t.name}</td>
+                  <td className="py-2.5 px-3">{t.is_depreciable === false ? <span className="text-customRed">Элэгддэггүй</span> : 'Элэгддэг'}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(t)}><EditIcon /></button>
-                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(t)}><DeleteIcon /></button>
+                    {canManage && (
+                      <>
+                        <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(t)}><EditIcon /></button>
+                        <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(t)}><DeleteIcon /></button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -229,21 +254,22 @@ function TypesTab({ hoaId, categories, types, loading, reload }) {
         </div>
       </div>
 
-      <TypeModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} type={editing} categories={categories} defaultCategoryId={activeCategoryId} hoaId={hoaId} onSaved={reload} />
+      <TypeModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} type={editing} categories={categories} defaultCategoryId={activeCategoryId} onSaved={reload} />
       <ConfirmDialog />
     </>
   );
 }
 
-function TypeModal({ open, onClose, type, categories, defaultCategoryId, hoaId, onSaved }) {
+function TypeModal({ open, onClose, type, categories, defaultCategoryId, onSaved }) {
   const [form, setForm] = useState(() => ({
     name: type?.name || '',
     categoryId: type?.category_id || defaultCategoryId || '',
+    isDepreciable: type?.is_depreciable !== false,
   }));
 
   async function save() {
     if (!form.name.trim() || !form.categoryId) { window.alert('Нэр болон Ангиллыг заавал бөглөнө үү.'); return; }
-    const payload = { tenant_id: hoaId, name: form.name.trim(), category_id: form.categoryId };
+    const payload = { tenant_id: null, name: form.name.trim(), category_id: form.categoryId, is_depreciable: form.isDepreciable };
     const { error } = type
       ? await supabase.from('fixed_asset_types').update(payload).eq('id', type.id)
       : await supabase.from('fixed_asset_types').insert(payload);

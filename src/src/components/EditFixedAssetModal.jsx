@@ -49,6 +49,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
     usefulLifeMonths: asset?.useful_life_months ?? '',
     depreciationMethod: asset?.depreciation_method || 'straight_line',
     salvageValue: asset?.salvage_value ?? 0,
+    annualDepreciationRate: asset?.annual_depreciation_rate ?? 20,
     status: asset?.status || 'in_use',
   }));
 
@@ -79,6 +80,12 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
     [types, form.categoryId]
   );
 
+  // "Газар" гэх мэт ЭЛЭГДЭХГүй терел сонгогдсон үед элэгдлийн бүх
+  // тооцооллыг нуух (2026-09-07 (6), Rule of two — is_depreciable
+  // flag ганцхан газраас, fixed_asset_types-с ирнэ).
+  const selectedType = useMemo(() => types.find((t) => t.id === form.typeId), [types, form.typeId]);
+  const isDepreciable = selectedType ? selectedType.is_depreciable !== false : true;
+
   const disposalDate = useMemo(() => {
     if (!form.acquiredDate || !form.usefulLifeMonths) return null;
     const d = new Date(form.acquiredDate);
@@ -86,14 +93,18 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
     return d;
   }, [form.acquiredDate, form.usefulLifeMonths]);
 
-  const depreciationInput = {
+  const straightLine = computeStraightLineDepreciation({
     purchasePrice: form.purchasePrice,
     salvageValue: form.salvageValue,
     usefulLifeMonths: form.usefulLifeMonths,
     acquiredDate: form.acquiredDate,
-  };
-  const straightLine = computeStraightLineDepreciation(depreciationInput);
-  const accelerated = computeAcceleratedDepreciation(depreciationInput);
+  });
+  const accelerated = computeAcceleratedDepreciation({
+    purchasePrice: form.purchasePrice,
+    salvageValue: form.salvageValue,
+    annualDepreciationRate: form.annualDepreciationRate,
+    acquiredDate: form.acquiredDate,
+  });
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -101,7 +112,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
       window.alert('Хөрөнгийн нэр болон баркод талбарыг заавал бөглөнө үү.');
       return;
     }
-    onSave(form);
+    onSave({ ...form, isDepreciable });
   }
 
   return (
@@ -188,47 +199,62 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
           Элэгдлийн тооцоолол
         </div>
 
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ашиглах хугацаа (сараар)</label>
-          <input type="number" min="0" step="1" className="ds-input w-full" value={form.usefulLifeMonths} onChange={(e) => set('usefulLifeMonths', e.target.value)} />
-        </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Элэгдэл тооцох аргачлал</label>
-          <select className="ds-select w-full" value={form.depreciationMethod} onChange={(e) => set('depreciationMethod', e.target.value)}>
-            {Object.entries(DEPRECIATION_METHODS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ашиглалтаас гарах огноо</label>
-          <input type="text" className="ds-input w-full opacity-70" readOnly value={disposalDate ? formatDate(disposalDate) : '—'} />
-        </div>
-        <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Үлдэгдэл үнэ (Ашиглалт дуусахад, ₮)</label>
-          <input type="number" min="0" step="any" className="ds-input w-full" value={form.salvageValue} onChange={(e) => set('salvageValue', e.target.value)} />
-        </div>
-
-        <div className="col-span-2 text-[11px] font-semibold tracking-wide text-mutedtext uppercase mt-1">
-          Хоёр аргын харьцуулсан нарийвчилсан тооцоолол
-        </div>
-        <div className="ds-card p-3">
-          <div className="text-[12px] font-semibold text-customBlue mb-1.5">Шугаман элэгдэл</div>
-          <div className="text-[11.5px] text-slate-600 dark:text-mutedtext space-y-0.5">
-            <div>Сарын элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.monthly)}₮</span></div>
-            <div>1 жилийн элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.yearly)}₮</span></div>
-            <div>Хуримтлагдсан элэгдэл (өнөөдрийг хүртэл): <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.accumulated)}₮</span></div>
-            <div>Дансны үлдэгдэл үнэ: <span className="text-customGreen font-semibold">{formatMoney(straightLine.bookValue)}₮</span></div>
+        {!isDepreciable ? (
+          <div className="col-span-2 text-[12px] text-mutedtext ds-card p-3">
+            "{selectedType?.name}" төрөл элэгддэггүй хөрөнгө тул элэгдлийн тооцоолол хийгдэхгүй. Дансны үлдэгдэл үнэ = Худалдан авсан үнэ хэвээр байнга үлдэнэ.
           </div>
-        </div>
-        <div className="ds-card p-3">
-          <div className="text-[12px] font-semibold text-customOrange mb-1.5">Хурдасгасан элэгдэл</div>
-          <div className="text-[11.5px] text-slate-600 dark:text-mutedtext space-y-0.5">
-            <div>1-р сарын элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.firstMonth)}₮</span></div>
-            <div>1 жилийн элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.yearly)}₮</span></div>
-            <div>Хуримтлагдсан элэгдэл (өнөөдрийг хүртэл): <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.accumulated)}₮</span></div>
-            <div>Дансны үлдэгдэл үнэ: <span className="text-customGreen font-semibold">{formatMoney(accelerated.bookValue)}₮</span></div>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div>
+              <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ашиглах хугацаа (сараар)</label>
+              <input type="number" min="0" step="1" className="ds-input w-full" value={form.usefulLifeMonths} onChange={(e) => set('usefulLifeMonths', e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Элэгдэл тооцох аргачлал</label>
+              <select className="ds-select w-full" value={form.depreciationMethod} onChange={(e) => set('depreciationMethod', e.target.value)}>
+                {Object.entries(DEPRECIATION_METHODS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+
+            {form.depreciationMethod === 'accelerated' && (
+              <div className="col-span-2">
+                <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Жилийн элэгдлийн хувь (%)</label>
+                <input type="number" min="0" max="100" step="any" className="ds-input w-full" value={form.annualDepreciationRate} onChange={(e) => set('annualDepreciationRate', e.target.value)} />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ашиглалтаас гарах огноо</label>
+              <input type="text" className="ds-input w-full opacity-70" readOnly value={disposalDate ? formatDate(disposalDate) : '—'} />
+            </div>
+            <div>
+              <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Үлдэгдэл үнэ (Ашиглалт дуусахад, ₮)</label>
+              <input type="number" min="0" step="any" className="ds-input w-full" value={form.salvageValue} onChange={(e) => set('salvageValue', e.target.value)} />
+            </div>
+
+            <div className="col-span-2 text-[11px] font-semibold tracking-wide text-mutedtext uppercase mt-1">
+              Хоёр аргын харьцуулсан нарийвчилсан тооцоолол
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[12px] font-semibold text-customBlue mb-1.5">Шугаман элэгдэл</div>
+              <div className="text-[11.5px] text-slate-600 dark:text-mutedtext space-y-0.5">
+                <div>Сарын элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.monthly)}₮</span></div>
+                <div>1 жилийн элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.yearly)}₮</span></div>
+                <div>Хуримтлагдсан элэгдэл (өнөөдрийг хүртэл): <span className="text-slate-900 dark:text-white font-medium">{formatMoney(straightLine.accumulated)}₮</span></div>
+                <div>Дансны үлдэгдэл үнэ: <span className="text-customGreen font-semibold">{formatMoney(straightLine.bookValue)}₮</span></div>
+              </div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[12px] font-semibold text-customOrange mb-1.5">Хурдасгасан элэгдэл</div>
+              <div className="text-[11.5px] text-slate-600 dark:text-mutedtext space-y-0.5">
+                <div>1-р сарын элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.firstMonth)}₮</span></div>
+                <div>1 жилийн элэгдэл: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.yearly)}₮</span></div>
+                <div>Хуримтлагдсан элэгдэл (өнөөдрийг хүртэл): <span className="text-slate-900 dark:text-white font-medium">{formatMoney(accelerated.accumulated)}₮</span></div>
+                <div>Дансны үлдэгдэл үнэ: <span className="text-customGreen font-semibold">{formatMoney(accelerated.bookValue)}₮</span></div>
+              </div>
+            </div>
+          </>
+        )}
 
         {configLoading && <div className="col-span-2 text-[11px] text-mutedtext">Лавлах жагсаалт ачаалж байна...</div>}
       </form>
