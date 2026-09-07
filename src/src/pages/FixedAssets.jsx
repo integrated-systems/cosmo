@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
-import { buildLabelPngBlob, shareOrDownloadLabel } from '../lib/labelPrint';
+import { buildLabelPngBlob, shareOrDownloadLabel, buildAssetDeepLink } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
 import FixedAssetsTable from '../components/FixedAssetsTable';
 import EditFixedAssetModal from '../components/EditFixedAssetModal';
+import AssetInfoModal from '../components/AssetInfoModal';
 
 // "Үндсэн хөрөнгө бүртгэл" (/fixedassets) — "Удирдах зөвлөл портал"
 // бүлэг. 2026-09-07 хэрэглэгчийн хуучин "suh" прототипийн зурган
@@ -36,6 +37,16 @@ import EditFixedAssetModal from '../components/EditFixedAssetModal';
 // нэрээр нь харуулна. accumulated_depreciation багана одоогоор 0
 // хэвээр үлдэнэ — тогтмол/автомат бичилтийн логикийг хэрэглэгч
 // дараагийн промптоор тодорхойлно.
+//
+// 2026-09-07 (5): Хүснэгэлийн НЭР баганан дээр дарахад AssetInfoModal
+// (зөвхөн унших мэдээллийн карт) нээгдэнэ — QR-аар (?asset=barcode)
+// орж ирэхэд ч мөн ижил модаль автоматаар нээгдэнэ.
+// 2026-09-07 (5): QR код нэмэв (CODE128-ыг ердийн камер уншдаггүй байсан
+// тул) — QR нь тухайн хөрөнгийн Инфо мэдээллийн карт (AssetInfoModal)
+// руу шууд орох deep-link URL агуулна. Хүснэгэлийн мвр дээр дарахад
+// мөн адил Инфо карт нээгдэнэ (Засах модальтай ялгаатай — зөвхөн унших).
+// URL-ийн ?asset={barcode} query param-ыг уншиж QR-ээр орж ирсэн үед
+// автоматаар нээнэ.
 const TABS = [
   { key: 'list', label: 'Үндсэн хөрөнгийн жагсаалт' },
   { key: 'depreciation', label: 'Элэгдэл' },
@@ -44,6 +55,7 @@ const TABS = [
 
 export default function FixedAssets() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { can } = useAccessRules(hoaId);
   const { confirm, ConfirmDialog } = useConfirm();
 
@@ -53,10 +65,19 @@ export default function FixedAssets() {
   const [loadError, setLoadError] = useState('');
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [viewing, setViewing] = useState(null);
+  const [tenantName, setTenantName] = useState('');
 
   const [responsiblePerson, setResponsiblePerson] = useState('all');
   const [location, setLocation] = useState('all');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (!hoaId) return;
+    supabase.from('tenants').select('name').eq('id', hoaId).single().then(({ data }) => {
+      if (data) setTenantName(data.name);
+    });
+  }, [hoaId]);
 
   async function loadAssets() {
     setLoading(true);
@@ -77,6 +98,24 @@ export default function FixedAssets() {
 
   useEffect(() => {
     loadAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId]);
+
+  // QR-аар (?asset=barcode) орж ирсэн үед тухайн хөрөнгийг тусад нь
+  // (жагсаалт дуусаагүй байсан ч) шууд татаж Инфо картыг нээнэ.
+  useEffect(() => {
+    const barcode = searchParams.get('asset');
+    if (!barcode || !hoaId) return;
+    supabase.from('fixed_assets')
+      .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)')
+      .eq('tenant_id', hoaId)
+      .eq('barcode', barcode)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) { window.alert(error.message); return; }
+        if (data) setViewing(data);
+        else window.alert('Энэ баркодтой хөрөнгө олдсонгүй.');
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoaId]);
 
@@ -157,14 +196,21 @@ export default function FixedAssets() {
 
   // 2026-09-07: Шошго хэвлэлт — эхний шат зөвхөн iPad/iPhone дээр
   // турших зорилготой (src/lib/labelPrint.js тайлбарыг үзнэ үү).
+  // 2026-09-07 (5): QR код (CODE128 биш) — deep-link URL агуулна.
   async function handlePrint(row) {
     if (!(await confirm(`"${row.name}" хөрөнгийн шошгыг хэвлэх үү?`))) return;
     try {
-      const blob = await buildLabelPngBlob({ barcode: row.barcode, name: row.name });
+      const deepLink = buildAssetDeepLink(hoaId, row.barcode);
+      const blob = await buildLabelPngBlob({ tenantName, barcode: row.barcode, markSerial: row.mark_serial, deepLink });
       await shareOrDownloadLabel(blob, `${row.barcode}.png`);
     } catch (err) {
       window.alert(`Шошго үүсгэхэд алдаа гарлаа: ${err.message}`);
     }
+  }
+
+  function handleCloseView() {
+    setViewing(null);
+    if (searchParams.get('asset')) setSearchParams({}, { replace: true });
   }
 
   return (
@@ -213,6 +259,7 @@ export default function FixedAssets() {
           onEdit={setEditing}
           onDelete={handleDelete}
           onPrint={handlePrint}
+          onView={setViewing}
           canEdit={can('fixedassets', 'edit')}
           canDelete={can('fixedassets', 'delete')}
         />
@@ -233,6 +280,14 @@ export default function FixedAssets() {
         asset={null}
         onSave={handleSave}
         hoaId={hoaId}
+      />
+
+      <AssetInfoModal
+        open={!!viewing}
+        onClose={handleCloseView}
+        asset={viewing}
+        canEdit={can('fixedassets', 'edit')}
+        onEdit={(asset) => { handleCloseView(); setEditing(asset); }}
       />
 
       <ConfirmDialog />
