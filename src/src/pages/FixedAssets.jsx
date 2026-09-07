@@ -26,6 +26,15 @@ import EditFixedAssetModal from '../components/EditFixedAssetModal';
 // дэлгэрэнгүй заагаагүй) ParkingPage.jsx-ийн "Түр нэвтэрсэн машин"
 // таб шиг placeholder хэлбэрээр орлоо — дараа тусад нь тодорхой
 // хэрэгцээгээр бүтээнэ.
+//
+// 2026-09-07 (3): Модалийг "suh" прототипийн зурган жишээгээр бүрэн
+// дахин зохиосны дагуу (EditFixedAssetModal.jsx) — ТӨРӨЛ/БАЙРШИЛ одоо
+// FixedAssetConfig.jsx-ийн лавлах хүснэгэлүүд рүү FK-аар холбогдоно
+// (category_id/type_id/location_id), тул жагсаалт/шүүлтүүр/хүснэгэл
+// эдгээрийг join-оор (category:..., type:..., location:...) татаж
+// нэрээр нь харуулна. accumulated_depreciation багана одоогоор 0
+// хэвээр үлдэнэ — тогтмол/автомат бичилтийн логикийг хэрэглэгч
+// дараагийн промптоор тодорхойлно.
 const TABS = [
   { key: 'list', label: 'Үндсэн хөрөнгийн жагсаалт' },
   { key: 'depreciation', label: 'Элэгдэл' },
@@ -52,7 +61,10 @@ export default function FixedAssets() {
     setLoading(true);
     setLoadError('');
     const { data, error } = await fetchAllRows(() =>
-      supabase.from('fixed_assets').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false })
+      supabase.from('fixed_assets')
+        .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)')
+        .eq('tenant_id', hoaId)
+        .order('created_at', { ascending: false })
     );
     if (error) {
       setLoadError(error.message);
@@ -72,14 +84,18 @@ export default function FixedAssets() {
     [rows]
   );
   const locationOptions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.location).filter(Boolean))).sort(),
+    () => {
+      const seen = new Map();
+      rows.forEach((r) => { if (r.location) seen.set(r.location.id, r.location.name); });
+      return Array.from(seen, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    },
     [rows]
   );
 
   const q = search.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
     if (responsiblePerson !== 'all' && r.responsible_person !== responsiblePerson) return false;
-    if (location !== 'all' && r.location !== location) return false;
+    if (location !== 'all' && r.location_id !== location) return false;
     if (q) {
       const hay = `${r.name} ${r.barcode} ${r.mark_serial || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
@@ -101,24 +117,29 @@ export default function FixedAssets() {
       barcode: form.barcode.trim(),
       name: form.name.trim(),
       mark_serial: form.markSerial || null,
-      category: form.category || null,
+      category_id: form.categoryId || null,
+      type_id: form.typeId || null,
       qty: form.qty !== '' ? Number(form.qty) : 1,
       unit: form.unit,
       acquired_date: form.acquiredDate || null,
       purchase_price: form.purchasePrice !== '' ? Number(form.purchasePrice) : 0,
-      accumulated_depreciation: form.accumulatedDepreciation !== '' ? Number(form.accumulatedDepreciation) : 0,
-      location: form.location || null,
+      seller_org: form.sellerOrg || null,
+      location_id: form.locationId || null,
       responsible_person: form.responsiblePerson || null,
-      status: form.status,
       note: form.note || null,
+      useful_life_months: form.usefulLifeMonths !== '' ? Number(form.usefulLifeMonths) : null,
+      depreciation_method: form.depreciationMethod || null,
+      salvage_value: form.salvageValue !== '' ? Number(form.salvageValue) : 0,
+      status: form.status,
     };
 
+    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name), location:fixed_asset_locations(id, name)';
     if (editing) {
-      const { data, error } = await supabase.from('fixed_assets').update(payload).eq('id', editing.id).select().single();
+      const { data, error } = await supabase.from('fixed_assets').update(payload).eq('id', editing.id).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
       setRows((prev) => prev.map((r) => (r.id === editing.id ? data : r)));
     } else {
-      const { data, error } = await supabase.from('fixed_assets').insert(payload).select().single();
+      const { data, error } = await supabase.from('fixed_assets').insert(payload).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
       setRows((prev) => [data, ...prev]);
     }

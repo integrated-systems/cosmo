@@ -20,7 +20,7 @@ export default function FixedAssetsToolbar({
         </select>
         <select className="ds-select" value={location} onChange={(e) => onLocationChange(e.target.value)}>
           <option value="all">Бүх байршил</option>
-          {locationOptions.map((l) => <option key={l} value={l}>{l}</option>)}
+          {locationOptions.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
         <div className="relative min-w-[240px]">
           <SearchIcon className="w-4 h-4 text-slate-400 dark:text-mutedtext absolute left-2.5 top-2" />

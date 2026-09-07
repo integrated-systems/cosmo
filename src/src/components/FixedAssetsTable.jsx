@@ -54,13 +54,13 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className="py-2.5 px-3"><BarcodeImage value={r.barcode} /></td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.mark_serial || '—'}</td>
-                <td className="py-2.5 px-3">{r.category || '—'}</td>
+                <td className="py-2.5 px-3">{r.type?.name || '—'}</td>
                 <td className="py-2.5 px-3">{r.qty} {r.unit}</td>
                 <td className="py-2.5 px-3">{r.acquired_date ? formatDate(r.acquired_date) : '—'}</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.purchase_price)}₮</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.accumulated_depreciation)}₮</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.book_value)}₮</td>
-                <td className="py-2.5 px-3">{r.location || '—'}</td>
+                <td className="py-2.5 px-3">{r.location?.name || '—'}</td>
                 <td className="py-2.5 px-3">{r.responsible_person || '—'}</td>
                 <td className={`py-2.5 px-3 font-semibold ${statusClassName(r.status)}`}>{statusLabel(r.status)}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">

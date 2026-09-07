@@ -17,3 +17,8 @@ export function statusClassName(status) {
 }
 
 export const UNIT_OPTIONS = ['ширхэг', 'м²', 'багц', 'иж бүрдэл', 'кг', 'литр'];
+
+export const DEPRECIATION_METHODS = {
+  straight_line: 'Шугаман элэгдэл',
+  accelerated: 'Хурдасгасан элэгдэл',
+};
