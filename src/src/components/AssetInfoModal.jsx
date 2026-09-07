@@ -121,7 +121,7 @@ function QrThumbnail({ hoaId, barcode, onClick }) {
   useEffect(() => {
     if (!ref.current || !hoaId || !barcode) return;
     const deepLink = buildAssetDeepLink(hoaId, barcode);
-    QRCode.toCanvas(ref.current, deepLink, { margin: 0, width: 80, color: { dark: '#000000', light: '#ffffff' } }).catch(() => {});
+    QRCode.toCanvas(ref.current, deepLink, { margin: 0, width: 80, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } }).catch(() => {});
   }, [hoaId, barcode]);
 
   return (

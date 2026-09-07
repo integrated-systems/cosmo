@@ -43,7 +43,7 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   const gap = padding; // QR ба текстийн хоорондох зай — padding-тай ижил пропорц
 
   const qrCanvas = document.createElement('canvas');
-  await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: qrSize, color: { dark: '#000000', light: '#ffffff' } });
+  await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: qrSize, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } });
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
