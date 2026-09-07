@@ -9,19 +9,19 @@ import QRCode from 'qrcode';
 // (2) Web Share API (navigator.share файлтай)-аар "Хуваалцах" цонх
 // нээж, хэрэглэгч тэндээс өөрийн утсан дээр суулгасан "XPrinter" аппыг
 // сонгоод, тэр апп өөрийн Bluetooth холболтоор бодит хэвлэлтийг хийнэ.
-//
 // 2026-09-07 (10): Desktop дээр navigator.share (файлтай) дэмжигддэггүй
 // тул хуучин код зүгээр зурган файл татдаг байсан (хэрэглэгчийн заасны
 // дагуу — "Хэвлэх цонх нээгдэхгүй байна"). Одоо desktop-т window.print()
 // + @page CSS (40mm x 20mm)-аар браузерийн стандарт хэвлэх цонхыг
-// нээдэг болгов. Мвн 4 мврийн фонтыг ИЖИЛ, өмнөхөөс 2 дахин том
-// (44px) болгов (хэрэглэгчийн заасны дагуу).
+// нээдэг болгов.
+// 2026-09-07 (11): 4 мвр бүгд ИЖИЛ хэмжээ (34px), ИЖИЛ жин (normal),
+// ИЖИЛ үнгү (хар/#000000) — визуал ялгааг бүрэн арилгасан.
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
 const QR_SIZE_MM = 16;
 const PADDING_MM = 2;
-const LINE_FONT_PX = 44;
+const LINE_FONT_PX = 34;
 
 function truncate(text, max) {
   if (!text) return '';
@@ -59,27 +59,21 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
   // Текстийн блок QR-тэй яг АДИЛ өндөртэй (qrY..qrY+qrSize), 4 мврийг
-  // тэр зайд тэнцүү хуваана. 2026-09-07 (10): 4 мвр бүгд ИЖИЛ фонтын
-  // хэмжээтэй (LINE_FONT_PX, өмнөхөөс 2х том) — зөвхөн жин (weight)
-  // ялгаатай.
+  // тэр зайд тэнцүү хуваана. 2026-09-07 (11): хэрэглэгчийн заасны
+  // дагуу бүх 4 мвр ИЖИЛ хэмжээ (34px), ИЖИЛ жин (normal), ИЖИЛ өнгө
+  // (хар/default) — ямар ч визуал ялгаа үгүй, цэвэр текст.
   const textX = qrX + qrSize + gap;
   const textMaxWidth = width - textX - padding;
   const lineGap = qrSize / 4;
   const baseY = qrY + lineGap * 0.68;
   ctx.textAlign = 'left';
-
   ctx.fillStyle = '#000000';
-  ctx.font = `600 ${LINE_FONT_PX}px sans-serif`;
+  ctx.font = `normal ${LINE_FONT_PX}px sans-serif`;
+
   ctx.fillText(truncate(orgName || '', 12), textX, baseY, textMaxWidth);
-
-  ctx.font = `bold ${LINE_FONT_PX}px sans-serif`;
   ctx.fillText(truncate(barcode || '', 12), textX, baseY + lineGap, textMaxWidth);
-
-  ctx.font = `500 ${LINE_FONT_PX}px sans-serif`;
   ctx.fillText(truncate(assetName || '', 12), textX, baseY + lineGap * 2, textMaxWidth);
 
-  ctx.fillStyle = '#555555';
-  ctx.font = `400 ${LINE_FONT_PX}px sans-serif`;
   ctx.fillText(truncate(markSerial || '—', 12), textX, baseY + lineGap * 3, textMaxWidth);
 
   return new Promise((resolve, reject) => {
