@@ -1,16 +1,19 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import QRCode from 'qrcode';
 import Modal from './Modal';
-import BarcodeImage from './BarcodeImage';
 import { formatDate, formatMoney } from '../lib/format';
 import { statusLabel, statusClassName, DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
 import { computeStraightLineDepreciation, computeAcceleratedDepreciation } from '../lib/depreciation';
+import { buildAssetDeepLink } from '../lib/labelPrint';
 
-// 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мөн хүснэгэлийн
-// мөр дээр дарахад нээгдэх) ЗӨВХӨН УНШИХ мэдээллийн карт — хэрэглэгчийн
-// өгсөн зурган жишээтэй яг адил бүтэцтэй. Засах модаль (EditFixedAssetModal)-
-// аас ялгаатай нь: input БИШ, зөвхөн формат хийсэн утга харуулна.
-// "Засах" товч зөвхөн canEdit=true үед харагдана (ролиос хамаарна).
-export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit }) {
+// 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мвн хүснэгэлийн
+// мвр дээр дарахад нээгдэх) ЗүВХүН УНШИХ мэдээллийн карт.
+// 2026-09-07 (7): Хуучин "Баркод" мвр дэх CODE128 график зургийг
+// бүрэн арилгаж, оронд нь дээд буланд жижиг QR thumbnail байрлуулав
+// (дарахад шошго хэвлэх урсгал эхэлнэ — onPrint). "Баркод" мврийг
+// "Хүрүнгийн бүртгэлийн дугаар" болгож нэрлэж, зүвхүн текст утга
+// (график биш) харуулна.
+export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, hoaId }) {
   const isDepreciable = asset?.type?.is_depreciable !== false;
 
   const depreciation = useMemo(() => {
@@ -40,7 +43,11 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit }
       </>
     }>
       <div className="flex flex-col gap-3 text-[13px]">
-        <Row label="Баркод"><BarcodeImage value={asset.barcode} height={32} /></Row>
+        <div className="flex justify-end">
+          <QrThumbnail hoaId={hoaId} barcode={asset.barcode} onClick={() => onPrint?.(asset)} />
+        </div>
+
+        <Row label="Хөрөнгийн бүртгэлийн дугаар"><span className="font-mono font-semibold">{asset.barcode}</span></Row>
         <Row label="Марк, сериал, баркод">{asset.mark_serial || '—'}</Row>
         <Row label="Ангилал"><span className="font-semibold">{asset.category?.name || '—'}</span></Row>
         <Row label="Төрөл"><span className="font-semibold">{asset.type?.name || '—'}</span></Row>
@@ -59,7 +66,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit }
 
         {!isDepreciable ? (
           <div className="text-[12px] text-mutedtext">
-            Энэ төрөл ({asset.type?.name || '—'}) элэгддэггүй хөрөнгө. Дансны үлдэгдэл үнэ = <span className="font-bold text-customBlue">{formatMoney(asset.purchase_price)}₮</span> хэвээр байнга үлдэнэ.
+            Энэ терел ({asset.type?.name || '—'}) элэгддэггүй хeрeнгe. Дансны үлдэгдэл үнэ = <span className="font-bold text-customBlue">{formatMoney(asset.purchase_price)}₮</span> хэвээр байнга үлдэнэ.
           </div>
         ) : (
           <>
@@ -94,5 +101,22 @@ function Row({ label, children, bold }) {
       <span className="text-slate-500 dark:text-mutedtext">{label}</span>
       <span className={bold ? 'font-bold' : ''}>{children}</span>
     </div>
+  );
+}
+
+// Дарахад шошго хэвлэх (onPrint) урсгал эхэлдэг жижиг QR thumbnail.
+function QrThumbnail({ hoaId, barcode, onClick }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || !hoaId || !barcode) return;
+    const deepLink = buildAssetDeepLink(hoaId, barcode);
+    QRCode.toCanvas(ref.current, deepLink, { margin: 0, width: 80, color: { dark: '#000000', light: '#ffffff' } }).catch(() => {});
+  }, [hoaId, barcode]);
+
+  return (
+    <button type="button" title="Дарж шошго хэвлэх" onClick={onClick} className="rounded-md overflow-hidden border border-slate-200 dark:border-bordercol p-1 bg-white">
+      <canvas ref={ref} width={80} height={80} />
+    </button>
   );
 }

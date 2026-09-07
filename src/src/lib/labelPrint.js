@@ -9,19 +9,19 @@ import QRCode from 'qrcode';
 // (2) Web Share API (navigator.share файлтай)-аар "Хуваалцах" цонх
 // нээж, хэрэглэгч тэндээс өөрийн утсан дээр суулгасан "XPrinter" аппыг
 // сонгоод, тэр апп өөрийн Bluetooth холболтоор бодит хэвлэлтийг хийнэ.
-// Web Share дэмждэггүй орчинд (ихэвчлэн desktop) зурган файлыг татаж
-// авахаар орлуулна (завсрын арга — desktop-ийн window.print() зам
-// хожим тусад нь нэмэгдэнэ).
 //
-// 2026-09-07 (5): Формат CODE128 barcode-с QR код руу шилжив — ердийн
-// камер апп (iOS/Android built-in) шууд уншдаг цорын ганц формат
-// (CODE128-ыг энгийн камер уншиж чаддаггүй). QR-ийн агуулга бол Cosmo
-// дахь тухайн хөрөнгийн мэдээллийн карт руу шууд орох URL
-// (buildAssetDeepLink харна уу) — тооллого хийхэд утсаараа scan хийхэд
-// шууд бодит цаг үеийн бүртгэл нээгдэнэ.
+// 2026-09-07 (7): Хэрэглэгчийн зурган жишээгээр (4 мвр текст + жижиг
+// QR) дахин зохиов:
+//   1-р мвр: Байгууллагын нэр (org_report_info.org_name)
+//   2-р мвр: Хeрeнгийн бүртгэлийн дугаар (СөХ рег.дугаар-дэс дугаар)
+//   3-р мвр: Хeрeнгийн нэр, брэнд
+//   4-р мвр: Марк, сериал
+// QR-ийг ~16мм хэмжээтэй болгож (40x20мм шошгон дээр хэт том
+// байсныг) багасгаж, текстэд илүү зай гарган зохион байгуулав.
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
+const QR_SIZE_MM = 16;
 
 function truncate(text, max) {
   if (!text) return '';
@@ -35,12 +35,13 @@ export function buildAssetDeepLink(hoaId, barcode) {
   return `${origin}${pathname}#/${hoaId}/fixedassets?asset=${encodeURIComponent(barcode)}`;
 }
 
-export async function buildLabelPngBlob({ tenantName, barcode, markSerial, deepLink }) {
+export async function buildLabelPngBlob({ orgName, barcode, assetName, markSerial, deepLink }) {
   const width = LABEL_WIDTH_MM * PX_PER_MM;
   const height = LABEL_HEIGHT_MM * PX_PER_MM;
+  const qrSize = QR_SIZE_MM * PX_PER_MM;
 
   const qrCanvas = document.createElement('canvas');
-  await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: height - 8, color: { dark: '#000000', light: '#ffffff' } });
+  await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: qrSize, color: { dark: '#000000', light: '#ffffff' } });
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -49,22 +50,27 @@ export async function buildLabelPngBlob({ tenantName, barcode, markSerial, deepL
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  const qrSize = height - 8;
-  ctx.drawImage(qrCanvas, 4, 4, qrSize, qrSize);
+  const qrX = 8;
+  const qrY = Math.round((height - qrSize) / 2);
+  ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
-  const textX = qrSize + 16;
+  const textX = qrX + qrSize + 16;
   const textMaxWidth = width - textX - 6;
-  ctx.fillStyle = '#000000';
   ctx.textAlign = 'left';
 
+  ctx.fillStyle = '#000000';
   ctx.font = '600 15px sans-serif';
-  ctx.fillText(truncate(tenantName || '', 22), textX, 42, textMaxWidth);
+  ctx.fillText(truncate(orgName || '', 24), textX, 46, textMaxWidth);
 
-  ctx.font = 'bold 20px sans-serif';
-  ctx.fillText(truncate(barcode || '', 16), textX, 78, textMaxWidth);
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText(truncate(barcode || '', 16), textX, 136, textMaxWidth);
 
-  ctx.font = '400 15px sans-serif';
-  ctx.fillText(truncate(markSerial || '—', 22), textX, 112, textMaxWidth);
+  ctx.font = '500 15px sans-serif';
+  ctx.fillText(truncate(assetName || '', 22), textX, 226, textMaxWidth);
+
+  ctx.fillStyle = '#555555';
+  ctx.font = '400 13px sans-serif';
+  ctx.fillText(truncate(markSerial || '—', 24), textX, 316, textMaxWidth);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Failed to build label PNG'))), 'image/png');
@@ -77,7 +83,7 @@ export async function shareOrDownloadLabel(blob, filename) {
   try {
     const file = new File([blob], filename, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Хөрөнгийн шошго' });
+      await navigator.share({ files: [file], title: 'Хүрүнгийн шошго' });
       return true;
     }
   } catch (err) {

@@ -1,24 +1,19 @@
 import { formatDate, formatMoney } from '../lib/format';
 import { statusLabel, statusClassName } from '../lib/fixedAssetsFormat';
 import { EditIcon, DeleteIcon } from './icons/Icons';
-import BarcodeImage from './BarcodeImage';
 
 // FixedAssets.jsx-ийн хүснэгэл — ClienteleTable.jsx-ийн бүтцийг дахин
 // ашигласан (Rule of two). Хуучин "suh" прототипийн баганын нэрс,
-// дараалал бүрэн хадгалагдсан: БАРКОД/НЭР,БРЕНД/МАРК,СЕРИАЛ/ТӨРӨЛ/
-// Т.ХЭМЖЭЭ/АВСАН ОГНОО/ХУДАЛДАН АВСАН ҮНЭ/ХУРИМТЛАГДСАН ЭЛЭГДЭЛ/
-// ДАНСНЫ ҮЛДЭГДЭЛ ҮНЭ/БАЙРШИЛ/ХАРИУЦАГЧ/ТӨЛӨВ + ҮЙЛДЭЛ (шинэ,
-// EditIcon/DeleteIcon — Cosmo-ийн стандарт action багана).
-// 2026-09-07 (2): хэрэглэгчийн заасны дагуу "НИЙТ" нийлбэр мөр (thead-
-// ийн дор) болон доод ds-table-summary footer-ыг бүрэн устгав — эдгээр
-// нь FixedAssets.jsx-ийн тойм статистик картуудтай (Нийт хөрөнгийн
-// тоо/Худалдан авсан нийт үнэ/Актлагдсан) шууд давхцаж байсан тул.
+// дараалал үндсэндээ хадгалагдсан.
+// 2026-09-07 (2): "НИЙТ" нийлбэр мвр/footer-ыг устгав (тойм картуудтай
+// давхцаж байсан).
 // 2026-09-07 (7): Хэрэглэгчийн заасны дагуу мвр (хвл) БүХЭЛДЭЭ дарахад
-// AssetInfoModal нээгдэнэ (зөвхөн НЭР баганаас биш) — Баркод/Засах/
-// Устгах товчид stopPropagation нэмж мврийн click-тэй зөрчилдөхгүй
-// болгов.
-export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onPrint, onView, canEdit = true, canDelete = true }) {
-  const colCount = 14;
+// AssetInfoModal нээгдэнэ. БАРКОД (график) баганыг бүрэн арилгаж,
+// оронд нь "Хүрүнгийн бүртгэлийн дугаар" текст багана оруулав — QR
+// хэвлэлт одоо зөвхүн AssetInfoModal дотроос хийгдэнэ (энд onPrint
+// шаардлагагүй болсон).
+export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onView, canEdit = true, canDelete = true }) {
+  const colCount = 13;
 
   return (
     <div className="ds-table-wrap">
@@ -27,7 +22,7 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
           <thead>
             <tr>
               <th className="py-2.5 px-3 w-10 text-center">№</th>
-              <th className="py-2.5 px-3 w-[90px]">БАРКОД</th>
+              <th className="py-2.5 px-3 w-[130px]">ХӨРӨНГИЙН БүРТГЭЛИЙН ДУГААР</th>
               <th className="py-2.5 px-3 w-[150px]">НЭР, БРЕНД</th>
               <th className="py-2.5 px-3 w-[110px]">МАРК/СЕРИАЛ</th>
               <th className="py-2.5 px-3 w-[130px]">ТӨРӨЛ</th>
@@ -55,11 +50,7 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
             {!loading && !loadError && rows.map((r, idx) => (
               <tr key={r.id} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]" onClick={() => onView?.(r)}>
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
-                <td className="py-2.5 px-3">
-                  <button type="button" className="cursor-pointer" title="Дарж шошго хэвлэх" onClick={(e) => { e.stopPropagation(); onPrint?.(r); }}>
-                    <BarcodeImage value={r.barcode} />
-                  </button>
-                </td>
+                <td className="py-2.5 px-3 font-mono text-[12px]">{r.barcode}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.mark_serial || '—'}</td>
                 <td className="py-2.5 px-3">{r.type?.name || '—'}</td>

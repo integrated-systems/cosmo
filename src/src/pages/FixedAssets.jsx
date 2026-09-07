@@ -66,7 +66,7 @@ export default function FixedAssets() {
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
   const [viewing, setViewing] = useState(null);
-  const [tenantName, setTenantName] = useState('');
+  const [orgName, setOrgName] = useState('');
 
   const [responsiblePerson, setResponsiblePerson] = useState('all');
   const [location, setLocation] = useState('all');
@@ -74,8 +74,12 @@ export default function FixedAssets() {
 
   useEffect(() => {
     if (!hoaId) return;
-    supabase.from('tenants').select('name').eq('id', hoaId).single().then(({ data }) => {
-      if (data) setTenantName(data.name);
+    // 2026-09-07 (7): Шошгон дээрх 1-р мвр нь tenants.name биш,
+    // "Санхүүгийн тохиргоо → НББ → Тайланд дуудагдах мэдээлэл →
+    // Байгууллагын мэдээлэл" картны бүтэн албан нэрийг (org_name)
+    // ашиглана — хэрэглэгчийн зурган жишээгээр.
+    supabase.from('org_report_info').select('org_name').eq('tenant_id', hoaId).single().then(({ data }) => {
+      if (data) setOrgName(data.org_name);
     });
   }, [hoaId]);
 
@@ -203,7 +207,7 @@ export default function FixedAssets() {
     if (!(await confirm(`"${row.name}" хөрөнгийн шошгыг хэвлэх үү?`))) return;
     try {
       const deepLink = buildAssetDeepLink(hoaId, row.barcode);
-      const blob = await buildLabelPngBlob({ tenantName, barcode: row.barcode, markSerial: row.mark_serial, deepLink });
+      const blob = await buildLabelPngBlob({ orgName, barcode: row.barcode, assetName: row.name, markSerial: row.mark_serial, deepLink });
       await shareOrDownloadLabel(blob, `${row.barcode}.png`);
     } catch (err) {
       window.alert(`Шошго үүсгэхэд алдаа гарлаа: ${err.message}`);
@@ -260,7 +264,6 @@ export default function FixedAssets() {
           loadError={loadError}
           onEdit={setEditing}
           onDelete={handleDelete}
-          onPrint={handlePrint}
           onView={setViewing}
           canEdit={can('fixedassets', 'edit')}
           canDelete={can('fixedassets', 'delete')}
@@ -290,6 +293,8 @@ export default function FixedAssets() {
         asset={viewing}
         canEdit={can('fixedassets', 'edit')}
         onEdit={(asset) => { handleCloseView(); setEditing(asset); }}
+        onPrint={handlePrint}
+        hoaId={hoaId}
       />
 
       <ConfirmDialog />
