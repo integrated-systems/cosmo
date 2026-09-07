@@ -9,16 +9,11 @@ import BarcodeImage from './BarcodeImage';
 // Т.ХЭМЖЭЭ/АВСАН ОГНОО/ХУДАЛДАН АВСАН ҮНЭ/ХУРИМТЛАГДСАН ЭЛЭГДЭЛ/
 // ДАНСНЫ ҮЛДЭГДЭЛ ҮНЭ/БАЙРШИЛ/ХАРИУЦАГЧ/ТӨЛӨВ + ҮЙЛДЭЛ (шинэ,
 // EditIcon/DeleteIcon — Cosmo-ийн стандарт action багана).
+// 2026-09-07 (2): хэрэглэгчийн заасны дагуу "НИЙТ" нийлбэр мөр (thead-
+// ийн дор) болон доод ds-table-summary footer-ыг бүрэн устгав — эдгээр
+// нь FixedAssets.jsx-ийн тойм статистик картуудтай (Нийт хөрөнгийн
+// тоо/Худалдан авсан нийт үнэ/Актлагдсан) шууд давхцаж байсан тул.
 export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, canEdit = true, canDelete = true }) {
-  const totals = rows.reduce(
-    (acc, r) => ({
-      purchasePrice: acc.purchasePrice + (Number(r.purchase_price) || 0),
-      depreciation: acc.depreciation + (Number(r.accumulated_depreciation) || 0),
-      bookValue: acc.bookValue + (Number(r.book_value) || 0),
-    }),
-    { purchasePrice: 0, depreciation: 0, bookValue: 0 }
-  );
-  const writtenOffCount = rows.filter((r) => r.status === 'written_off').length;
   const colCount = 14;
 
   return (
@@ -44,14 +39,6 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-            <tr className="bg-slate-50 dark:bg-white/[0.03] font-semibold">
-              <td className="py-2.5 px-3" colSpan={7}>НИЙТ</td>
-              <td className="py-2.5 px-3 text-right">{formatMoney(totals.purchasePrice)}₮</td>
-              <td className="py-2.5 px-3 text-right">{formatMoney(totals.depreciation)}₮</td>
-              <td className="py-2.5 px-3 text-right">{formatMoney(totals.bookValue)}₮</td>
-              <td className="py-2.5 px-3" colSpan={4}></td>
-            </tr>
-
             {loading && (
               <tr><td colSpan={colCount} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
@@ -92,14 +79,6 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div className="ds-table-summary">
-        <div>
-          Нийт: <span className="text-slate-900 dark:text-white font-medium">{rows.length}</span> зүйл
-          {' · '}Худалдан авсан үнэ: <span className="text-slate-900 dark:text-white font-medium">{formatMoney(totals.purchasePrice)}₮</span>
-          {' · '}Актлагдсан: <span className="text-slate-900 dark:text-white font-medium">{writtenOffCount}</span>
-        </div>
       </div>
     </div>
   );

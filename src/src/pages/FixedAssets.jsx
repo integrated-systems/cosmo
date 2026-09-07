@@ -13,11 +13,14 @@ import EditFixedAssetModal from '../components/EditFixedAssetModal';
 
 // "Үндсэн хөрөнгө бүртгэл" (/fixedassets) — "Удирдах зөвлөл портал"
 // бүлэг. 2026-09-07 хэрэглэгчийн хуучин "suh" прототипийн зурган
-// жишээгээр өгсөн бүтэц (тойм карт → таб → хүснэгэл, ParkingPage.jsx-
-// ийн загварын дагуу) дээр үндэслэв, гэхдээ Cosmo-ийн бодит дизайн/
+// жишээгээр өгсөн бүтэц дээр үндэслэв, гэхдээ Cosmo-ийн бодит дизайн/
 // компонент/Supabase backend-тэй (fixed_assets хүснэгэл). Хуучин
-// хувилбарт байгаагүй ШИНЭ элемент болох дээд тойм статистик картыг
+// хувилбарт байгаагүй ШИНЭ элемент болох тойм статистик картыг
 // Invoice.jsx-ийн grid-cols-4 загвараар зохиов.
+// 2026-09-07 (2): хэрэглэгчийн засварласан дараалал — Toolbar → Тойм
+// карт → Таб → Хүснэгэл. Хүснэгэл дэх "НИЙТ" мвр болон доод нийлбэр
+// footer-ыг тойм картын мэдээлэлтэй давхцаж байсан тул бүрэн устгав
+// (FixedAssetsTable.jsx харна уу).
 //
 // "Элэгдэл" ба "Засвар" таб (хуучин хувилбарт байсан ч энэ даалгаварт
 // дэлгэрэнгүй заагаагүй) ParkingPage.jsx-ийн "Түр нэвтэрсэн машин"
@@ -132,6 +135,15 @@ export default function FixedAssets() {
 
   return (
     <>
+      {tab === 'list' && (
+        <FixedAssetsToolbar
+          responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
+          location={location} onLocationChange={setLocation} locationOptions={locationOptions}
+          search={search} onSearchChange={setSearch}
+          onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
+        />
+      )}
+
       <div className="grid grid-cols-4 gap-[10px]">
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нийт хөрөнгийн тоо</div>
@@ -162,24 +174,15 @@ export default function FixedAssets() {
       {tab !== 'list' ? (
         <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Энэ таб түн удахгүй нэмэгдэнэ.</div>
       ) : (
-        <>
-          <FixedAssetsToolbar
-            responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
-            location={location} onLocationChange={setLocation} locationOptions={locationOptions}
-            search={search} onSearchChange={setSearch}
-            onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
-          />
-
-          <FixedAssetsTable
-            rows={filteredRows}
-            loading={loading}
-            loadError={loadError}
-            onEdit={setEditing}
-            onDelete={handleDelete}
-            canEdit={can('fixedassets', 'edit')}
-            canDelete={can('fixedassets', 'delete')}
-          />
-        </>
+        <FixedAssetsTable
+          rows={filteredRows}
+          loading={loading}
+          loadError={loadError}
+          onEdit={setEditing}
+          onDelete={handleDelete}
+          canEdit={can('fixedassets', 'edit')}
+          canDelete={can('fixedassets', 'delete')}
+        />
       )}
 
       <EditFixedAssetModal
