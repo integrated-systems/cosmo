@@ -14,12 +14,23 @@ import { useFixedAssetConfig } from '../hooks/useFixedAssetConfig';
 // нь src/lib/depreciation.js-ээс амьд (live) тооцоологдож харагдана —
 // хадгалахаас өмнө хэрэглэгч үр дүнг шууд харна.
 //
-// НЭГ АНХААРУУЛГА: "Хөрөнгийн хариуцагч" талбарыг одоогоор чөлөөт
-// текст оруулгаар үлдээв (dropdown БИШ) — ямар лавлах жагсаалт
-// (Ажилтны бүртгэл үү өөр) эх сурвалж болохыг хэрэглэгч дараагийн
-// промптоор тодорхойлно гэж заасан тул завсрын шийдэл.
+// НЭГ АНХААРУУЛГА (шинэчлэгдсэн 2026-09-07 (4)): "Хөрөнгийн хариуцагч"
+// одоо Санхүүгийн тохиргоо → НББ → Албан тушаал жагсаалтаас dropdown-
+// оор сонгогдоно (job_positions хүснэгэл) — хэрэглэгчийн шийдвэрийн
+// дагуу "хариуцагч" бол тодорхой нэг хүн БИШ, харьяалагдах АЛБАН
+// ТУШААЛ. Баркод нь {СӨХ-ны регистрийн дугаар}-{дэс дугаар} хэлбэрээр
+// next_fixed_asset_barcode() RPC-ээр автоматаар үүсгэгдэж, үүсгэсний
+// дараа ФИЗИК ШОШГО хэвлэгдсэн байж болзошгүй тул readonly (өөрчлөгдөхгүй).
 export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaId }) {
   const { categories, types, locations, loading: configLoading } = useFixedAssetConfig(hoaId);
+  const [jobPositions, setJobPositions] = useState([]);
+
+  useEffect(() => {
+    if (!hoaId) return;
+    supabase.from('job_positions').select('id, name').eq('tenant_id', hoaId).order('sort_order').then(({ data }) => {
+      setJobPositions(data || []);
+    });
+  }, [hoaId]);
 
   const [form, setForm] = useState(() => ({
     barcode: asset?.barcode || '',
@@ -109,6 +120,10 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн марк, сериал, баркод</label>
           <input className="ds-input w-full" value={form.markSerial} onChange={(e) => set('markSerial', e.target.value)} />
         </div>
+        <div className="col-span-2">
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Баркод (СӨХ-ны регистрийн дугаар дээр үндэслэн автоматаар үүсгэгдэнэ, өөрчлөгдөхгүй)</label>
+          <input className="ds-input w-full opacity-70" readOnly value={form.barcode || '— үүсгэж байна —'} />
+        </div>
 
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн ангилал</label>
@@ -158,7 +173,10 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн хариуцагч</label>
-          <input className="ds-input w-full" placeholder="Хариуцагчийн нэр..." value={form.responsiblePerson} onChange={(e) => set('responsiblePerson', e.target.value)} />
+          <select className="ds-select w-full" value={form.responsiblePerson} onChange={(e) => set('responsiblePerson', e.target.value)}>
+            <option value="">— Албан тушаал сонгох —</option>
+            {jobPositions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
         </div>
 
         <div className="col-span-2">

@@ -6,6 +6,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
+import { buildLabelPngBlob, shareOrDownloadLabel } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
 import FixedAssetsTable from '../components/FixedAssetsTable';
@@ -154,16 +155,26 @@ export default function FixedAssets() {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   }
 
+  // 2026-09-07: Шошго хэвлэлт — эхний шат зөвхөн iPad/iPhone дээр
+  // турших зорилготой (src/lib/labelPrint.js тайлбарыг үзнэ үү).
+  async function handlePrint(row) {
+    if (!(await confirm(`"${row.name}" хөрөнгийн шошгыг хэвлэх үү?`))) return;
+    try {
+      const blob = await buildLabelPngBlob({ barcode: row.barcode, name: row.name });
+      await shareOrDownloadLabel(blob, `${row.barcode}.png`);
+    } catch (err) {
+      window.alert(`Шошго үүсгэхэд алдаа гарлаа: ${err.message}`);
+    }
+  }
+
   return (
     <>
-      {tab === 'list' && (
-        <FixedAssetsToolbar
-          responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
-          location={location} onLocationChange={setLocation} locationOptions={locationOptions}
-          search={search} onSearchChange={setSearch}
-          onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
-        />
-      )}
+      <FixedAssetsToolbar
+        responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
+        location={location} onLocationChange={setLocation} locationOptions={locationOptions}
+        search={search} onSearchChange={setSearch}
+        onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
+      />
 
       <div className="grid grid-cols-4 gap-[10px]">
         <div className="ds-card p-3">
@@ -201,6 +212,7 @@ export default function FixedAssets() {
           loadError={loadError}
           onEdit={setEditing}
           onDelete={handleDelete}
+          onPrint={handlePrint}
           canEdit={can('fixedassets', 'edit')}
           canDelete={can('fixedassets', 'delete')}
         />

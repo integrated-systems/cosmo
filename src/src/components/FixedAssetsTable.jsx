@@ -13,7 +13,7 @@ import BarcodeImage from './BarcodeImage';
 // ийн дор) болон доод ds-table-summary footer-ыг бүрэн устгав — эдгээр
 // нь FixedAssets.jsx-ийн тойм статистик картуудтай (Нийт хөрөнгийн
 // тоо/Худалдан авсан нийт үнэ/Актлагдсан) шууд давхцаж байсан тул.
-export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, canEdit = true, canDelete = true }) {
+export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onPrint, canEdit = true, canDelete = true }) {
   const colCount = 14;
 
   return (
@@ -51,7 +51,11 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
             {!loading && !loadError && rows.map((r, idx) => (
               <tr key={r.id}>
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
-                <td className="py-2.5 px-3"><BarcodeImage value={r.barcode} /></td>
+                <td className="py-2.5 px-3">
+                  <button type="button" className="cursor-pointer" title="Дарж шошго хэвлэх" onClick={() => onPrint?.(r)}>
+                    <BarcodeImage value={r.barcode} />
+                  </button>
+                </td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.mark_serial || '—'}</td>
                 <td className="py-2.5 px-3">{r.type?.name || '—'}</td>
