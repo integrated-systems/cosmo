@@ -10,24 +10,18 @@ import QRCode from 'qrcode';
 // нээж, хэрэглэгч тэндээс өөрийн утсан дээр суулгасан "XPrinter" аппыг
 // сонгоод, тэр апп өөрийн Bluetooth холболтоор бодит хэвлэлтийг хийнэ.
 //
-// 2026-09-07 (7): Хэрэглэгчийн зурган жишээгээр (4 мвр текст + жижиг
-// QR) дахин зохиов:
-//   1-р мвр: Байгууллагын нэр (org_report_info.org_name)
-//   2-р мвр: Хeрeнгийн бүртгэлийн дугаар (СөХ рег.дугаар-дэс дугаар)
-//   3-р мвр: Хeрeнгийн нэр, брэнд
-//   4-р мвр: Марк, сериал
-// QR-ийг ~16мм хэмжээтэй болгож (40x20мм шошгон дээр хэт том
-// байсныг) багасгаж, текстэд илүү зай гарган зохион байгуулав.
+// 2026-09-07 (10): Desktop дээр navigator.share (файлтай) дэмжигддэггүй
+// тул хуучин код зүгээр зурган файл татдаг байсан (хэрэглэгчийн заасны
+// дагуу — "Хэвлэх цонх нээгдэхгүй байна"). Одоо desktop-т window.print()
+// + @page CSS (40mm x 20mm)-аар браузерийн стандарт хэвлэх цонхыг
+// нээдэг болгов. Мвн 4 мврийн фонтыг ИЖИЛ, өмнөхөөс 2 дахин том
+// (44px) болгов (хэрэглэгчийн заасны дагуу).
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
 const QR_SIZE_MM = 16;
-
-// 2026-09-07 (8): Ногоон хүрээтэй жишээ зурган загвараар зүүн/дээд/
-// доод ирмэгийн зай (padding)-ыг ИЖИЛ (PADDING_MM) болгож, текстийн
-// блокийг QR-тэй яг адил өндөртэй болгож 4 мврийг тэнцүү зайтайгаар
-// байрлуулав — фонт/мврийн зай харьцаа зурган жишээг дуурайна.
 const PADDING_MM = 2;
+const LINE_FONT_PX = 44;
 
 function truncate(text, max) {
   if (!text) return '';
@@ -65,53 +59,87 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
   // Текстийн блок QR-тэй яг АДИЛ өндөртэй (qrY..qrY+qrSize), 4 мврийг
-  // тэр зайд тэнцүү хуваана.
+  // тэр зайд тэнцүү хуваана. 2026-09-07 (10): 4 мвр бүгд ИЖИЛ фонтын
+  // хэмжээтэй (LINE_FONT_PX, өмнөхөөс 2х том) — зөвхөн жин (weight)
+  // ялгаатай.
   const textX = qrX + qrSize + gap;
   const textMaxWidth = width - textX - padding;
   const lineGap = qrSize / 4;
-  const baseY = qrY + lineGap * 0.62; // текстийн үндсэн шугам fontMetrics-ийн ойролцоо тэнцүүлэлт
+  const baseY = qrY + lineGap * 0.68;
   ctx.textAlign = 'left';
 
   ctx.fillStyle = '#000000';
-  ctx.font = '600 15px sans-serif';
-  ctx.fillText(truncate(orgName || '', 24), textX, baseY, textMaxWidth);
+  ctx.font = `600 ${LINE_FONT_PX}px sans-serif`;
+  ctx.fillText(truncate(orgName || '', 12), textX, baseY, textMaxWidth);
 
-  ctx.font = 'bold 22px sans-serif';
-  ctx.fillText(truncate(barcode || '', 16), textX, baseY + lineGap, textMaxWidth);
+  ctx.font = `bold ${LINE_FONT_PX}px sans-serif`;
+  ctx.fillText(truncate(barcode || '', 12), textX, baseY + lineGap, textMaxWidth);
 
-  ctx.font = '500 15px sans-serif';
-  ctx.fillText(truncate(assetName || '', 22), textX, baseY + lineGap * 2, textMaxWidth);
+  ctx.font = `500 ${LINE_FONT_PX}px sans-serif`;
+  ctx.fillText(truncate(assetName || '', 12), textX, baseY + lineGap * 2, textMaxWidth);
 
   ctx.fillStyle = '#555555';
-  ctx.font = '400 13px sans-serif';
-  ctx.fillText(truncate(markSerial || '—', 24), textX, baseY + lineGap * 3, textMaxWidth);
+  ctx.font = `400 ${LINE_FONT_PX}px sans-serif`;
+  ctx.fillText(truncate(markSerial || '—', 12), textX, baseY + lineGap * 3, textMaxWidth);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Failed to build label PNG'))), 'image/png');
   });
 }
 
-// Хуваалцах цонх нээж (эсвэл дэмжихгүй бол татаж авахаар орлуулж)
-// амжилттай үүссэн эсэхийг буцаана.
+// Desktop дээр browser-ийн стандарт хэвлэх цонхыг (@page 40mm x 20mm)
+// нээнэ — хуучин "зурган файл татах" fallback-ыг орлов.
+function printLabelInBrowser(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch {
+        // хэвлэх цонх нээгдэхгүй бол чимээгүй орхино
+      }
+    };
+
+    function cleanup() {
+      URL.revokeObjectURL(url);
+      setTimeout(() => iframe.remove(), 1000);
+      resolve(true);
+    }
+    iframe.contentWindow?.addEventListener?.('afterprint', cleanup);
+    // afterprint дуудагдахгүй хуучин browser-т зориулсан нөөц цэвэрлэгээ.
+    setTimeout(cleanup, 15000);
+
+    iframe.srcdoc = `<!DOCTYPE html><html><head><style>
+      @page { size: ${LABEL_WIDTH_MM}mm ${LABEL_HEIGHT_MM}mm; margin: 0; }
+      html, body { margin: 0; padding: 0; }
+      img { width: ${LABEL_WIDTH_MM}mm; height: ${LABEL_HEIGHT_MM}mm; display: block; }
+    </style></head><body><img src="${url}" /></body></html>`;
+  });
+}
+
+// Гар утас (Web Share, файлтай) дэмжигддэг үед Хуваалцах цонх нээнэ.
+// Дэмждэггүй орчинд (ихэвчлэн desktop) browser-ийн хэвлэх цонхыг нээнэ.
 export async function shareOrDownloadLabel(blob, filename) {
   try {
     const file = new File([blob], filename, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Хүрүнгийн шошго' });
+      await navigator.share({ files: [file], title: 'Хeрeнгийн шошго' });
       return true;
     }
   } catch (err) {
     if (err?.name === 'AbortError') return false; // хэрэглэгч цуцалсан
-    // бусад алдаа гарвал доорх татах горимд орлоно
+    // бусад алдаа гарвал доорх хэвлэх горимд орлоно
   }
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
-  return true;
+  return printLabelInBrowser(blob);
 }
