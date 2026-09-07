@@ -25,8 +25,8 @@ import QRCode from 'qrcode';
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
-const QR_SIZE_MM = 16;
-const PADDING_MM = 2;
+const QR_SIZE_MM = 18;
+const PADDING_MM = 1;
 const LINE_FONT_PX = 38;
 
 function truncate(text, max) {
