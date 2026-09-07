@@ -9,13 +9,19 @@ import QRCode from 'qrcode';
 // (2) Web Share API (navigator.share файлтай)-аар "Хуваалцах" цонх
 // нээж, хэрэглэгч тэндээс өөрийн утсан дээр суулгасан "XPrinter" аппыг
 // сонгоод, тэр апп өөрийн Bluetooth холболтоор бодит хэвлэлтийг хийнэ.
-// 2026-09-07 (10): Desktop дээр navigator.share (файлтай) дэмжигддэггүй
-// тул хуучин код зүгээр зурган файл татдаг байсан (хэрэглэгчийн заасны
-// дагуу — "Хэвлэх цонх нээгдэхгүй байна"). Одоо desktop-т window.print()
-// + @page CSS (40mm x 20mm)-аар браузерийн стандарт хэвлэх цонхыг
-// нээдэг болгов.
-// 2026-09-07 (11): 4 мвр бүгд ИЖИЛ хэмжээ (34px), ИЖИЛ жин (normal),
-// ИЖИЛ өнгө (хар/#000000) — визуал ялгааг бүрэн арилгасан.
+// 2026-09-07 (12): QR-ийг хэвлэсний дараа камер уншихгүй байсныг
+// засав — 2 үндсэн шалтгаан: (1) margin:0 нь QR-ийн стандарт "quiet
+// zone" (хоосон хүрээ)-г бүрэн арилгаж, finder pattern-ыг таних
+// боломжгүй болгосон, (2) URL хэт урт (tenant UUID орсон, ~120
+// тэмдэгт) тул QR 45x45 орчим модультай болж, 203dpi thermal
+// принтерт модуль тус бүр 2-3 dot орчим болж (dot gain-аас) холилдож
+// байсан. Одоо:
+//   - URL-ийг богиносгов: tenant UUID-г ХАСАЖ, зөвхөн /a/{barcode}
+//     (~65 тэмдэгт) — AssetShortLink.jsx tenant-ыг баркодны рег.
+//     дугаараас олж дараа нь бүтэн route руу шилжүүлнэ.
+//   - margin-ыг QR-ийн стандарт анхдагч руу буцаав (quiet zone
+//     заавал байх ёстой).
+//   - errorCorrectionLevel-ийг 'M' (тэнцүүржүүлсэн) руу буцаав.
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
@@ -29,10 +35,10 @@ function truncate(text, max) {
 }
 
 // HashRouter ашигладаг тул query param нь "#/..." хэсгийн дотор орно.
-// Жиш: https://integrated-systems.github.io/cosmo/#/{hoaId}/fixedassets?asset={barcode}
-export function buildAssetDeepLink(hoaId, barcode) {
+// Богино хэлбэр: https://integrated-systems.github.io/cosmo/#/a/{barcode}
+export function buildAssetDeepLink(barcode) {
   const { origin, pathname } = window.location;
-  return `${origin}${pathname}#/${hoaId}/fixedassets?asset=${encodeURIComponent(barcode)}`;
+  return `${origin}${pathname}#/a/${encodeURIComponent(barcode)}`;
 }
 
 export async function buildLabelPngBlob({ orgName, barcode, assetName, markSerial, deepLink }) {
@@ -43,7 +49,7 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   const gap = padding; // QR ба текстийн хоорондох зай — padding-тай ижил пропорц
 
   const qrCanvas = document.createElement('canvas');
-  await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: qrSize, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } });
+  await QRCode.toCanvas(qrCanvas, deepLink, { width: qrSize, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } });
 
   const canvas = document.createElement('canvas');
   canvas.width = width;

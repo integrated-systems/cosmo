@@ -31,6 +31,7 @@ import AdminClassifieds from './pages/AdminClassifieds';
 import ParkingPage from './pages/ParkingPage';
 import FixedAssets from './pages/FixedAssets';
 import FixedAssetConfig from './pages/FixedAssetConfig';
+import AssetShortLink from './pages/AssetShortLink';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -183,6 +184,9 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={`/${rootTenantId}`} replace />} />
+      {/* 2026-09-07 (12): QR-ийн БОГИНО холбоос — tenant UUID шаардахгүй,
+          баркодны рег.дугаараас tenant-ыг олж бүтэн route руу шилжүүлнэ. */}
+      <Route path="/a/:barcode" element={<AssetShortLink />} />
       <Route path="/:hoaId" element={<TenantShell theme={theme} onToggleTheme={toggleTheme} isOpen={isOpen} isMobile={isMobile} onToggle={toggleSidebar} />}>
         {/* 2026-08-28: ОЛСОН БОДИТ АЛДАА — "/" рүү орход үүргүй шууд
             "/hoaId/dashboard" (админы Хянах самбар) руу чиглүүлдэг

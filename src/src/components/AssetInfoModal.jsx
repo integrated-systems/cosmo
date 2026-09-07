@@ -13,7 +13,7 @@ import { buildAssetDeepLink } from '../lib/labelPrint';
 // (дарахад шошго хэвлэх урсгал эхэлнэ — onPrint). "Баркод" мврийг
 // "Хүрүнгийн бүртгэлийн дугаар" болгож нэрлэж, зүвхүн текст утга
 // (график биш) харуулна.
-export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff, hoaId }) {
+export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff }) {
   const isDepreciable = asset?.type?.is_depreciable !== false;
 
   const depreciation = useMemo(() => {
@@ -47,7 +47,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
     }>
       <div className="flex flex-col gap-3 text-[13px]">
         <div className="flex justify-end">
-          <QrThumbnail hoaId={hoaId} barcode={asset.barcode} onClick={() => onPrint?.(asset)} />
+          <QrThumbnail barcode={asset.barcode} onClick={() => onPrint?.(asset)} />
         </div>
 
         <Row label="Хөрөнгийн бүртгэлийн дугаар"><span className="font-mono font-semibold">{asset.barcode}</span></Row>
@@ -115,18 +115,20 @@ function Row({ label, children, bold }) {
 }
 
 // Дарахад шошго хэвлэх (onPrint) урсгал эхэлдэг жижиг QR thumbnail.
-function QrThumbnail({ hoaId, barcode, onClick }) {
+// 2026-09-07 (12): margin/errorCorrectionLevel-ийг зөв утга руу
+// буцааж, deepLink-ийг богино хэлбэрээр (hoaId шаардахгүй) үүсгэнэ.
+function QrThumbnail({ barcode, onClick }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (!ref.current || !hoaId || !barcode) return;
-    const deepLink = buildAssetDeepLink(hoaId, barcode);
-    QRCode.toCanvas(ref.current, deepLink, { margin: 0, width: 80, errorCorrectionLevel: 'L', color: { dark: '#000000', light: '#ffffff' } }).catch(() => {});
-  }, [hoaId, barcode]);
+    if (!ref.current || !barcode) return;
+    const deepLink = buildAssetDeepLink(barcode);
+    QRCode.toCanvas(ref.current, deepLink, { width: 90, errorCorrectionLevel: 'M', color: { dark: '#000000', light: '#ffffff' } }).catch(() => {});
+  }, [barcode]);
 
   return (
     <button type="button" title="Дарж шошго хэвлэх" onClick={onClick} className="rounded-md overflow-hidden border border-slate-200 dark:border-bordercol p-1 bg-white">
-      <canvas ref={ref} width={80} height={80} />
+      <canvas ref={ref} width={90} height={90} />
     </button>
   );
 }

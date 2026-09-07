@@ -225,7 +225,7 @@ export default function FixedAssets() {
   async function handlePrint(row) {
     if (!(await confirm(`"${row.name}" хөрөнгийн шошгыг хэвлэх үү?`))) return;
     try {
-      const deepLink = buildAssetDeepLink(hoaId, row.barcode);
+      const deepLink = buildAssetDeepLink(row.barcode);
       const blob = await buildLabelPngBlob({ orgName, barcode: row.barcode, assetName: row.name, markSerial: row.mark_serial, deepLink });
       await shareOrDownloadLabel(blob, `${row.barcode}.png`);
     } catch (err) {
@@ -314,7 +314,6 @@ export default function FixedAssets() {
         onEdit={(asset) => { handleCloseView(); setEditing(asset); }}
         onPrint={handlePrint}
         onWriteOff={(asset) => { handleCloseView(); setWritingOff(asset); }}
-        hoaId={hoaId}
       />
 
       <WriteOffAssetModal
