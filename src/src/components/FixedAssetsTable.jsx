@@ -60,7 +60,7 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.accumulated_depreciation)}₮</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.book_value)}₮</td>
                 <td className="py-2.5 px-3">{r.location?.name || '—'}</td>
-                <td className="py-2.5 px-3">{r.responsible_person || '—'}</td>
+                <td className="py-2.5 px-3">{r.responsible_position?.name || '—'}</td>
                 <td className={`py-2.5 px-3 font-semibold ${statusClassName(r.status)}`}>{statusLabel(r.status)}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && (

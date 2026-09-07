@@ -44,7 +44,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
     purchasePrice: asset?.purchase_price ?? 0,
     sellerOrg: asset?.seller_org || '',
     locationId: asset?.location_id || '',
-    responsiblePerson: asset?.responsible_person || '',
+    responsiblePositionId: asset?.responsible_position_id || '',
     note: asset?.note || '',
     usefulLifeMonths: asset?.useful_life_months ?? '',
     depreciationMethod: asset?.depreciation_method || 'straight_line',
@@ -76,8 +76,8 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
   }
 
   const typesForCategory = useMemo(
-    () => types.filter((t) => t.category_id === form.categoryId),
-    [types, form.categoryId]
+    () => types.filter((t) => t.category_id === form.categoryId && (t.is_active !== false || t.id === form.typeId)),
+    [types, form.categoryId, form.typeId]
   );
 
   // "Газар" гэх мэт ЭЛЭГДЭХГүй терел сонгогдсон үед элэгдлийн бүх
@@ -140,7 +140,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн ангилал</label>
           <select className="ds-select w-full" value={form.categoryId} onChange={(e) => handleCategoryChange(e.target.value)}>
             <option value="">— Ангилал сонгох —</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.filter((c) => c.is_active !== false || c.id === form.categoryId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div>
@@ -184,9 +184,9 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн хариуцагч</label>
-          <select className="ds-select w-full" value={form.responsiblePerson} onChange={(e) => set('responsiblePerson', e.target.value)}>
+          <select className="ds-select w-full" value={form.responsiblePositionId} onChange={(e) => set('responsiblePositionId', e.target.value)}>
             <option value="">— Албан тушаал сонгох —</option>
-            {jobPositions.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+            {jobPositions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
 

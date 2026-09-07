@@ -9,6 +9,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import { buildLabelPngBlob, shareOrDownloadLabel, buildAssetDeepLink } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
+import DepreciationTab from '../components/DepreciationTab';
 import FixedAssetsTable from '../components/FixedAssetsTable';
 import EditFixedAssetModal from '../components/EditFixedAssetModal';
 import AssetInfoModal from '../components/AssetInfoModal';
@@ -90,7 +91,7 @@ export default function FixedAssets() {
     setLoadError('');
     const { data, error } = await fetchAllRows(() =>
       supabase.from('fixed_assets')
-        .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)')
+        .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name), responsible_position:job_positions(id, name)')
         .eq('tenant_id', hoaId)
         .order('created_at', { ascending: false })
     );
@@ -113,7 +114,7 @@ export default function FixedAssets() {
     const barcode = searchParams.get('asset');
     if (!barcode || !hoaId) return;
     supabase.from('fixed_assets')
-      .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)')
+      .select('*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name), responsible_position:job_positions(id, name)')
       .eq('tenant_id', hoaId)
       .eq('barcode', barcode)
       .maybeSingle()
@@ -126,7 +127,11 @@ export default function FixedAssets() {
   }, [hoaId]);
 
   const responsibleOptions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.responsible_person).filter(Boolean))).sort(),
+    () => {
+      const seen = new Map();
+      rows.forEach((r) => { if (r.responsible_position) seen.set(r.responsible_position.id, r.responsible_position.name); });
+      return Array.from(seen, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+    },
     [rows]
   );
   const locationOptions = useMemo(
@@ -140,7 +145,7 @@ export default function FixedAssets() {
 
   const q = search.trim().toLowerCase();
   const filteredRows = rows.filter((r) => {
-    if (responsiblePerson !== 'all' && r.responsible_person !== responsiblePerson) return false;
+    if (responsiblePerson !== 'all' && r.responsible_position_id !== responsiblePerson) return false;
     if (location !== 'all' && r.location_id !== location) return false;
     if (q) {
       const hay = `${r.name} ${r.barcode} ${r.mark_serial || ''}`.toLowerCase();
@@ -171,7 +176,7 @@ export default function FixedAssets() {
       purchase_price: form.purchasePrice !== '' ? Number(form.purchasePrice) : 0,
       seller_org: form.sellerOrg || null,
       location_id: form.locationId || null,
-      responsible_person: form.responsiblePerson || null,
+      responsible_position_id: form.responsiblePositionId || null,
       note: form.note || null,
       useful_life_months: form.isDepreciable && form.usefulLifeMonths !== '' ? Number(form.usefulLifeMonths) : null,
       depreciation_method: form.isDepreciable ? (form.depreciationMethod || null) : null,
@@ -181,7 +186,7 @@ export default function FixedAssets() {
       status: form.status,
     };
 
-    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)';
+    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name), responsible_position:job_positions(id, name)';
     if (editing) {
       const { data, error } = await supabase.from('fixed_assets').update(payload).eq('id', editing.id).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
@@ -207,7 +212,7 @@ export default function FixedAssets() {
   async function handleWriteOff({ writeOffDate, writeOffReason, writeOffAmount }) {
     const asset = writingOff;
     if (!asset) return;
-    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)';
+    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name), responsible_position:job_positions(id, name)';
     const { data, error } = await supabase.from('fixed_assets')
       .update({ status: 'written_off', write_off_date: writeOffDate, write_off_reason: writeOffReason, write_off_amount: writeOffAmount })
       .eq('id', asset.id)
@@ -240,12 +245,14 @@ export default function FixedAssets() {
 
   return (
     <>
-      <FixedAssetsToolbar
-        responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
-        location={location} onLocationChange={setLocation} locationOptions={locationOptions}
-        search={search} onSearchChange={setSearch}
-        onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
-      />
+      {tab === 'list' && (
+        <FixedAssetsToolbar
+          responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
+          location={location} onLocationChange={setLocation} locationOptions={locationOptions}
+          search={search} onSearchChange={setSearch}
+          onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
+        />
+      )}
 
       <div className="grid grid-cols-4 gap-[10px]">
         <div className="ds-card p-3">
@@ -274,9 +281,11 @@ export default function FixedAssets() {
         ))}
       </div>
 
-      {tab !== 'list' ? (
+      {tab === 'repair' && (
         <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Энэ таб түн удахгүй нэмэгдэнэ.</div>
-      ) : (
+      )}
+      {tab === 'depreciation' && <DepreciationTab hoaId={hoaId} />}
+      {tab === 'list' && (
         <FixedAssetsTable
           rows={filteredRows}
           loading={loading}

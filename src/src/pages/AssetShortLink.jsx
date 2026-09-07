@@ -30,8 +30,17 @@ export default function AssetShortLink() {
   }, [barcode, navigate]);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: '#94a3b8', fontSize: 14, textAlign: 'center', padding: 24 }}>
-      {error || 'Уншиж байна...'}
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-sidebg">
+      <div className="w-[340px] rounded bg-appbg border border-bordercol px-7 py-8 text-center">
+        {!error ? (
+          <>
+            <div className="mx-auto mb-4 w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+            <div className="text-sm text-text">Уншиж байна...</div>
+          </>
+        ) : (
+          <div className="text-sm text-customRed">{error}</div>
+        )}
+      </div>
     </div>
   );
 }

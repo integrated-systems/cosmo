@@ -16,7 +16,7 @@ export default function FixedAssetsToolbar({
       <div className="flex flex-wrap items-center gap-2">
         <select className="ds-select" value={responsiblePerson} onChange={(e) => onResponsiblePersonChange(e.target.value)}>
           <option value="all">Бүх хариуцагч</option>
-          {responsibleOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+          {responsibleOptions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
         </select>
         <select className="ds-select" value={location} onChange={(e) => onLocationChange(e.target.value)}>
           <option value="all">Бүх байршил</option>

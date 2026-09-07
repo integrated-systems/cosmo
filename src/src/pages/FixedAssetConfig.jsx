@@ -67,9 +67,15 @@ function CategoriesTab({ canManage, categories, types, loading, reload }) {
 
   async function handleDelete(row) {
     const n = typeCount.get(row.id) || 0;
-    const warn = n > 0 ? ` Энэ ангилалд харьяалагдах ${n} төрөл хамт устгагдана.` : '';
-    if (!(await confirm(`"${row.name}" ангиллыг устгах уу?${warn}`))) return;
-    const { error } = await supabase.from('fixed_asset_categories').delete().eq('id', row.id);
+    const warn = n > 0 ? ` Энэ ангилалд харьяалагдах ${n} төрөл хамт идэвхгүй болно.` : '';
+    if (!(await confirm(`"${row.name}" ангиллыг идэвхгүй болгох уу?${warn} (Устгахгүй, зөвхөн шинэ бүртгэлд харагдахгүй болно.)`))) return;
+    const { error } = await supabase.from('fixed_asset_categories').update({ is_active: false }).eq('id', row.id);
+    if (error) { window.alert(error.message); return; }
+    reload();
+  }
+
+  async function handleReactivate(row) {
+    const { error } = await supabase.from('fixed_asset_categories').update({ is_active: true }).eq('id', row.id);
     if (error) { window.alert(error.message); return; }
     reload();
   }
@@ -95,27 +101,32 @@ function CategoriesTab({ canManage, categories, types, loading, reload }) {
                 <th className="py-2.5 px-3 w-[160px]">АНХДАГЧ АШИГЛАХ ХУГАЦАА</th>
                 <th className="py-2.5 px-3 w-[150px]">ЭЛЭГДЭЛ АРГАЧЛАЛ</th>
                 <th className="py-2.5 px-3 w-[100px]">ТӨРЛИЙН ТОО</th>
+                <th className="py-2.5 px-3 w-[90px]">ТӨЛӨВ</th>
                 <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-              {loading && <tr><td colSpan={6} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+              {loading && <tr><td colSpan={7} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
               {!loading && categories.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-darktext">Ангилал бүртгэгдээгүй байна</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-darktext">Ангилал бүртгэгдээгүй байна</td></tr>
               )}
               {!loading && categories.map((c) => (
-                <tr key={c.id}>
+                <tr key={c.id} className={c.is_active === false ? 'opacity-50' : ''}>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{c.name}</td>
                   <td className="py-2.5 px-3 text-mutedtext">{c.code || '—'}</td>
                   <td className="py-2.5 px-3">{c.default_useful_life_months} сар</td>
                   <td className="py-2.5 px-3">{DEPRECIATION_METHODS[c.default_depreciation_method] || c.default_depreciation_method}</td>
                   <td className="py-2.5 px-3">{typeCount.get(c.id) || 0}</td>
+                  <td className="py-2.5 px-3">{c.is_active === false ? <span className="text-customRed">Идэвхгүй</span> : <span className="text-customGreen">Идэвхтэй</span>}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    {canManage && (
+                    {canManage && c.is_active !== false && (
                       <>
                         <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(c)}><EditIcon /></button>
-                        <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(c)}><DeleteIcon /></button>
+                        <button className="ds-icon-btn danger" title="Идэвхгүй болгох" onClick={() => handleDelete(c)}><DeleteIcon /></button>
                       </>
+                    )}
+                    {canManage && c.is_active === false && (
+                      <button className="ds-btn-secondary" onClick={() => handleReactivate(c)}>Идэвхжүүлэх</button>
                     )}
                   </td>
                 </tr>
@@ -199,8 +210,14 @@ function TypesTab({ canManage, categories, types, loading, reload }) {
   const filteredTypes = types.filter((t) => t.category_id === activeCategoryId);
 
   async function handleDelete(row) {
-    if (!(await confirm(`"${row.name}" төрлийг устгах уу?`))) return;
-    const { error } = await supabase.from('fixed_asset_types').delete().eq('id', row.id);
+    if (!(await confirm(`"${row.name}" терелийг идэвхгүй болгох уу? (Устгахгүй, зүвхүн шинэ бүртгэлд харагдахгүй болно.)`))) return;
+    const { error } = await supabase.from('fixed_asset_types').update({ is_active: false }).eq('id', row.id);
+    if (error) { window.alert(error.message); return; }
+    reload();
+  }
+
+  async function handleReactivate(row) {
+    const { error } = await supabase.from('fixed_asset_types').update({ is_active: true }).eq('id', row.id);
     if (error) { window.alert(error.message); return; }
     reload();
   }
@@ -227,24 +244,29 @@ function TypesTab({ canManage, categories, types, loading, reload }) {
               <tr>
                 <th className="py-2.5 px-3">НЭР</th>
                 <th className="py-2.5 px-3 w-[130px]">ЭЛЭГДЭЛ</th>
-                <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
+                <th className="py-2.5 px-3 w-[90px]">ТүЛүВ</th>
+                <th className="py-2.5 px-3 w-[100px] text-right">үЙЛДЭЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-              {loading && <tr><td colSpan={3} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+              {loading && <tr><td colSpan={4} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
               {!loading && activeCategoryId && filteredTypes.length === 0 && (
-                <tr><td colSpan={3} className="py-8 text-center text-darktext">Энэ ангилалд төрөл бүртгэгдээгүй байна</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-darktext">Энэ ангилалд терел бүртгэгдээгүй байна</td></tr>
               )}
               {!loading && filteredTypes.map((t) => (
-                <tr key={t.id}>
+                <tr key={t.id} className={t.is_active === false ? 'opacity-50' : ''}>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{t.name}</td>
                   <td className="py-2.5 px-3">{t.is_depreciable === false ? <span className="text-customRed">Элэгддэггүй</span> : 'Элэгддэг'}</td>
+                  <td className="py-2.5 px-3">{t.is_active === false ? <span className="text-customRed">Идэвхгүй</span> : <span className="text-customGreen">Идэвхтэй</span>}</td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    {canManage && (
+                    {canManage && t.is_active !== false && (
                       <>
                         <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(t)}><EditIcon /></button>
-                        <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(t)}><DeleteIcon /></button>
+                        <button className="ds-icon-btn danger" title="Идэвхгүй болгох" onClick={() => handleDelete(t)}><DeleteIcon /></button>
                       </>
+                    )}
+                    {canManage && t.is_active === false && (
+                      <button className="ds-btn-secondary" onClick={() => handleReactivate(t)}>Идэвхжүүлэх</button>
                     )}
                   </td>
                 </tr>

@@ -59,7 +59,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
         <Row label="Худалдан авсан үнэ" bold>{formatMoney(asset.purchase_price)}₮</Row>
         <Row label="Борлуулагч байгууллага">{asset.seller_org || '—'}</Row>
         <Row label="Байршил"><span className="font-semibold">{asset.location?.name || '—'}</span></Row>
-        <Row label="Хариуцагч">{asset.responsible_person || '—'}</Row>
+        <Row label="Хариуцагч">{asset.responsible_position?.name || '—'}</Row>
         <Row label="Төлөв"><span className={`font-semibold ${statusClassName(asset.status)}`}>{statusLabel(asset.status)}</span></Row>
         {asset.status === 'written_off' && (
           <>
