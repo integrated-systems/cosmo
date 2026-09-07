@@ -15,13 +15,13 @@ import QRCode from 'qrcode';
 // + @page CSS (40mm x 20mm)-аар браузерийн стандарт хэвлэх цонхыг
 // нээдэг болгов.
 // 2026-09-07 (11): 4 мвр бүгд ИЖИЛ хэмжээ (34px), ИЖИЛ жин (normal),
-// ИЖИЛ үнгү (хар/#000000) — визуал ялгааг бүрэн арилгасан.
+// ИЖИЛ өнгө (хар/#000000) — визуал ялгааг бүрэн арилгасан.
 const LABEL_WIDTH_MM = 40;
 const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
 const QR_SIZE_MM = 16;
 const PADDING_MM = 2;
-const LINE_FONT_PX = 34;
+const LINE_FONT_PX = 38;
 
 function truncate(text, max) {
   if (!text) return '';
@@ -70,11 +70,11 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   ctx.fillStyle = '#000000';
   ctx.font = `normal ${LINE_FONT_PX}px sans-serif`;
 
-  ctx.fillText(truncate(orgName || '', 12), textX, baseY, textMaxWidth);
-  ctx.fillText(truncate(barcode || '', 12), textX, baseY + lineGap, textMaxWidth);
-  ctx.fillText(truncate(assetName || '', 12), textX, baseY + lineGap * 2, textMaxWidth);
+  ctx.fillText(truncate(orgName || '', 16), textX, baseY, textMaxWidth);
+  ctx.fillText(truncate(barcode || '', 16), textX, baseY + lineGap, textMaxWidth);
+  ctx.fillText(truncate(assetName || '', 16), textX, baseY + lineGap * 2, textMaxWidth);
 
-  ctx.fillText(truncate(markSerial || '—', 12), textX, baseY + lineGap * 3, textMaxWidth);
+  ctx.fillText(truncate(markSerial || '—', 16), textX, baseY + lineGap * 3, textMaxWidth);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Failed to build label PNG'))), 'image/png');
