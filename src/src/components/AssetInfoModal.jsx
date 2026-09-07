@@ -13,7 +13,7 @@ import { buildAssetDeepLink } from '../lib/labelPrint';
 // (дарахад шошго хэвлэх урсгал эхэлнэ — onPrint). "Баркод" мврийг
 // "Хүрүнгийн бүртгэлийн дугаар" болгож нэрлэж, зүвхүн текст утга
 // (график биш) харуулна.
-export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, hoaId }) {
+export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff, hoaId }) {
   const isDepreciable = asset?.type?.is_depreciable !== false;
 
   const depreciation = useMemo(() => {
@@ -38,6 +38,9 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
   return (
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
       <>
+        {canEdit && asset.status !== 'written_off' && (
+          <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onWriteOff?.(asset)}>Актлах</button>
+        )}
         {canEdit && <button className="ds-btn-secondary" onClick={() => onEdit(asset)}>Засах</button>}
         <button className="ds-btn-primary" onClick={onClose}>Хаах</button>
       </>
@@ -58,6 +61,13 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
         <Row label="Байршил"><span className="font-semibold">{asset.location?.name || '—'}</span></Row>
         <Row label="Хариуцагч">{asset.responsible_person || '—'}</Row>
         <Row label="Төлөв"><span className={`font-semibold ${statusClassName(asset.status)}`}>{statusLabel(asset.status)}</span></Row>
+        {asset.status === 'written_off' && (
+          <>
+            <Row label="Актласан огноо">{asset.write_off_date ? formatDate(asset.write_off_date) : '—'}</Row>
+            <Row label="Актласан шалтгаан"><span className="font-semibold">{asset.write_off_reason || '—'}</span></Row>
+            <Row label="Актласан үнэ / орлого">{formatMoney(asset.write_off_amount || 0)}₮</Row>
+          </>
+        )}
         {asset.note && <Row label="Тэмдэглэл"><span className="font-semibold">{asset.note}</span></Row>}
 
         <div className="pt-2 mt-1 border-t border-slate-200 dark:border-bordercol text-[11px] font-semibold tracking-wide text-mutedtext uppercase">
@@ -66,7 +76,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
 
         {!isDepreciable ? (
           <div className="text-[12px] text-mutedtext">
-            Энэ терел ({asset.type?.name || '—'}) элэгддэггүй хeрeнгe. Дансны үлдэгдэл үнэ = <span className="font-bold text-customBlue">{formatMoney(asset.purchase_price)}₮</span> хэвээр байнга үлдэнэ.
+            Энэ терел ({asset.type?.name || '—'}) элэгддэггүй хөрөнгө. Дансны үлдэгдэл үнэ = <span className="font-bold text-customBlue">{formatMoney(asset.purchase_price)}₮</span> хэвээр байнга үлдэнэ.
           </div>
         ) : (
           <>

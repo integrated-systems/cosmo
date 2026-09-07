@@ -12,6 +12,7 @@ import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
 import FixedAssetsTable from '../components/FixedAssetsTable';
 import EditFixedAssetModal from '../components/EditFixedAssetModal';
 import AssetInfoModal from '../components/AssetInfoModal';
+import WriteOffAssetModal from '../components/WriteOffAssetModal';
 
 // "Үндсэн хөрөнгө бүртгэл" (/fixedassets) — "Удирдах зөвлөл портал"
 // бүлэг. 2026-09-07 хэрэглэгчийн хуучин "suh" прототипийн зурган
@@ -66,6 +67,7 @@ export default function FixedAssets() {
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
   const [viewing, setViewing] = useState(null);
+  const [writingOff, setWritingOff] = useState(null);
   const [orgName, setOrgName] = useState('');
 
   const [responsiblePerson, setResponsiblePerson] = useState('all');
@@ -200,6 +202,23 @@ export default function FixedAssets() {
     setRows((prev) => prev.filter((r) => r.id !== row.id));
   }
 
+  // 2026-09-07 (9): "Хөрөнгө актлах" — status='written_off' болгож,
+  // write_off_date/reason/amount-ыг бичнэ.
+  async function handleWriteOff({ writeOffDate, writeOffReason, writeOffAmount }) {
+    const asset = writingOff;
+    if (!asset) return;
+    const selectClause = '*, category:fixed_asset_categories(id, name), type:fixed_asset_types(id, name, is_depreciable), location:fixed_asset_locations(id, name)';
+    const { data, error } = await supabase.from('fixed_assets')
+      .update({ status: 'written_off', write_off_date: writeOffDate, write_off_reason: writeOffReason, write_off_amount: writeOffAmount })
+      .eq('id', asset.id)
+      .select(selectClause)
+      .single();
+    if (error) { window.alert(error.message); return; }
+    setRows((prev) => prev.map((r) => (r.id === asset.id ? data : r)));
+    setWritingOff(null);
+    setViewing(data);
+  }
+
   // 2026-09-07: Шошго хэвлэлт — эхний шат зөвхөн iPad/iPhone дээр
   // турших зорилготой (src/lib/labelPrint.js тайлбарыг үзнэ үү).
   // 2026-09-07 (5): QR код (CODE128 биш) — deep-link URL агуулна.
@@ -294,7 +313,15 @@ export default function FixedAssets() {
         canEdit={can('fixedassets', 'edit')}
         onEdit={(asset) => { handleCloseView(); setEditing(asset); }}
         onPrint={handlePrint}
+        onWriteOff={(asset) => { handleCloseView(); setWritingOff(asset); }}
         hoaId={hoaId}
+      />
+
+      <WriteOffAssetModal
+        open={!!writingOff}
+        onClose={() => setWritingOff(null)}
+        asset={writingOff}
+        onConfirm={handleWriteOff}
       />
 
       <ConfirmDialog />
