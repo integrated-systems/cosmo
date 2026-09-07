@@ -23,6 +23,12 @@ const LABEL_HEIGHT_MM = 20;
 const PX_PER_MM = 20; // ойролцоогоор 500dpi орчмын нягтралтай тод зураг гаргана
 const QR_SIZE_MM = 16;
 
+// 2026-09-07 (8): Ногоон хүрээтэй жишээ зурган загвараар зүүн/дээд/
+// доод ирмэгийн зай (padding)-ыг ИЖИЛ (PADDING_MM) болгож, текстийн
+// блокийг QR-тэй яг адил өндөртэй болгож 4 мврийг тэнцүү зайтайгаар
+// байрлуулав — фонт/мврийн зай харьцаа зурган жишээг дуурайна.
+const PADDING_MM = 2;
+
 function truncate(text, max) {
   if (!text) return '';
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -39,6 +45,8 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   const width = LABEL_WIDTH_MM * PX_PER_MM;
   const height = LABEL_HEIGHT_MM * PX_PER_MM;
   const qrSize = QR_SIZE_MM * PX_PER_MM;
+  const padding = PADDING_MM * PX_PER_MM;
+  const gap = padding; // QR ба текстийн хоорондох зай — padding-тай ижил пропорц
 
   const qrCanvas = document.createElement('canvas');
   await QRCode.toCanvas(qrCanvas, deepLink, { margin: 0, width: qrSize, color: { dark: '#000000', light: '#ffffff' } });
@@ -50,27 +58,33 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  const qrX = 8;
+  // Зүүн/дээд/доод ирмэгийн зай бүгд ИЖИЛ (padding) — QR босоогоор
+  // яг төвд байрлана (дээд/доод padding автоматаар тэнцүү болно).
+  const qrX = padding;
   const qrY = Math.round((height - qrSize) / 2);
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
-  const textX = qrX + qrSize + 16;
-  const textMaxWidth = width - textX - 6;
+  // Текстийн блок QR-тэй яг АДИЛ өндөртэй (qrY..qrY+qrSize), 4 мврийг
+  // тэр зайд тэнцүү хуваана.
+  const textX = qrX + qrSize + gap;
+  const textMaxWidth = width - textX - padding;
+  const lineGap = qrSize / 4;
+  const baseY = qrY + lineGap * 0.62; // текстийн үндсэн шугам fontMetrics-ийн ойролцоо тэнцүүлэлт
   ctx.textAlign = 'left';
 
   ctx.fillStyle = '#000000';
   ctx.font = '600 15px sans-serif';
-  ctx.fillText(truncate(orgName || '', 24), textX, 46, textMaxWidth);
+  ctx.fillText(truncate(orgName || '', 24), textX, baseY, textMaxWidth);
 
   ctx.font = 'bold 22px sans-serif';
-  ctx.fillText(truncate(barcode || '', 16), textX, 136, textMaxWidth);
+  ctx.fillText(truncate(barcode || '', 16), textX, baseY + lineGap, textMaxWidth);
 
   ctx.font = '500 15px sans-serif';
-  ctx.fillText(truncate(assetName || '', 22), textX, 226, textMaxWidth);
+  ctx.fillText(truncate(assetName || '', 22), textX, baseY + lineGap * 2, textMaxWidth);
 
   ctx.fillStyle = '#555555';
   ctx.font = '400 13px sans-serif';
-  ctx.fillText(truncate(markSerial || '—', 24), textX, 316, textMaxWidth);
+  ctx.fillText(truncate(markSerial || '—', 24), textX, baseY + lineGap * 3, textMaxWidth);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Failed to build label PNG'))), 'image/png');

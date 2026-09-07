@@ -48,7 +48,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
         </div>
 
         <Row label="Хөрөнгийн бүртгэлийн дугаар"><span className="font-mono font-semibold">{asset.barcode}</span></Row>
-        <Row label="Марк, сериал, баркод">{asset.mark_serial || '—'}</Row>
+        <Row label="Хөрөнгийн марк, модель, сериал, загвар, код">{asset.mark_serial || '—'}</Row>
         <Row label="Ангилал"><span className="font-semibold">{asset.category?.name || '—'}</span></Row>
         <Row label="Төрөл"><span className="font-semibold">{asset.type?.name || '—'}</span></Row>
         <Row label="Тоо хэмжээ">{asset.qty} {asset.unit}</Row>

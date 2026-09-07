@@ -26,7 +26,7 @@ export default function FixedAssetsToolbar({
           <SearchIcon className="w-4 h-4 text-slate-400 dark:text-mutedtext absolute left-2.5 top-2" />
           <input
             type="text"
-            placeholder="Хайх (нэр, баркод, марк/серийн дугаар)..."
+            placeholder="Хайх (нэр, бүртгэлийн дугаар, марк/модель)..."
             className="ds-input w-full pl-8"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}

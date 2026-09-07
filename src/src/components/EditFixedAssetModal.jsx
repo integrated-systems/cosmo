@@ -128,7 +128,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
           <input className="ds-input w-full" value={form.name} onChange={(e) => set('name', e.target.value)} />
         </div>
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн марк, сериал, баркод</label>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хөрөнгийн марк, модель, сериал, загвар, код</label>
           <input className="ds-input w-full" value={form.markSerial} onChange={(e) => set('markSerial', e.target.value)} />
         </div>
         <div className="col-span-2">

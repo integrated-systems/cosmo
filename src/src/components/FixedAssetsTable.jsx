@@ -24,7 +24,7 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
               <th className="py-2.5 px-3 w-10 text-center">№</th>
               <th className="py-2.5 px-3 w-[130px]">ХӨРӨНГИЙН БүРТГЭЛИЙН ДУГААР</th>
               <th className="py-2.5 px-3 w-[150px]">НЭР, БРЕНД</th>
-              <th className="py-2.5 px-3 w-[110px]">МАРК/СЕРИАЛ</th>
+              <th className="py-2.5 px-3 w-[170px]">ХӨРӨНГИЙН МАРК, МОДЕЛЬ, СЕРИАЛ, ЗАГВАР, КОД</th>
               <th className="py-2.5 px-3 w-[130px]">ТӨРӨЛ</th>
               <th className="py-2.5 px-3 w-[90px]">Т.ХЭМЖЭЭ</th>
               <th className="py-2.5 px-3 w-[100px]">АВСАН ОГНОО</th>
