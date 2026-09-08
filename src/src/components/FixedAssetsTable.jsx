@@ -12,7 +12,11 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // оронд нь "Хүрүнгийн бүртгэлийн дугаар" текст багана оруулав — QR
 // хэвлэлт одоо зөвхүн AssetInfoModal дотроос хийгдэнэ (энд onPrint
 // шаардлагагүй болсон).
-export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onView, canEdit = true, canDelete = true }) {
+// 2026-09-08 (2): activeRepairAssetIds үед тухайн хeрeнгийг статус
+// (written_off эс бэшгүй тохиолдолд) "Засварт" (custom оранж) гэж
+// автоматаар давхарлаж харуулна — RepairModal.jsx-ийн Эхэлсэн/Дууссан
+// огнооны хугацаанд байгаа үед л идэвхтэй (useAssetRepairs.js харна уу).
+export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onView, canEdit = true, canDelete = true, activeRepairAssetIds }) {
   const colCount = 13;
 
   return (
@@ -61,7 +65,9 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.book_value)}₮</td>
                 <td className="py-2.5 px-3">{r.location?.name || '—'}</td>
                 <td className="py-2.5 px-3">{r.responsible_position?.name || '—'}</td>
-                <td className={`py-2.5 px-3 font-semibold ${statusClassName(r.status)}`}>{statusLabel(r.status)}</td>
+                <td className={`py-2.5 px-3 font-semibold ${activeRepairAssetIds?.has(r.id) && r.status !== 'written_off' ? 'text-customOrange' : statusClassName(r.status)}`}>
+                  {activeRepairAssetIds?.has(r.id) && r.status !== 'written_off' ? 'Засварт' : statusLabel(r.status)}
+                </td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && (
                     <button className="ds-icon-btn" title="Засах" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>

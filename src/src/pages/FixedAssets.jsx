@@ -62,7 +62,7 @@ import RepairModal from '../components/RepairModal';
 // дагуу нөхцөлт биш байх ёстой тул.
 const TABS = [
   { key: 'list', label: 'Үндсэн хөрөнгийн жагсаалт' },
-  { key: 'depreciation', label: 'Элэгдэл' },
+  { key: 'depreciation', label: 'Хуримтлагдсан элэгдэл' },
   { key: 'repair', label: 'Засвар, үйлчилгээ' },
 ];
 
@@ -164,6 +164,20 @@ export default function FixedAssets() {
     if (location !== 'all' && r.location_id !== location) return false;
     if (q) {
       const hay = `${r.name} ${r.barcode} ${r.mark_serial || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // "Хуримтлагдсан элэгдэл" таб-ын Хариуцагч/Байршил/Хайх шүүлтүүр —
+  // "Үндсэн хeрeнгийн жагсаалт" таб-тай ИЖИЛ state (responsiblePerson/
+  // location/search) ашиглана.
+  const filteredPostings = depreciation.postings.filter((p) => {
+    const asset = p.asset;
+    if (responsiblePerson !== 'all' && asset?.responsible_position_id !== responsiblePerson) return false;
+    if (location !== 'all' && asset?.location_id !== location) return false;
+    if (q) {
+      const hay = `${asset?.name || ''} ${asset?.barcode || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -291,12 +305,14 @@ export default function FixedAssets() {
         />
       )}
       {tab === 'depreciation' && (
-        <div className="ds-toolbar justify-between">
-          <div className="text-[11.5px] text-mutedtext">Сар бүр НЭГ л удаа батлагдана — давхар батлахыг систем зeвшeeрeхгүй.</div>
-          <button className="ds-btn-primary" disabled={depreciation.posting} onClick={handlePostDepreciation}>
-            {depreciation.posting ? 'Батлаж байна...' : '+ Энэ сарын элэгдлийг батлах'}
-          </button>
-        </div>
+        <FixedAssetsToolbar
+          responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
+          location={location} onLocationChange={setLocation} locationOptions={locationOptions}
+          search={search} onSearchChange={setSearch}
+          onAddClick={handlePostDepreciation} canAdd
+          addLabel={depreciation.posting ? 'Батлаж байна...' : '+ Энэ сарын элэгдлийг батлах'}
+          addDisabled={depreciation.posting}
+        />
       )}
       {tab === 'repair' && (
         <div className="ds-toolbar">
@@ -389,6 +405,7 @@ export default function FixedAssets() {
           onView={setViewing}
           canEdit={can('fixedassets', 'edit')}
           canDelete={can('fixedassets', 'delete')}
+          activeRepairAssetIds={repairs.activeRepairAssetIds}
         />
       )}
       {tab === 'depreciation' && (
@@ -406,10 +423,10 @@ export default function FixedAssets() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
                 {depreciation.loading && <tr><td colSpan={5} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
-                {!depreciation.loading && depreciation.postings.length === 0 && (
+                {!depreciation.loading && filteredPostings.length === 0 && (
                   <tr><td colSpan={5} className="py-8 text-center text-darktext">Батлагдсан элэгдэл алга</td></tr>
                 )}
-                {!depreciation.loading && depreciation.postings.map((p) => (
+                {!depreciation.loading && filteredPostings.map((p) => (
                   <tr key={p.id}>
                     <td className="py-2.5 px-3">{formatDate(p.period)}</td>
                     <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{p.asset?.name || '—'}</td>
@@ -431,23 +448,25 @@ export default function FixedAssets() {
                 <tr>
                   <th className="py-2.5 px-3 w-10 text-center">№</th>
                   <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
-                  <th className="py-2.5 px-3 w-[110px]">ОГНОО</th>
+                  <th className="py-2.5 px-3 w-[110px]">ЭХЭЛСЭН</th>
+                  <th className="py-2.5 px-3 w-[110px]">ДУУССАН</th>
                   <th className="py-2.5 px-3">ТАЙЛБАР</th>
-                  <th className="py-2.5 px-3 w-[110px] text-right">үНЭ</th>
+                  <th className="py-2.5 px-3 w-[110px] text-right">ҮНЭ</th>
                   <th className="py-2.5 px-3 w-[150px]">ХАРИЛЦАГЧ</th>
-                  <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
+                  <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                {repairs.loading && <tr><td colSpan={7} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+                {repairs.loading && <tr><td colSpan={8} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
                 {!repairs.loading && repairs.repairs.length === 0 && (
-                  <tr><td colSpan={7} className="py-8 text-center text-darktext">Засвар үйлчилгээ олдсонгүй</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-darktext">Засвар үйлчилгээ олдсонгүй</td></tr>
                 )}
                 {!repairs.loading && repairs.repairs.map((r, idx) => (
                   <tr key={r.id}>
                     <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
                     <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.asset?.name || '—'}</td>
-                    <td className="py-2.5 px-3">{r.repair_date ? formatDate(r.repair_date) : '—'}</td>
+                    <td className="py-2.5 px-3">{r.start_date ? formatDate(r.start_date) : '—'}</td>
+                    <td className="py-2.5 px-3">{r.end_date ? formatDate(r.end_date) : '—'}</td>
                     <td className="py-2.5 px-3">{r.description || '—'}</td>
                     <td className="py-2.5 px-3 text-right">{formatMoney(r.amount)}₮</td>
                     <td className="py-2.5 px-3">{r.provider_org || '—'}</td>
@@ -485,6 +504,7 @@ export default function FixedAssets() {
         onEdit={(asset) => { handleCloseView(); setEditing(asset); }}
         onPrint={handlePrint}
         onWriteOff={(asset) => { handleCloseView(); setWritingOff(asset); }}
+        underRepair={!!viewing && repairs.activeRepairAssetIds.has(viewing.id)}
       />
 
       <WriteOffAssetModal

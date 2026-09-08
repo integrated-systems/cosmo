@@ -17,7 +17,7 @@ export function useDepreciationPostings(hoaId) {
     setLoading(true);
     const { data } = await fetchAllRows(() =>
       supabase.from('depreciation_postings')
-        .select('*, asset:fixed_assets(id, name, barcode)')
+        .select('*, asset:fixed_assets(id, name, barcode, location_id, responsible_position_id)')
         .eq('tenant_id', hoaId)
         .order('period', { ascending: false })
         .order('created_at', { ascending: false })
