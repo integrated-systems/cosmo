@@ -9,6 +9,7 @@ import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
 import { useDepreciationPostings } from '../hooks/useDepreciationPostings';
 import { useAssetRepairs } from '../hooks/useAssetRepairs';
+import { useInventoryCount } from '../hooks/useInventoryCount';
 import { buildLabelPngBlob, shareOrDownloadLabel, buildAssetDeepLink } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
@@ -64,6 +65,7 @@ const TABS = [
   { key: 'list', label: 'Үндсэн хөрөнгийн жагсаалт' },
   { key: 'depreciation', label: 'Хуримтлагдсан элэгдэл' },
   { key: 'repair', label: 'Засвар, үйлчилгээ' },
+  { key: 'inventory', label: 'Тооллого' },
 ];
 
 export default function FixedAssets() {
@@ -85,6 +87,7 @@ export default function FixedAssets() {
 
   const depreciation = useDepreciationPostings(hoaId);
   const repairs = useAssetRepairs(hoaId);
+  const inventory = useInventoryCount(hoaId);
 
   const [responsiblePerson, setResponsiblePerson] = useState('all');
   const [location, setLocation] = useState('all');
@@ -177,7 +180,7 @@ export default function FixedAssets() {
   });
 
   // "Хуримтлагдсан элэгдэл" таб-ын Хариуцагч/Байршил/Хайх шүүлтүүр —
-  // "Үндсэн хeрeнгийн жагсаалт" таб-тай ИЖИЛ state (responsiblePerson/
+  // "Үндсэн хөрөнгийн жагсаалт" таб-тай ИЖИЛ state (responsiblePerson/
   // location/search) ашиглана.
   const filteredPostings = depreciation.postings.filter((p) => {
     const asset = p.asset;
@@ -227,6 +230,22 @@ export default function FixedAssets() {
       const { data, error } = await supabase.from('fixed_assets').update(payload).eq('id', editing.id).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
       setRows((prev) => prev.map((r) => (r.id === editing.id ? data : r)));
+
+      // 2026-09-08: Байршил/Хариуцагч үнэхээр солигдсон үед л
+      // append-only түүхэнд 1 мвр бичнэ (Rule of two — энэ логик
+      // зөвхөн ЭНД, дахин давтахгүй).
+      const locationChanged = editing.location_id !== payload.location_id;
+      const responsibleChanged = editing.responsible_position_id !== payload.responsible_position_id;
+      if (locationChanged || responsibleChanged) {
+        await supabase.from('fixed_asset_assignment_history').insert({
+          tenant_id: hoaId,
+          asset_id: editing.id,
+          old_location_id: locationChanged ? editing.location_id : null,
+          new_location_id: locationChanged ? payload.location_id : null,
+          old_responsible_position_id: responsibleChanged ? editing.responsible_position_id : null,
+          new_responsible_position_id: responsibleChanged ? payload.responsible_position_id : null,
+        });
+      }
     } else {
       const { data, error } = await supabase.from('fixed_assets').insert(payload).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
@@ -272,7 +291,7 @@ export default function FixedAssets() {
       const confirmed = await confirm(
         <div className="flex flex-col items-center gap-3">
           <img src={previewUrl} alt="Шошгын урьдчилан харагдац" className="rounded border border-slate-200 dark:border-bordercol max-w-full" />
-          <div>{`"${row.name}" хeрeнгийн шошгыг хэвлэх vv?`}</div>
+          <div>{`"${row.name}" хөрөнгийн шошгыг хэвлэх vv?`}</div>
         </div>
       );
       if (!confirmed) return;
@@ -295,7 +314,7 @@ export default function FixedAssets() {
     if (!(await confirm(`Энэ сарын (${periodLabel}) элэгдлийг батлах уу? Батлагдсаны дараа буцаах боломжгүй.`))) return;
     try {
       const n = await depreciation.postCurrentMonth();
-      window.alert(`${n} хeрeнгийн элэгдэл батлагдлаа.`);
+      window.alert(`${n} хөрөнгийн элэгдэл батлагдлаа.`);
       loadAssets();
     } catch (err) {
       window.alert(err.message);
@@ -306,6 +325,34 @@ export default function FixedAssets() {
     try {
       await repairs.addRepair(form);
       setAddingRepair(false);
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
+  // 2026-09-08: Тооллого (физик инвентаризаци) — эхлүүлэх/дуусгах үед
+  // тодорхой баталгаажуулалт шаардана (дуусгасны дараа буцаах боломжгүй).
+  async function handleStartInventory() {
+    if (!(await confirm('Тооллого эхлүүлэх vv? Одоогийн идэвхтэй (актлагдаагүй) бүх хөрөнгийг олдоогүй гэж үзэн жагсаалт үүснэ.'))) return;
+    try {
+      await inventory.startCount();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
+  async function handleCompleteInventory() {
+    if (!(await confirm('Тооллогыг дуусгах уу? Дуусгасны дараа буцааж өөрчлөх боломжгүй.'))) return;
+    try {
+      await inventory.completeCount();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
+  async function handleMarkFound(asset) {
+    try {
+      await inventory.markFound(asset.id);
     } catch (err) {
       window.alert(err.message);
     }
@@ -343,7 +390,24 @@ export default function FixedAssets() {
           <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>+ Засвар бүртгэх</button>
         </div>
       )}
-
+      {tab === 'inventory' && (
+        <div className="ds-toolbar justify-between">
+          <div className="text-[11.5px] text-mutedtext">
+            {inventory.activeCount
+              ? 'Идэвхтэй тооллого явж байна — хөрөнгүүдийг QR-аар скандах эсвэл гараар "Олдсон" гэж тэмдэглэнэ.'
+              : 'Одоогоор идэвхтэй тооллого байхгүй.'}
+          </div>
+          {!inventory.activeCount ? (
+            <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
+              {inventory.starting ? 'Эхлүүлж байна...' : '+ Тооллого эхлүүлэх'}
+            </button>
+          ) : (
+            <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={handleCompleteInventory}>
+              Тооллого дуусгах
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex gap-2">
         {TABS.map((t) => (
           <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
@@ -409,6 +473,28 @@ export default function FixedAssets() {
           <div className="ds-card p-3">
             <div className="text-[11px] text-mutedtext mb-1.5">Энэ сарын зарцуулсан үнэ</div>
             <div className="text-[19px] font-bold">{formatMoney(repairs.stats.thisMonthTotal)}₮</div>
+          </div>
+        </div>
+      )}
+      {tab === 'inventory' && (
+        <div className="grid grid-cols-4 gap-[10px]">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт хөрөнгийн тоо</div>
+            <div className="text-[19px] font-bold">{inventory.items.length}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Олдсон</div>
+            <div className="text-[19px] font-bold text-customGreen">{inventory.foundAssetIds.size}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Олдоогүй</div>
+            <div className="text-[19px] font-bold text-customRed">{inventory.items.length - inventory.foundAssetIds.size}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Явц</div>
+            <div className="text-[19px] font-bold">
+              {inventory.items.length > 0 ? Math.round((inventory.foundAssetIds.size / inventory.items.length) * 100) : 0}%
+            </div>
           </div>
         </div>
       )}
@@ -506,6 +592,49 @@ export default function FixedAssets() {
           </div>
         </div>
       )}
+      {tab === 'inventory' && (
+        <div className="ds-table-wrap">
+          <div className="flex-1 overflow-auto overscroll-contain">
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  <th className="py-2.5 px-3 w-10 text-center">№</th>
+                  <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
+                  <th className="py-2.5 px-3 w-[130px]">БүРТГЭЛИЙН ДУГААР</th>
+                  <th className="py-2.5 px-3 w-[110px]">ТӨЛӨВ</th>
+                  <th className="py-2.5 px-3 w-[140px]">ОЛДСОН ОГНОО</th>
+                  <th className="py-2.5 px-3 w-[100px] text-right">үЙЛДЭЛ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                {!inventory.activeCount && (
+                  <tr><td colSpan={6} className="py-8 text-center text-darktext">Идэвхтэй тооллого байхгүй — дээрх "+ Тооллого эхлүүлэх" товчийг дарна уу.</td></tr>
+                )}
+                {inventory.activeCount && inventory.loading && (
+                  <tr><td colSpan={6} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+                )}
+                {inventory.activeCount && !inventory.loading && inventory.items.map((item, idx) => (
+                  <tr key={item.id}>
+                    <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{item.asset?.name || '—'}</td>
+                    <td className="py-2.5 px-3 font-mono text-[12px]">{item.asset?.barcode || '—'}</td>
+                    <td className="py-2.5 px-3 font-semibold">
+                      {item.found ? <span className="text-customGreen">Олдсон</span> : <span className="text-customRed">Олдоогүй</span>}
+                    </td>
+                    <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
+                    <td className="py-2.5 px-3 text-right">
+                      {!item.found && (
+                        <button className="ds-btn-secondary" onClick={() => handleMarkFound(item.asset)}>Олдсон гэж тэмдэглэх</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
 
       <EditFixedAssetModal
         key={editing?.id}
@@ -533,6 +662,9 @@ export default function FixedAssets() {
         onPrint={handlePrint}
         onWriteOff={(asset) => { handleCloseView(); setWritingOff(asset); }}
         underRepair={!!viewing && repairs.activeRepairAssetIds.has(viewing.id)}
+        activeInventoryCount={inventory.activeCount}
+        isFoundInCount={!!viewing && inventory.foundAssetIds.has(viewing.id)}
+        onMarkFound={handleMarkFound}
       />
 
       <WriteOffAssetModal

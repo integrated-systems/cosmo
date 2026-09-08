@@ -5,6 +5,7 @@ import { formatDate, formatMoney } from '../lib/format';
 import { statusLabel, statusClassName, DEPRECIATION_METHODS, computeUsagePct } from '../lib/fixedAssetsFormat';
 import { buildAssetDeepLink } from '../lib/labelPrint';
 import UsageProgressBar from './UsageProgressBar';
+import { useAssignmentHistory } from '../hooks/useAssignmentHistory';
 
 // 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мүн хүснэгэлийн
 // мүр дээр дарахад нээгдэх) ЗүВХүН УНШИХ мэдээллийн карт.
@@ -22,8 +23,9 @@ import UsageProgressBar from './UsageProgressBar';
 // баталсан) утгыг шууд харуулна — depreciation.js-ийн амьд симуляц
 // ЭНД ХЭРЭГЛЭГДЭХГүй (тэр нь зөвхөн EditFixedAssetModal-ийн
 // "хэрэв ингэвэл" харьцуулалтад ашиглагдана).
-export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff, underRepair }) {
+export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff, underRepair, activeInventoryCount, isFoundInCount, onMarkFound }) {
   const isDepreciable = asset?.type?.is_depreciable !== false;
+  const { history, loading: historyLoading } = useAssignmentHistory(asset?.id);
 
   if (!asset) return null;
 
@@ -32,6 +34,12 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
   return (
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
       <>
+        {activeInventoryCount && !isFoundInCount && (
+          <button className="bg-customGreen hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onMarkFound?.(asset)}>Тооллогод олдсон гэж тэмдэглэх</button>
+        )}
+        {activeInventoryCount && isFoundInCount && (
+          <span className="text-xs text-customGreen font-medium self-center">✓ Тооллогод олдсон</span>
+        )}
         {canEdit && asset.status !== 'written_off' && (
           <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onWriteOff?.(asset)}>Актлах</button>
         )}
@@ -100,6 +108,29 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
               <UsageProgressBar pct={usagePct} />
             </div>
           </>
+        )}
+
+        <div className="pt-2 mt-1 border-t border-slate-200 dark:border-bordercol text-[11px] font-semibold tracking-wide text-mutedtext uppercase">
+          Шилжилтийн түүх (Байршил/Хариуцагч)
+        </div>
+        {historyLoading && <div className="text-[12px] text-mutedtext">Ачаалж байна...</div>}
+        {!historyLoading && history.length === 0 && (
+          <div className="text-[12px] text-mutedtext">Шилжилт хараахан бүртгэгдээгүй байна.</div>
+        )}
+        {!historyLoading && history.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {history.map((h) => (
+              <div key={h.id} className="text-[12px]">
+                <div className="text-mutedtext text-[11px]">{formatDate(h.changed_at)}</div>
+                {h.old_location_id !== null || h.new_location_id !== null ? (
+                  <div>Байршил: <span className="text-slate-500 dark:text-mutedtext">{h.old_location?.name || '—'}</span> → <span className="font-semibold">{h.new_location?.name || '—'}</span></div>
+                ) : null}
+                {h.old_responsible_position_id !== null || h.new_responsible_position_id !== null ? (
+                  <div>Хариуцагч: <span className="text-slate-500 dark:text-mutedtext">{h.old_responsible?.name || '—'}</span> → <span className="font-semibold">{h.new_responsible?.name || '—'}</span></div>
+                ) : null}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </Modal>
