@@ -15,9 +15,14 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // харна уу) SUPERSYSADMIN-ийн бичдэг, бүх tenant үздэг үндсэн лавлах.
 // Markdown агуулгыг renderMarkdown()-ээр (marked+dompurify) аюулгүй
 // HTML болгож харуулна.
+// 2026-09-08 (2): "Зохиогчийн эрх" таб нэмэв (Хөгжүүлсэн логийн
+// баруун тал) — ганц карттай, Устгах/Нуух үгүй, зeвхeн Засах.
+// Картнуудын хэсгийг max-w-[960px] mx-auto болгож том дэлгэцэнд ч
+// хэт eргeн болохгүйгээр хязгаарлав (жижиг дэлгэцэд бүрэн респонсив).
 const TABS = [
   { key: 'guide', label: 'Ашиглах заавар' },
   { key: 'changelog', label: 'Хөгжүүлсэн лог' },
+  { key: 'copyright', label: 'Зохиогчийн эрх' },
 ];
 
 export default function AboutProgram() {
@@ -28,6 +33,8 @@ export default function AboutProgram() {
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
+
+  const isCopyright = tab === 'copyright';
 
   async function load() {
     setLoading(true);
@@ -69,22 +76,24 @@ export default function AboutProgram() {
         ))}
       </div>
 
-      {isSuperSysAdmin && (
-        <div className="ds-toolbar justify-end">
-          <button className="ds-btn-primary" onClick={() => setAdding(true)}>
-            + Шинэ {tab === 'guide' ? 'заавар' : 'лог'} нэмэх
-          </button>
-        </div>
-      )}
+      <div className="max-w-[960px] w-full mx-auto flex flex-col gap-3">
+        {isSuperSysAdmin && !isCopyright && (
+          <div className="ds-toolbar justify-end">
+            <button className="ds-btn-primary" onClick={() => setAdding(true)}>
+              + Шинэ {tab === 'guide' ? 'заавар' : 'лог'} нэмэх
+            </button>
+          </div>
+        )}
 
-      {loading && <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>}
-      {!loading && list.length === 0 && (
-        <div className="ds-card p-6 text-center text-[12px] text-mutedtext">
-          {tab === 'guide' ? 'Заавар хараахан нэмэгдээгүй байна.' : 'Хөгжүүлсэн лог хараахан нэмэгдээгүй байна.'}
-        </div>
-      )}
+        {loading && <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>}
+        {!loading && list.length === 0 && (
+          <div className="ds-card p-6 text-center text-[12px] text-mutedtext">
+            {tab === 'guide' && 'Заавар хараахан нэмэгдээгүй байна.'}
+            {tab === 'changelog' && 'Хөгжүүлсэн лог хараахан нэмэгдээгүй байна.'}
+            {tab === 'copyright' && 'Зохиогчийн эрхийн мэдээлэл хараахан нэмэгдээгүй байна.'}
+          </div>
+        )}
 
-      <div className="flex flex-col gap-3">
         {list.map((doc) => (
           <div key={doc.id} className={`ds-card p-4 ${doc.is_published === false ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-3 mb-2">
@@ -100,11 +109,15 @@ export default function AboutProgram() {
               </div>
               {isSuperSysAdmin && (
                 <div className="flex items-center gap-1 shrink-0">
-                  <button className="ds-btn-secondary" onClick={() => handleTogglePublish(doc)}>
-                    {doc.is_published === false ? 'Нийтлэх' : 'Нуух'}
-                  </button>
+                  {!isCopyright && (
+                    <button className="ds-btn-secondary" onClick={() => handleTogglePublish(doc)}>
+                      {doc.is_published === false ? 'Нийтлэх' : 'Нуух'}
+                    </button>
+                  )}
                   <button className="ds-icon-btn" title="Засах" onClick={() => setEditing(doc)}><EditIcon /></button>
-                  <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(doc)}><DeleteIcon /></button>
+                  {!isCopyright && (
+                    <button className="ds-icon-btn danger" title="Устгах" onClick={() => handleDelete(doc)}><DeleteIcon /></button>
+                  )}
                 </div>
               )}
             </div>
