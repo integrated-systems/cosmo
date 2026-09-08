@@ -89,6 +89,7 @@ export default function FixedAssets() {
   const [responsiblePerson, setResponsiblePerson] = useState('all');
   const [location, setLocation] = useState('all');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     if (!hoaId) return;
@@ -162,6 +163,12 @@ export default function FixedAssets() {
   const filteredRows = rows.filter((r) => {
     if (responsiblePerson !== 'all' && r.responsible_position_id !== responsiblePerson) return false;
     if (location !== 'all' && r.location_id !== location) return false;
+    if (statusFilter !== 'all') {
+      const isUnderRepair = repairs.activeRepairAssetIds.has(r.id) && r.status !== 'written_off';
+      if (statusFilter === 'repair' && !isUnderRepair) return false;
+      if (statusFilter === 'in_use' && (r.status !== 'in_use' || isUnderRepair)) return false;
+      if (statusFilter === 'written_off' && r.status !== 'written_off') return false;
+    }
     if (q) {
       const hay = `${r.name} ${r.barcode} ${r.mark_serial || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
@@ -301,6 +308,7 @@ export default function FixedAssets() {
           responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
           location={location} onLocationChange={setLocation} locationOptions={locationOptions}
           search={search} onSearchChange={setSearch}
+          statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
           onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
         />
       )}

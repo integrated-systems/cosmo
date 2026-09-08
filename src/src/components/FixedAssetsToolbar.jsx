@@ -10,10 +10,19 @@ export default function FixedAssetsToolbar({
   location, onLocationChange, locationOptions,
   search, onSearchChange,
   onAddClick, canAdd = true, addLabel = '+ Хөрөнгө нэмэх', addDisabled = false,
+  statusFilter, onStatusFilterChange,
 }) {
   return (
     <div className="ds-toolbar flex-wrap">
       <div className="flex flex-wrap items-center gap-2">
+        {statusFilter !== undefined && (
+          <select className="ds-select" value={statusFilter} onChange={(e) => onStatusFilterChange(e.target.value)}>
+            <option value="all">Бүгд</option>
+            <option value="in_use">Ашиглалтад</option>
+            <option value="repair">Засварт</option>
+            <option value="written_off">Актлагдсан</option>
+          </select>
+        )}
         <select className="ds-select" value={responsiblePerson} onChange={(e) => onResponsiblePersonChange(e.target.value)}>
           <option value="all">Бүх хариуцагч</option>
           {responsibleOptions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}

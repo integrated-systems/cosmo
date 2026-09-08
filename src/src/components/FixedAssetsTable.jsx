@@ -1,6 +1,7 @@
 import { formatDate, formatMoney } from '../lib/format';
-import { statusLabel, statusClassName } from '../lib/fixedAssetsFormat';
+import { statusLabel, statusClassName, computeUsagePct } from '../lib/fixedAssetsFormat';
 import { EditIcon, DeleteIcon } from './icons/Icons';
+import UsageProgressBar from './UsageProgressBar';
 
 // FixedAssets.jsx-ийн хүснэгэл — ClienteleTable.jsx-ийн бүтцийг дахин
 // ашигласан (Rule of two). Хуучин "suh" прототипийн баганын нэрс,
@@ -10,14 +11,17 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // 2026-09-07 (7): Хэрэглэгчийн заасны дагуу мвр (хвл) БүХЭЛДЭЭ дарахад
 // AssetInfoModal нээгдэнэ. БАРКОД (график) баганыг бүрэн арилгаж,
 // оронд нь "Хүрүнгийн бүртгэлийн дугаар" текст багана оруулав — QR
-// хэвлэлт одоо зөвхүн AssetInfoModal дотроос хийгдэнэ (энд onPrint
+// хэвлэлт одоо зөвхөн AssetInfoModal дотроос хийгдэнэ (энд onPrint
 // шаардлагагүй болсон).
 // 2026-09-08 (2): activeRepairAssetIds үед тухайн хeрeнгийг статус
 // (written_off эс бэшгүй тохиолдолд) "Засварт" (custom оранж) гэж
 // автоматаар давхарлаж харуулна — RepairModal.jsx-ийн Эхэлсэн/Дууссан
 // огнооны хугацаанд байгаа үед л идэвхтэй (useAssetRepairs.js харна уу).
+// 2026-09-08 (6): "ТeЛeВ" баганын баруун талд "АШИГЛАЛТЫН ХУГАЦАА"
+// (жижигрүүлсэн progress bar, UsageProgressBar.jsx) нэмэв — мөр бүрт
+// хeрeнгийн ашиглалт хэр дуусч байгааг шууд харуулна.
 export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onView, canEdit = true, canDelete = true, activeRepairAssetIds }) {
-  const colCount = 13;
+  const colCount = 14;
 
   return (
     <div className="ds-table-wrap">
@@ -38,7 +42,8 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
               <th className="py-2.5 px-3 w-[100px]">БАЙРШИЛ</th>
               <th className="py-2.5 px-3 w-[120px]">ХАРИУЦАГЧ</th>
               <th className="py-2.5 px-3 w-[100px]">ТӨЛӨВ</th>
-              <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
+              <th className="py-2.5 px-3 w-[130px]">АШИГЛАЛТЫН ХУГАЦАА</th>
+              <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -67,6 +72,12 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className="py-2.5 px-3">{r.responsible_position?.name || '—'}</td>
                 <td className={`py-2.5 px-3 font-semibold ${activeRepairAssetIds?.has(r.id) && r.status !== 'written_off' ? 'text-customOrange' : statusClassName(r.status)}`}>
                   {activeRepairAssetIds?.has(r.id) && r.status !== 'written_off' ? 'Засварт' : statusLabel(r.status)}
+                </td>
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-[50px]"><UsageProgressBar pct={computeUsagePct(r)} size="sm" /></div>
+                    <span className="text-[11px] text-mutedtext w-8 text-right">{computeUsagePct(r) != null ? `${computeUsagePct(r)}%` : '—'}</span>
+                  </div>
                 </td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && (

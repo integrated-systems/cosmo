@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import Modal from './Modal';
 import { formatDate, formatMoney } from '../lib/format';
-import { statusLabel, statusClassName, DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
+import { statusLabel, statusClassName, DEPRECIATION_METHODS, computeUsagePct } from '../lib/fixedAssetsFormat';
 import { buildAssetDeepLink } from '../lib/labelPrint';
+import UsageProgressBar from './UsageProgressBar';
 
 // 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мүн хүснэгэлийн
 // мүр дээр дарахад нээгдэх) ЗүВХүН УНШИХ мэдээллийн карт.
@@ -26,10 +27,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
 
   if (!asset) return null;
 
-  const depreciableBase = Math.max(0, (Number(asset.purchase_price) || 0) + (Number(asset.capitalized_amount) || 0) - (Number(asset.salvage_value) || 0));
-  const elapsedPct = depreciableBase > 0
-    ? Math.min(100, Math.round(((Number(asset.accumulated_depreciation) || 0) / depreciableBase) * 100))
-    : 0;
+  const usagePct = computeUsagePct(asset);
 
   return (
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
@@ -96,12 +94,10 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
 
             <div>
               <div className="flex items-center justify-between text-[11px] text-mutedtext mb-1">
-                <span>Хугацааны явц</span>
-                <span>{elapsedPct}%</span>
+                <span>Ашиглалтын хугацаа</span>
+                <span>{usagePct ?? 0}%</span>
               </div>
-              <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-                <div className="h-full bg-customBlue rounded-full" style={{ width: `${elapsedPct}%` }} />
-              </div>
+              <UsageProgressBar pct={usagePct} />
             </div>
           </>
         )}
