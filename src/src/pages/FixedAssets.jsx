@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
-import { formatMoney, formatDate } from '../lib/format';
+import { formatMoney, formatDate, formatDateTimeMinutes } from '../lib/format';
 import { DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
@@ -354,7 +354,7 @@ export default function FixedAssets() {
   // 2026-09-08: Тооллого (физик инвентаризаци) — эхлүүлэх/дуусгах үед
   // тодорхой баталгаажуулалт шаардана (дуусгасны дараа буцаах боломжгүй).
   async function handleStartInventory() {
-    if (!(await confirm('Тооллого эхлүүлэх vv? Одоогийн идэвхтэй (актлагдаагүй) бүх хөрөнгийг олдоогүй гэж үзэн жагсаалт үүснэ.'))) return;
+    if (!(await confirm('Актлагдсанаас бусад бүх үндсэн хөрөнгийн тооллогыг эхлүүлэх vv?'))) return;
     try {
       await inventory.startCount();
     } catch (err) {
@@ -363,7 +363,7 @@ export default function FixedAssets() {
   }
 
   async function handleCompleteInventory() {
-    if (!(await confirm('Тооллогыг дуусгах уу? Дуусгасны дараа буцааж өөрчлөх боломжгүй.'))) return;
+    if (!(await confirm('Тооллогыг дуусгах уу? Хэрэв "Тийм" бол энэ удаагийн тооллого хаагдахыг анхаарна уу.'))) return;
     try {
       await inventory.completeCount();
     } catch (err) {
@@ -437,7 +437,7 @@ export default function FixedAssets() {
           </div>
           {!inventory.activeCount ? (
             <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
-              {inventory.starting ? 'Эхлүүлж байна...' : '+ Тооллого эхлүүлэх'}
+              {inventory.starting ? 'Эхлүүлж байна...' : 'Тооллого эхлүүлэх'}
             </button>
           ) : (
             <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={handleCompleteInventory}>
@@ -445,9 +445,6 @@ export default function FixedAssets() {
             </button>
           )}
         </div>
-      )}
-      {tab === 'inventory' && !inventory.activeCount && inventorySubTab === 'active' && (
-        <div className="text-[11.5px] text-mutedtext">Одоогоор идэвхтэй тооллого байхгүй.</div>
       )}
       <div className="flex gap-2">
         {TABS.map((t) => (
@@ -699,18 +696,16 @@ export default function FixedAssets() {
                 <tr>
                   <th className="py-2.5 px-3">ЭХЭЛСЭН ОГНОО</th>
                   <th className="py-2.5 px-3">ДУУССАН ОГНОО</th>
-                  <th className="py-2.5 px-3 text-right">ТООЛОГДСОН / НИЙТ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
                 {inventory.completedCounts.length === 0 && (
-                  <tr><td colSpan={3} className="py-8 text-center text-darktext">Дуусгасан тооллого хараахан алга.</td></tr>
+                  <tr><td colSpan={2} className="py-8 text-center text-darktext">Дуусгасан тооллого хараахан алга.</td></tr>
                 )}
                 {inventory.completedCounts.map((c) => (
                   <tr key={c.id} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]" onClick={() => handleViewHistoryCount(c.id)}>
-                    <td className="py-2.5 px-3"><button type="button" className="text-customBlue hover:underline">{formatDate(c.started_at)}</button></td>
-                    <td className="py-2.5 px-3">{c.completed_at ? formatDate(c.completed_at) : '—'}</td>
-                    <td className="py-2.5 px-3 text-right">—</td>
+                    <td className="py-2.5 px-3"><button type="button" className="text-customBlue hover:underline">{formatDateTimeMinutes(c.started_at)}</button></td>
+                    <td className="py-2.5 px-3">{c.completed_at ? formatDateTimeMinutes(c.completed_at) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

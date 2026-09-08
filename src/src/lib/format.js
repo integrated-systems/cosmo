@@ -23,6 +23,15 @@ export function formatDateTime(date) {
   return `${formatDate(d)} ${formatTime(d)}`;
 }
 
+// Секундгүй богино хувилбар ("YYYY/MM/DD HH:MM") — Тооллогын түүх
+// зэрэг секунд шаардлагагүй огноо+цагийн харагдацад ашиглана.
+export function formatDateTimeMinutes(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d)) return '';
+  const p = (n) => String(n).padStart(2, '0');
+  return `${formatDate(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function formatMoney(amount) {
   const num = Number(amount) || 0;
   const [intPart, decPart] = num.toFixed(2).split('.');

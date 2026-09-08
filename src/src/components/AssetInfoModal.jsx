@@ -34,7 +34,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
   return (
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
       <>
-        {activeInventoryCount && !isFoundInCount && (
+        {activeInventoryCount && !isFoundInCount && asset.status !== 'written_off' && (
           <button className="bg-customGreen hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onMarkFound?.(asset)}>Тооллогод бүртгэх</button>
         )}
         {activeInventoryCount && isFoundInCount && (
