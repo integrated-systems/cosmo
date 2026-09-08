@@ -1,9 +1,11 @@
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { formatMoney } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
 import { deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
 import { useTenantStats } from '../hooks/useTenantStats';
+import { useTopUsageAssets } from '../hooks/useTopUsageAssets';
+import UsageProgressBar from '../components/UsageProgressBar';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
 // хувийн өөрчлөлт тооцно — Dashboard-ийн дээд утга/сумны индикатор энэ
@@ -46,6 +48,7 @@ export default function Dashboard() {
   const { hoaId } = useParams();
   const { rows, loading } = useMarketRows(hoaId);
   const { stats: tenantStats } = useTenantStats(hoaId);
+  const topUsageAssets = useTopUsageAssets(hoaId, 5);
   const marketSeries = deriveMarketSeries(rows);
   const last12Rows = rows.slice(-12);
   const marketSeries12 = deriveMarketSeries(last12Rows);
@@ -162,12 +165,31 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4. Ашиглалтаас хугацаа дуусч буй Үндсэн хөрөнгө */}
-      <div className="ds-card p-4 flex items-center justify-between">
-        <div className="text-sm font-semibold text-slate-900 dark:text-white">Ашиглалтаас хугацаа дуусч буй Үндсэн хөрөнгө</div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-500 dark:text-mutedtext">Хогооны машин газар</span>
-          <a href="#" className="text-xs text-blue-500 hover:underline">Бүгдийг харах → <span className="text-slate-900 dark:text-white ml-1">0%</span></a>
+      {/* 4. Ашиглалтын хугацаа дуусч буй Үндсэн хeрeнгe — 2026-09-08:
+          Үндсэн хeрeнгийн бүртгэлтэй динамик холбов (useTopUsageAssets),
+          хамгийн ойрхон дуусаж буй 5-ыг дээрээс доош (тулсангаас нь
+          арай бага тулсан руу) progress bar-тай нь харуулна. */}
+      <div className="ds-card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">Ашиглалтын хугацаа дуусч буй Үндсэн хeрeнгe</div>
+          <Link to={`/${hoaId}/fixedassets`} className="text-xs text-blue-500 hover:underline">Бүгдийг харах →</Link>
+        </div>
+        <div className="flex flex-col gap-3">
+          {topUsageAssets.loading && (
+            <div className="text-xs text-slate-500 dark:text-mutedtext">Ачаалж байна...</div>
+          )}
+          {!topUsageAssets.loading && topUsageAssets.assets.length === 0 && (
+            <div className="text-xs text-slate-500 dark:text-mutedtext">Мэдээлэл алга</div>
+          )}
+          {!topUsageAssets.loading && topUsageAssets.assets.map((a) => (
+            <div key={a.id}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-500 dark:text-mutedtext">{a.name}</span>
+                <span className="text-slate-900 dark:text-white font-medium">{a.usagePct}%</span>
+              </div>
+              <UsageProgressBar pct={a.usagePct} />
+            </div>
+          ))}
         </div>
       </div>
 
