@@ -13,6 +13,11 @@ import MoneyInput from './MoneyInput';
 //   - "Хөрөнгө" dropdown (мянга мянган мвр үед ашиглах боломжгүй
 //     болдог асуудалтай байсан) -> нэр/бүртгэлийн дугаараар шүүгддэг
 //     хайлтын combobox (AssetSearchCombobox) болов
+// 2026-09-08 (4): Капиталжуулах засвар (хөрөнгийн үнэ цэнэ/ашиглах
+// хугацааг нэмэгдүүлдэг том засвар — жиш дээвэр солих, дулаалга)
+// чекбокс нэмэв. Тэмдэглэвэл үнэ дүн fixed_assets.capitalized_amount-д
+// нэмэгдэж, сунгах сар зааж үгвэл useful_life_months-д ч нэмэгдэнэ
+// (useAssetRepairs.js харна уу).
 export default function RepairModal({ open, onClose, assets, onSave }) {
   const [assetId, setAssetId] = useState('');
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -20,6 +25,8 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
   const [providerOrg, setProviderOrg] = useState('');
+  const [isCapitalized, setIsCapitalized] = useState(false);
+  const [extendMonths, setExtendMonths] = useState('');
 
   function reset() {
     setAssetId('');
@@ -28,11 +35,13 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
     setAmount(0);
     setDescription('');
     setProviderOrg('');
+    setIsCapitalized(false);
+    setExtendMonths('');
   }
 
   async function handleSave() {
     if (!assetId) { window.alert('Хөрөнгө сонгоно уу.'); return; }
-    await onSave({ assetId, startDate, endDate, amount, description, providerOrg });
+    await onSave({ assetId, startDate, endDate, amount, description, providerOrg, isCapitalized, extendMonths });
     reset();
   }
 
@@ -70,12 +79,25 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Үйлчилгээ үзүүлэгч байгууллага</label>
           <input className="ds-input w-full" placeholder="Байгууллагын нэр..." value={providerOrg} onChange={(e) => setProviderOrg(e.target.value)} />
         </div>
+
+        <div className="ds-card p-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={isCapitalized} onChange={(e) => setIsCapitalized(e.target.checked)} />
+            <span className="text-[12px] font-medium">Капитал засвар (хөрөнгийн үнэ цэнэ/ашиглах хугацааг нэмэгдүүлнэ)</span>
+          </label>
+          {isCapitalized && (
+            <div className="mt-2">
+              <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ашиглах хугацааг хэдэн сараар сунгах вэ? (заавал биш)</label>
+              <input type="number" min="0" step="1" className="ds-input w-full" placeholder="0" value={extendMonths} onChange={(e) => setExtendMonths(e.target.value)} />
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );
 }
 
-// Хeрeнгийн нэр эсвэл бүртгэлийн дугаараар (эхний үсэг/тоо бичих
+// Хөрөнгийн нэр эсвэл бүртгэлийн дугаараар (эхний үсэг/тоо бичих
 // үед) шүүгдэж, доор нь жагсаалт гарч ирдэг хайлтын элемент — олон
 // мянган мвртэй хүснэгэлд ердийн <select> ашиглах боломжгүй болсныг
 // шийдэв.

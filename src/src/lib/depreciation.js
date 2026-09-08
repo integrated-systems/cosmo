@@ -9,12 +9,13 @@
 //   - Хурдасгасан элэгдэл (accelerated): бууралтын үлдэгдэл (declining
 //     balance) арга, ХЭРЭГЛЭГЧИЙН ГАРААР сонгосон жилийн хувиар
 //     (annual_depreciation_rate, жиш 20%) — үлдэгдэл үнэ жил бүр тэр
-//     хувиар үржигдэн буурна. 2026-09-07 (6): өмнөх "2/ашиглах хугацаа"
-//     (double declining balance) томьёо буруу таамаглал байсныг
-//     хэрэглэгчийн зассан жишээгээр (36000₮, 36 сар, 0₮ үлдэгдэлтэй
-//     жишээ) орлуулав — Ашиглах хугацаа одоо ЗӨВХӨН Дансны үлдэгдэл үнэ
-//     0 болох мвчийг (disposal_date) тооцоход хэрэглэгдэнэ, хурдны
-//     коэффициентэд НӨЛӨӨЛӨХГүй.
+//     хувиар үржигдэн буурна.
+//
+// 2026-09-08 (4): Капиталжуулах засвар — хөрөнгийн үнэ цэнэ/ашиглах
+// хугацааг нэмэгдүүлдэг том засвар (жиш дээвэр солих, дулаалга).
+// Дансны үлдэгдэл үнийн суурь = (purchasePrice + capitalizedAmount)
+// − accumulated, fixed_assets.book_value generated баганатай яг
+// ижил томьёо (Rule of two).
 
 function monthsBetween(fromDate, toDate) {
   if (!fromDate || !toDate) return 0;
@@ -26,23 +27,24 @@ function monthsBetween(fromDate, toDate) {
   return Math.max(0, months);
 }
 
-export function computeStraightLineDepreciation({ purchasePrice, salvageValue, usefulLifeMonths, acquiredDate, asOfDate = new Date() }) {
-  const base = Math.max(0, (Number(purchasePrice) || 0) - (Number(salvageValue) || 0));
+export function computeStraightLineDepreciation({ purchasePrice, capitalizedAmount = 0, salvageValue, usefulLifeMonths, acquiredDate, asOfDate = new Date() }) {
+  const total = (Number(purchasePrice) || 0) + (Number(capitalizedAmount) || 0);
+  const base = Math.max(0, total - (Number(salvageValue) || 0));
   const months = Number(usefulLifeMonths) || 0;
-  if (months <= 0) return { monthly: 0, yearly: 0, accumulated: 0, bookValue: Number(purchasePrice) || 0 };
+  if (months <= 0) return { monthly: 0, yearly: 0, accumulated: 0, bookValue: total };
 
   const monthly = base / months;
   const elapsed = Math.min(monthsBetween(acquiredDate, asOfDate), months);
   const accumulated = monthly * elapsed;
-  const bookValue = (Number(purchasePrice) || 0) - accumulated;
+  const bookValue = total - accumulated;
   return { monthly, yearly: monthly * 12, accumulated, bookValue };
 }
 
-export function computeAcceleratedDepreciation({ purchasePrice, salvageValue, annualDepreciationRate, acquiredDate, asOfDate = new Date() }) {
-  const price = Number(purchasePrice) || 0;
+export function computeAcceleratedDepreciation({ purchasePrice, capitalizedAmount = 0, salvageValue, annualDepreciationRate, acquiredDate, asOfDate = new Date() }) {
+  const total = (Number(purchasePrice) || 0) + (Number(capitalizedAmount) || 0);
   const salvage = Number(salvageValue) || 0;
   const annualRate = Number(annualDepreciationRate) || 0;
-  if (annualRate <= 0) return { firstMonth: 0, yearly: 0, accumulated: 0, bookValue: price };
+  if (annualRate <= 0) return { firstMonth: 0, yearly: 0, accumulated: 0, bookValue: total };
 
   // Жилийн хувиас сарын дүйцэх коэффициентийг гаргана: үлдэгдэл үнэ
   // жил бүр (1 - хувь)-аар үржигдэн буурдаг тул сар бүрийн коэффициент
@@ -50,7 +52,7 @@ export function computeAcceleratedDepreciation({ purchasePrice, salvageValue, an
   const monthlyFactor = Math.pow(1 - annualRate / 100, 1 / 12);
   const elapsed = monthsBetween(acquiredDate, asOfDate);
 
-  let bookValue = price;
+  let bookValue = total;
   let accumulated = 0;
   let firstMonth = 0;
   let yearOneTotal = 0;
@@ -64,5 +66,5 @@ export function computeAcceleratedDepreciation({ purchasePrice, salvageValue, an
     bookValue -= dep;
     if (m > elapsed && bookValue <= salvage) break;
   }
-  return { firstMonth, yearly: yearOneTotal, accumulated, bookValue: price - accumulated };
+  return { firstMonth, yearly: yearOneTotal, accumulated, bookValue: total - accumulated };
 }

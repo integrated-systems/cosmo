@@ -4,6 +4,11 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 
 // "Засвар, үйлчилгээ" таб (FixedAssets.jsx)-ийн өгөгдөл+үйлдэл.
 // 2026-09-08 (2): repair_date -> start_date, end_date шинээр нэмэв.
+// 2026-09-08 (4): Капиталжуулах засвар — is_capitalized=true үед
+// үнэ дүнг fixed_assets.capitalized_amount-д нэмж, сунгах сар зааж
+// үгвэл useful_life_months-ийг ч нэмэгдүүлнэ. Мвн totalSpentByAsset
+// (хөрөнгэ тус бүрийн нийт зарцуулсан дүн) нэмэв — Засвар үйлчилгээний
+// хүснэгэлийн "НИЙТ ЗАРЦУУЛСАН" баганад ашиглана.
 export function useAssetRepairs(hoaId) {
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +18,7 @@ export function useAssetRepairs(hoaId) {
     setLoading(true);
     const { data } = await fetchAllRows(() =>
       supabase.from('asset_repairs')
-        .select('*, asset:fixed_assets(id, name, barcode)')
+        .select('*, asset:fixed_assets(id, name, barcode, purchase_price)')
         .eq('tenant_id', hoaId)
         .order('start_date', { ascending: false })
     );
@@ -23,17 +28,36 @@ export function useAssetRepairs(hoaId) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function addRepair({ assetId, startDate, endDate, amount, description, providerOrg }) {
+  async function addRepair({ assetId, startDate, endDate, amount, description, providerOrg, isCapitalized, extendMonths }) {
+    const amountNum = amount !== '' ? Number(amount) : 0;
     const { error } = await supabase.from('asset_repairs').insert({
       tenant_id: hoaId,
       asset_id: assetId,
       start_date: startDate,
       end_date: endDate || null,
-      amount: amount !== '' ? Number(amount) : 0,
+      amount: amountNum,
       description: description || null,
       provider_org: providerOrg || null,
+      is_capitalized: !!isCapitalized,
+      extend_months: isCapitalized && extendMonths !== '' ? Number(extendMonths) : null,
     });
     if (error) throw error;
+
+    if (isCapitalized) {
+      const { data: asset, error: fetchErr } = await supabase.from('fixed_assets')
+        .select('capitalized_amount, useful_life_months')
+        .eq('id', assetId)
+        .single();
+      if (!fetchErr && asset) {
+        const extra = extendMonths !== '' ? Number(extendMonths) : 0;
+        const { error: updateErr } = await supabase.from('fixed_assets').update({
+          capitalized_amount: (Number(asset.capitalized_amount) || 0) + amountNum,
+          useful_life_months: extra > 0 ? (Number(asset.useful_life_months) || 0) + extra : asset.useful_life_months,
+        }).eq('id', assetId);
+        if (updateErr) throw updateErr;
+      }
+    }
+
     await load();
   }
 
@@ -46,8 +70,18 @@ export function useAssetRepairs(hoaId) {
     return { count: repairs.length, total, thisMonthCount: thisMonth.length, thisMonthTotal };
   }, [repairs]);
 
+  // Хөрөнгэ тус бүрийн НИЙТ зарцуулсан засварын дүн — Худалдан авсан
+  // үнээс давсан хандлагыг эртнээс анзаарахад ашиглана (2026-09-08 (4)).
+  const totalSpentByAsset = useMemo(() => {
+    const map = new Map();
+    repairs.forEach((r) => {
+      map.set(r.asset_id, (map.get(r.asset_id) || 0) + (Number(r.amount) || 0));
+    });
+    return map;
+  }, [repairs]);
+
   // Одоо идэвхтэй (эхэлсэн - дууссан хугацаанд, дуусаагүй бол
-  // хугацаагүй үргэлжилсэнд тооцно) засвартай хeрeнгийн ID-ийн Set —
+  // хугацаагүй үргэлжилсэнд тооцно) засвартай хөрөнгийн ID-ийн Set —
   // FixedAssetsTable/AssetInfoModal-ийн "Тeлeв" баганад "Засварт"
   // (custom оранж) гэж автоматаар давхарлаж харуулахад ашиглана.
   const activeRepairAssetIds = useMemo(() => {
@@ -62,5 +96,5 @@ export function useAssetRepairs(hoaId) {
     return set;
   }, [repairs]);
 
-  return { repairs, loading, addRepair, stats, activeRepairAssetIds, reload: load };
+  return { repairs, loading, addRepair, stats, activeRepairAssetIds, totalSpentByAsset, reload: load };
 }

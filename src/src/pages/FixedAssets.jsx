@@ -452,27 +452,37 @@ export default function FixedAssets() {
                   <th className="py-2.5 px-3 w-[110px]">ДУУССАН</th>
                   <th className="py-2.5 px-3">ТАЙЛБАР</th>
                   <th className="py-2.5 px-3 w-[110px] text-right">ҮНЭ</th>
+                  <th className="py-2.5 px-3 w-[130px] text-right">НИЙТ ЗАРЦУУЛСАН</th>
                   <th className="py-2.5 px-3 w-[150px]">ХАРИЛЦАГЧ</th>
                   <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                {repairs.loading && <tr><td colSpan={8} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+                {repairs.loading && <tr><td colSpan={9} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
                 {!repairs.loading && repairs.repairs.length === 0 && (
-                  <tr><td colSpan={8} className="py-8 text-center text-darktext">Засвар үйлчилгээ олдсонгүй</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-darktext">Засвар үйлчилгээ олдсонгүй</td></tr>
                 )}
-                {!repairs.loading && repairs.repairs.map((r, idx) => (
-                  <tr key={r.id}>
-                    <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
-                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.asset?.name || '—'}</td>
-                    <td className="py-2.5 px-3">{r.start_date ? formatDate(r.start_date) : '—'}</td>
-                    <td className="py-2.5 px-3">{r.end_date ? formatDate(r.end_date) : '—'}</td>
-                    <td className="py-2.5 px-3">{r.description || '—'}</td>
-                    <td className="py-2.5 px-3 text-right">{formatMoney(r.amount)}₮</td>
-                    <td className="py-2.5 px-3">{r.provider_org || '—'}</td>
-                    <td className="py-2.5 px-3 text-right"></td>
-                  </tr>
-                ))}
+                {!repairs.loading && repairs.repairs.map((r, idx) => {
+                  const totalSpent = repairs.totalSpentByAsset.get(r.asset_id) || 0;
+                  const purchasePrice = Number(r.asset?.purchase_price) || 0;
+                  const ratio = purchasePrice > 0 ? totalSpent / purchasePrice : 0;
+                  const spentClass = ratio >= 1 ? 'text-customRed' : ratio >= 0.7 ? 'text-customOrange' : '';
+                  return (
+                    <tr key={r.id}>
+                      <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.asset?.name || '—'}</td>
+                      <td className="py-2.5 px-3">{r.start_date ? formatDate(r.start_date) : '—'}</td>
+                      <td className="py-2.5 px-3">{r.end_date ? formatDate(r.end_date) : '—'}</td>
+                      <td className="py-2.5 px-3">{r.description || '—'}</td>
+                      <td className="py-2.5 px-3 text-right">{formatMoney(r.amount)}₮</td>
+                      <td className={`py-2.5 px-3 text-right font-semibold ${spentClass}`} title={ratio >= 1 ? 'Нийт зарцуулсан дүн худалдан авсан үнээс давсан — актлахыг үзэж үзээрэй' : ratio >= 0.7 ? 'Нийт зарцуулсан дүн худалдан авсан үнийн 70%-иас давсан' : ''}>
+                        {formatMoney(totalSpent)}₮
+                      </td>
+                      <td className="py-2.5 px-3">{r.provider_org || '—'}</td>
+                      <td className="py-2.5 px-3 text-right"></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

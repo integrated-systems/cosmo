@@ -20,6 +20,7 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
     if (!asset || !isDepreciable) return null;
     const input = {
       purchasePrice: asset.purchase_price,
+      capitalizedAmount: asset.capitalized_amount,
       salvageValue: asset.salvage_value,
       acquiredDate: asset.acquired_date,
     };
@@ -57,6 +58,9 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
         <Row label="Тоо хэмжээ">{asset.qty} {asset.unit}</Row>
         <Row label="Худалдан авсан огноо">{asset.acquired_date ? formatDate(asset.acquired_date) : '—'}</Row>
         <Row label="Худалдан авсан үнэ" bold>{formatMoney(asset.purchase_price)}₮</Row>
+        {Number(asset.capitalized_amount) > 0 && (
+          <Row label="Капиталжуулсан нэмэлт үнэ" bold>{formatMoney(asset.capitalized_amount)}₮</Row>
+        )}
         <Row label="Борлуулагч байгууллага">{asset.seller_org || '—'}</Row>
         <Row label="Байршил"><span className="font-semibold">{asset.location?.name || '—'}</span></Row>
         <Row label="Хариуцагч">{asset.responsible_position?.name || '—'}</Row>

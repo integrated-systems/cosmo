@@ -95,12 +95,14 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
 
   const straightLine = computeStraightLineDepreciation({
     purchasePrice: form.purchasePrice,
+    capitalizedAmount: asset?.capitalized_amount || 0,
     salvageValue: form.salvageValue,
     usefulLifeMonths: form.usefulLifeMonths,
     acquiredDate: form.acquiredDate,
   });
   const accelerated = computeAcceleratedDepreciation({
     purchasePrice: form.purchasePrice,
+    capitalizedAmount: asset?.capitalized_amount || 0,
     salvageValue: form.salvageValue,
     annualDepreciationRate: form.annualDepreciationRate,
     acquiredDate: form.acquiredDate,
