@@ -264,13 +264,23 @@ export default function FixedAssets() {
   // турших зорилготой (src/lib/labelPrint.js тайлбарыг үзнэ үү).
   // 2026-09-07 (5): QR код (CODE128 биш) — deep-link URL агуулна.
   async function handlePrint(row) {
-    if (!(await confirm(`"${row.name}" хөрөнгийн шошгыг хэвлэх үү?`))) return;
+    let previewUrl = null;
     try {
       const deepLink = buildAssetDeepLink(row.barcode);
       const blob = await buildLabelPngBlob({ orgName, barcode: row.barcode, assetName: row.name, markSerial: row.mark_serial, deepLink });
+      previewUrl = URL.createObjectURL(blob);
+      const confirmed = await confirm(
+        <div className="flex flex-col items-center gap-3">
+          <img src={previewUrl} alt="Шошгын урьдчилан харагдац" className="rounded border border-slate-200 dark:border-bordercol max-w-full" />
+          <div>{`"${row.name}" хeрeнгийн шошгыг хэвлэх vv?`}</div>
+        </div>
+      );
+      if (!confirmed) return;
       await shareOrDownloadLabel(blob, `${row.barcode}.png`);
     } catch (err) {
       window.alert(`Шошго үүсгэхэд алдаа гарлаа: ${err.message}`);
+    } finally {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
     }
   }
 
