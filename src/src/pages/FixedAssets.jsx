@@ -3,17 +3,20 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
-import { formatMoney } from '../lib/format';
+import { formatMoney, formatDate } from '../lib/format';
+import { DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
+import { useDepreciationPostings } from '../hooks/useDepreciationPostings';
+import { useAssetRepairs } from '../hooks/useAssetRepairs';
 import { buildLabelPngBlob, shareOrDownloadLabel, buildAssetDeepLink } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
-import DepreciationTab from '../components/DepreciationTab';
 import FixedAssetsTable from '../components/FixedAssetsTable';
 import EditFixedAssetModal from '../components/EditFixedAssetModal';
 import AssetInfoModal from '../components/AssetInfoModal';
 import WriteOffAssetModal from '../components/WriteOffAssetModal';
+import RepairModal from '../components/RepairModal';
 
 // "Үндсэн хөрөнгө бүртгэл" (/fixedassets) — "Удирдах зөвлөл портал"
 // бүлэг. 2026-09-07 хэрэглэгчийн хуучин "suh" прототипийн зурган
@@ -49,10 +52,18 @@ import WriteOffAssetModal from '../components/WriteOffAssetModal';
 // мөн адил Инфо карт нээгдэнэ (Засах модальтай ялгаатай — зөвхөн унших).
 // URL-ийн ?asset={barcode} query param-ыг уншиж QR-ээр орж ирсэн үед
 // автоматаар нээнэ.
+//
+// 2026-09-08: Хэрэглэгчийн заасны дагуу таб бүр дараах ДАРААЛЛААР
+// (Toolbar → Таб товч → Статистик карт → Хүснэгэл) харагдана — Toolbar
+// болон Статистик карт хэсэг таб бүрд ОНЦЛОГ агуулгатай (List/
+// Депрециаци/Засвар үйлчилгээ тус бүр өөрийн Toolbar+4 карттай).
+// useDepreciationPostings/useAssetRepairs hook-үүдийг ЭНД (тухайн
+// таб идэвхтэй эсэхээс үл хамааран) дуудна — React Hooks дүрмийн
+// дагуу нөхцөлт биш байх ёстой тул.
 const TABS = [
   { key: 'list', label: 'Үндсэн хөрөнгийн жагсаалт' },
   { key: 'depreciation', label: 'Элэгдэл' },
-  { key: 'repair', label: 'Засвар' },
+  { key: 'repair', label: 'Засвар, үйлчилгээ' },
 ];
 
 export default function FixedAssets() {
@@ -69,7 +80,11 @@ export default function FixedAssets() {
   const [adding, setAdding] = useState(false);
   const [viewing, setViewing] = useState(null);
   const [writingOff, setWritingOff] = useState(null);
+  const [addingRepair, setAddingRepair] = useState(false);
   const [orgName, setOrgName] = useState('');
+
+  const depreciation = useDepreciationPostings(hoaId);
+  const repairs = useAssetRepairs(hoaId);
 
   const [responsiblePerson, setResponsiblePerson] = useState('all');
   const [location, setLocation] = useState('all');
@@ -243,6 +258,28 @@ export default function FixedAssets() {
     if (searchParams.get('asset')) setSearchParams({}, { replace: true });
   }
 
+  async function handlePostDepreciation() {
+    const today = new Date();
+    const periodLabel = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}`;
+    if (!(await confirm(`Энэ сарын (${periodLabel}) элэгдлийг батлах уу? Батлагдсаны дараа буцаах боломжгүй.`))) return;
+    try {
+      const n = await depreciation.postCurrentMonth();
+      window.alert(`${n} хeрeнгийн элэгдэл батлагдлаа.`);
+      loadAssets();
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
+  async function handleAddRepair(form) {
+    try {
+      await repairs.addRepair(form);
+      setAddingRepair(false);
+    } catch (err) {
+      window.alert(err.message);
+    }
+  }
+
   return (
     <>
       {tab === 'list' && (
@@ -253,25 +290,25 @@ export default function FixedAssets() {
           onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
         />
       )}
-
-      <div className="grid grid-cols-4 gap-[10px]">
-        <div className="ds-card p-3">
-          <div className="text-[11px] text-mutedtext mb-1.5">Нийт хөрөнгийн тоо</div>
-          <div className="text-[19px] font-bold">{summary.count}</div>
+      {tab === 'depreciation' && (
+        <div className="ds-toolbar justify-between">
+          <div className="text-[11.5px] text-mutedtext">Сар бүр НЭГ л удаа батлагдана — давхар батлахыг систем зeвшeeрeхгүй.</div>
+          <button className="ds-btn-primary" disabled={depreciation.posting} onClick={handlePostDepreciation}>
+            {depreciation.posting ? 'Батлаж байна...' : '+ Энэ сарын элэгдлийг батлах'}
+          </button>
         </div>
-        <div className="ds-card p-3">
-          <div className="text-[11px] text-mutedtext mb-1.5">Худалдан авсан нийт үнэ</div>
-          <div className="text-[19px] font-bold">{formatMoney(summary.purchaseTotal)}₮</div>
+      )}
+      {tab === 'repair' && (
+        <div className="ds-toolbar">
+          <div className="relative min-w-[240px]">
+            <input type="text" placeholder="Хайх..." className="ds-input w-full" disabled />
+          </div>
+          <div className="flex-1" />
+          <button className="ds-btn-secondary">Хэвлэх</button>
+          <button className="ds-btn-secondary">Экспорт</button>
+          <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>+ Засвар бүртгэх</button>
         </div>
-        <div className="ds-card p-3">
-          <div className="text-[11px] text-mutedtext mb-1.5">Дансны үлдэгдэл нийт үнэ</div>
-          <div className="text-[19px] font-bold">{formatMoney(summary.bookValueTotal)}₮</div>
-        </div>
-        <div className="ds-card p-3">
-          <div className="text-[11px] text-mutedtext mb-1.5">Ашиглаж буй / Актлагдсан</div>
-          <div className="text-[19px] font-bold">{summary.inUseCount} / {summary.writtenOffCount}</div>
-        </div>
-      </div>
+      )}
 
       <div className="flex gap-2">
         {TABS.map((t) => (
@@ -281,10 +318,67 @@ export default function FixedAssets() {
         ))}
       </div>
 
-      {tab === 'repair' && (
-        <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Энэ таб түн удахгүй нэмэгдэнэ.</div>
+      {tab === 'list' && (
+        <div className="grid grid-cols-4 gap-[10px]">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт хөрөнгийн тоо</div>
+            <div className="text-[19px] font-bold">{summary.count}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Худалдан авсан нийт үнэ</div>
+            <div className="text-[19px] font-bold">{formatMoney(summary.purchaseTotal)}₮</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Дансны үлдэгдэл нийт үнэ</div>
+            <div className="text-[19px] font-bold">{formatMoney(summary.bookValueTotal)}₮</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Ашиглаж буй / Актлагдсан</div>
+            <div className="text-[19px] font-bold">{summary.inUseCount} / {summary.writtenOffCount}</div>
+          </div>
+        </div>
       )}
-      {tab === 'depreciation' && <DepreciationTab hoaId={hoaId} />}
+      {tab === 'depreciation' && (
+        <div className="grid grid-cols-4 gap-[10px]">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Батлагдсан бүртгэлийн тоо</div>
+            <div className="text-[19px] font-bold">{depreciation.stats.count}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт батлагдсан дүн</div>
+            <div className="text-[19px] font-bold">{formatMoney(depreciation.stats.total)}₮</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Энэ сард батлагдсан дүн</div>
+            <div className="text-[19px] font-bold">{formatMoney(depreciation.stats.thisMonthAmount)}₮</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Сүүлд батлагдсан үе</div>
+            <div className="text-[19px] font-bold">{depreciation.stats.latestPeriod ? formatDate(depreciation.stats.latestPeriod) : '—'}</div>
+          </div>
+        </div>
+      )}
+      {tab === 'repair' && (
+        <div className="grid grid-cols-4 gap-[10px]">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт засвар үйлчилгээний тоо</div>
+            <div className="text-[19px] font-bold">{repairs.stats.count}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт зарцуулсан үнэ</div>
+            <div className="text-[19px] font-bold">{formatMoney(repairs.stats.total)}₮</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Энэ сарын засварын тоо</div>
+            <div className="text-[19px] font-bold">{repairs.stats.thisMonthCount}</div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Энэ сарын зарцуулсан үнэ</div>
+            <div className="text-[19px] font-bold">{formatMoney(repairs.stats.thisMonthTotal)}₮</div>
+          </div>
+        </div>
+      )}
+
       {tab === 'list' && (
         <FixedAssetsTable
           rows={filteredRows}
@@ -296,6 +390,74 @@ export default function FixedAssets() {
           canEdit={can('fixedassets', 'edit')}
           canDelete={can('fixedassets', 'delete')}
         />
+      )}
+      {tab === 'depreciation' && (
+        <div className="ds-table-wrap">
+          <div className="flex-1 overflow-auto overscroll-contain">
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  <th className="py-2.5 px-3 w-[100px]">үЕ</th>
+                  <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
+                  <th className="py-2.5 px-3 w-[150px]">АРГАЧЛАЛ</th>
+                  <th className="py-2.5 px-3 w-[130px] text-right">ДүН</th>
+                  <th className="py-2.5 px-3 w-[140px]">БАТАЛСАН ОГНОО</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                {depreciation.loading && <tr><td colSpan={5} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+                {!depreciation.loading && depreciation.postings.length === 0 && (
+                  <tr><td colSpan={5} className="py-8 text-center text-darktext">Батлагдсан элэгдэл алга</td></tr>
+                )}
+                {!depreciation.loading && depreciation.postings.map((p) => (
+                  <tr key={p.id}>
+                    <td className="py-2.5 px-3">{formatDate(p.period)}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{p.asset?.name || '—'}</td>
+                    <td className="py-2.5 px-3">{DEPRECIATION_METHODS[p.method_used] || p.method_used || '—'}</td>
+                    <td className="py-2.5 px-3 text-right">{formatMoney(p.amount)}₮</td>
+                    <td className="py-2.5 px-3">{formatDate(p.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {tab === 'repair' && (
+        <div className="ds-table-wrap">
+          <div className="flex-1 overflow-auto overscroll-contain">
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  <th className="py-2.5 px-3 w-10 text-center">№</th>
+                  <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
+                  <th className="py-2.5 px-3 w-[110px]">ОГНОО</th>
+                  <th className="py-2.5 px-3">ТАЙЛБАР</th>
+                  <th className="py-2.5 px-3 w-[110px] text-right">үНЭ</th>
+                  <th className="py-2.5 px-3 w-[150px]">ХАРИЛЦАГЧ</th>
+                  <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                {repairs.loading && <tr><td colSpan={7} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>}
+                {!repairs.loading && repairs.repairs.length === 0 && (
+                  <tr><td colSpan={7} className="py-8 text-center text-darktext">Засвар үйлчилгээ олдсонгүй</td></tr>
+                )}
+                {!repairs.loading && repairs.repairs.map((r, idx) => (
+                  <tr key={r.id}>
+                    <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.asset?.name || '—'}</td>
+                    <td className="py-2.5 px-3">{r.repair_date ? formatDate(r.repair_date) : '—'}</td>
+                    <td className="py-2.5 px-3">{r.description || '—'}</td>
+                    <td className="py-2.5 px-3 text-right">{formatMoney(r.amount)}₮</td>
+                    <td className="py-2.5 px-3">{r.provider_org || '—'}</td>
+                    <td className="py-2.5 px-3 text-right"></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       <EditFixedAssetModal
@@ -330,6 +492,13 @@ export default function FixedAssets() {
         onClose={() => setWritingOff(null)}
         asset={writingOff}
         onConfirm={handleWriteOff}
+      />
+
+      <RepairModal
+        open={addingRepair}
+        onClose={() => setAddingRepair(false)}
+        assets={rows}
+        onSave={handleAddRepair}
       />
 
       <ConfirmDialog />
