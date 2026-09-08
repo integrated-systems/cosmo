@@ -1,40 +1,35 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import Modal from './Modal';
 import { formatDate, formatMoney } from '../lib/format';
 import { statusLabel, statusClassName, DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
-import { computeStraightLineDepreciation, computeAcceleratedDepreciation } from '../lib/depreciation';
 import { buildAssetDeepLink } from '../lib/labelPrint';
 
-// 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мвн хүснэгэлийн
-// мвр дээр дарахад нээгдэх) ЗүВХүН УНШИХ мэдээллийн карт.
-// 2026-09-07 (7): Хуучин "Баркод" мвр дэх CODE128 график зургийг
+// 2026-09-07 (5): QR кодоор шошгоноос шууд нээгдэх (мүн хүснэгэлийн
+// мүр дээр дарахад нээгдэх) ЗүВХүН УНШИХ мэдээллийн карт.
+// 2026-09-07 (7): Хуучин "Баркод" мүр дэх CODE128 график зургийг
 // бүрэн арилгаж, оронд нь дээд буланд жижиг QR thumbnail байрлуулав
-// (дарахад шошго хэвлэх урсгал эхэлнэ — onPrint). "Баркод" мврийг
+// (дарахад шошго хэвлэх урсгал эхэлнэ — onPrint). "Баркод" мүрийг
 // "Хүрүнгийн бүртгэлийн дугаар" болгож нэрлэж, зүвхүн текст утга
 // (график биш) харуулна.
+// 2026-09-08 (5): АЛДАА ЗАСАВ — Хуримтлагдсан элэгдэл/Дансны үлдэгдэл
+// үнэ өмнө computeStraightLineDepreciation()-ээр ХУДАЛДАН АВСАН
+// ОГНООНООС хойш дахин симуляц хийж (бодит батлагдсан
+// asset.accumulated_depreciation-ыг ОГТ хараагүйгээр) тооцоологддог
+// байсан тул "Батлах" дарсны дараа ч 0.00₮ хэвээр харагддаг байв.
+// Одоо ЗӨВХӨН бодит бичигдсэн (post_monthly_depreciation()-ээр
+// баталсан) утгыг шууд харуулна — depreciation.js-ийн амьд симуляц
+// ЭНД ХЭРЭГЛЭГДЭХГүй (тэр нь зөвхөн EditFixedAssetModal-ийн
+// "хэрэв ингэвэл" харьцуулалтад ашиглагдана).
 export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, onPrint, onWriteOff, underRepair }) {
   const isDepreciable = asset?.type?.is_depreciable !== false;
 
-  const depreciation = useMemo(() => {
-    if (!asset || !isDepreciable) return null;
-    const input = {
-      purchasePrice: asset.purchase_price,
-      capitalizedAmount: asset.capitalized_amount,
-      salvageValue: asset.salvage_value,
-      acquiredDate: asset.acquired_date,
-    };
-    const result = asset.depreciation_method === 'accelerated'
-      ? computeAcceleratedDepreciation({ ...input, annualDepreciationRate: asset.annual_depreciation_rate })
-      : computeStraightLineDepreciation({ ...input, usefulLifeMonths: asset.useful_life_months });
-    const months = Number(asset.useful_life_months) || 0;
-    const elapsedPct = months > 0
-      ? Math.min(100, Math.round(((result.accumulated || 0) / Math.max(1, asset.purchase_price - (asset.salvage_value || 0))) * 100))
-      : 0;
-    return { ...result, elapsedPct };
-  }, [asset, isDepreciable]);
-
   if (!asset) return null;
+
+  const depreciableBase = Math.max(0, (Number(asset.purchase_price) || 0) + (Number(asset.capitalized_amount) || 0) - (Number(asset.salvage_value) || 0));
+  const elapsedPct = depreciableBase > 0
+    ? Math.min(100, Math.round(((Number(asset.accumulated_depreciation) || 0) / depreciableBase) * 100))
+    : 0;
 
   return (
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
@@ -96,16 +91,16 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
               <Row label="Жилийн элэгдлийн хувь">{asset.annual_depreciation_rate != null ? `${asset.annual_depreciation_rate}%` : '—'}</Row>
             )}
             <Row label="Ашиглалтаас гарах огноо">{asset.disposal_date ? formatDate(asset.disposal_date) : '—'}</Row>
-            <Row label="Хуримтлагдсан элэгдэл" bold>{formatMoney(depreciation?.accumulated || 0)}₮</Row>
-            <Row label="Дансны үлдэгдэл үнэ"><span className="font-bold text-customBlue">{formatMoney(depreciation?.bookValue ?? asset.purchase_price)}₮</span></Row>
+            <Row label="Хуримтлагдсан элэгдэл" bold>{formatMoney(asset.accumulated_depreciation || 0)}₮</Row>
+            <Row label="Дансны үлдэгдэл үнэ"><span className="font-bold text-customBlue">{formatMoney(asset.book_value ?? asset.purchase_price)}₮</span></Row>
 
             <div>
               <div className="flex items-center justify-between text-[11px] text-mutedtext mb-1">
                 <span>Хугацааны явц</span>
-                <span>{depreciation?.elapsedPct ?? 0}%</span>
+                <span>{elapsedPct}%</span>
               </div>
               <div className="h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-                <div className="h-full bg-customBlue rounded-full" style={{ width: `${depreciation?.elapsedPct ?? 0}%` }} />
+                <div className="h-full bg-customBlue rounded-full" style={{ width: `${elapsedPct}%` }} />
               </div>
             </div>
           </>
