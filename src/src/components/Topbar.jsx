@@ -121,7 +121,7 @@ export default function Topbar({ theme, onToggleTheme }) {
       <div className="relative">
         <button
           onClick={() => setPlanMenuOpen((v) => !v)}
-          title="Багцын тохиргоо"
+          title="Тохиргоо"
           className="w-8 h-8 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
             flex items-center justify-center text-slate-600 dark:text-mutedtext hover:text-slate-900
             dark:hover:text-white transition-colors cursor-pointer"
@@ -149,6 +149,12 @@ export default function Topbar({ theme, onToggleTheme }) {
                 className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
               >
                 Багц сунгах
+              </button>
+              <button
+                onClick={() => { setPlanMenuOpen(false); navigate(`/${hoaId}/about-program`); }}
+                className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
+              >
+                Программын тухай
               </button>
             </div>
           </>

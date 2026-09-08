@@ -32,6 +32,7 @@ import ParkingPage from './pages/ParkingPage';
 import FixedAssets from './pages/FixedAssets';
 import FixedAssetConfig from './pages/FixedAssetConfig';
 import AssetShortLink from './pages/AssetShortLink';
+import AboutProgram from './components/AboutProgram';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -227,6 +228,7 @@ function AppRoutes() {
         <Route path="parking" element={<ParkingPage />} />
         <Route path="fixedassets" element={<FixedAssets />} />
         <Route path="fixedassconfig" element={<FixedAssetConfig />} />
+        <Route path="about-program" element={<AboutProgram />} />
         <Route path="voting/new" element={<VotingEditPage />} />
         <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
         <Route path="voting/:pollId/results" element={<VotingResultsPage />} />
