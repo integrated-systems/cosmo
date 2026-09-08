@@ -35,10 +35,10 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
     <Modal open={open} onClose={onClose} title={asset.name} size="md" footer={
       <>
         {activeInventoryCount && !isFoundInCount && (
-          <button className="bg-customGreen hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onMarkFound?.(asset)}>Тооллогод олдсон гэж тэмдэглэх</button>
+          <button className="bg-customGreen hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onMarkFound?.(asset)}>Тооллогод бүртгэх</button>
         )}
         {activeInventoryCount && isFoundInCount && (
-          <span className="text-xs text-customGreen font-medium self-center">✓ Тооллогод олдсон</span>
+          <span className="text-xs text-customGreen font-medium self-center">✓ Тоологдсон</span>
         )}
         {canEdit && asset.status !== 'written_off' && (
           <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={() => onWriteOff?.(asset)}>Актлах</button>

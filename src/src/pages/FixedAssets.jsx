@@ -84,6 +84,8 @@ export default function FixedAssets() {
   const [writingOff, setWritingOff] = useState(null);
   const [addingRepair, setAddingRepair] = useState(false);
   const [orgName, setOrgName] = useState('');
+  const [inventorySubTab, setInventorySubTab] = useState('active');
+  const [viewingHistoryCountId, setViewingHistoryCountId] = useState(null);
 
   const depreciation = useDepreciationPostings(hoaId);
   const repairs = useAssetRepairs(hoaId);
@@ -186,6 +188,25 @@ export default function FixedAssets() {
     const asset = p.asset;
     if (responsiblePerson !== 'all' && asset?.responsible_position_id !== responsiblePerson) return false;
     if (location !== 'all' && asset?.location_id !== location) return false;
+    if (q) {
+      const hay = `${asset?.name || ''} ${asset?.barcode || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  // "Тооллого" таб-ын Төлөв/Хариуцагч/Байршил/Хайх шүүлтүүр — Үндсэн
+  // хөрөнгийн жагсаалт таб-тай ИЖИЛ state ашиглана.
+  const filteredInventoryItems = inventory.items.filter((item) => {
+    const asset = item.asset;
+    if (responsiblePerson !== 'all' && asset?.responsible_position_id !== responsiblePerson) return false;
+    if (location !== 'all' && asset?.location_id !== location) return false;
+    if (statusFilter !== 'all') {
+      const isUnderRepair = repairs.activeRepairAssetIds.has(asset?.id) && asset?.status !== 'written_off';
+      if (statusFilter === 'repair' && !isUnderRepair) return false;
+      if (statusFilter === 'in_use' && (asset?.status !== 'in_use' || isUnderRepair)) return false;
+      if (statusFilter === 'written_off' && asset?.status !== 'written_off') return false;
+    }
     if (q) {
       const hay = `${asset?.name || ''} ${asset?.barcode || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
@@ -358,6 +379,11 @@ export default function FixedAssets() {
     }
   }
 
+  function handleViewHistoryCount(countId) {
+    setViewingHistoryCountId(countId);
+    inventory.loadCountItems(countId);
+  }
+
   return (
     <>
       {tab === 'list' && (
@@ -390,12 +416,24 @@ export default function FixedAssets() {
           <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>+ Засвар бүртгэх</button>
         </div>
       )}
-      {tab === 'inventory' && (
-        <div className="ds-toolbar justify-between">
-          <div className="text-[11.5px] text-mutedtext">
-            {inventory.activeCount
-              ? 'Идэвхтэй тооллого явж байна — хөрөнгүүдийг QR-аар скандах эсвэл гараар "Олдсон" гэж тэмдэглэнэ.'
-              : 'Одоогоор идэвхтэй тооллого байхгүй.'}
+      {tab === 'inventory' && inventorySubTab === 'active' && (
+        <div className="ds-toolbar flex-wrap justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="ds-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">Бүгд</option>
+              <option value="in_use">Ашиглалтад</option>
+              <option value="repair">Засварт</option>
+              <option value="written_off">Актлагдсан</option>
+            </select>
+            <select className="ds-select" value={responsiblePerson} onChange={(e) => setResponsiblePerson(e.target.value)}>
+              <option value="all">Бүх хариуцагч</option>
+              {responsibleOptions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+            <select className="ds-select" value={location} onChange={(e) => setLocation(e.target.value)}>
+              <option value="all">Бүх байршил</option>
+              {locationOptions.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+            <input type="text" placeholder="Хайх (нэр, бүртгэлийн дугаар, марк/модель)..." className="ds-input min-w-[240px]" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           {!inventory.activeCount ? (
             <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
@@ -408,6 +446,9 @@ export default function FixedAssets() {
           )}
         </div>
       )}
+      {tab === 'inventory' && !inventory.activeCount && inventorySubTab === 'active' && (
+        <div className="text-[11.5px] text-mutedtext">Одоогоор идэвхтэй тооллого байхгүй.</div>
+      )}
       <div className="flex gap-2">
         {TABS.map((t) => (
           <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
@@ -416,6 +457,22 @@ export default function FixedAssets() {
         ))}
       </div>
 
+      {tab === 'inventory' && (
+        <div className="flex gap-2">
+          <button
+            className={`text-[11.5px] px-3 py-1.5 rounded font-medium transition-colors ${inventorySubTab === 'active' ? 'bg-blue-600 text-white' : 'text-mutedtext hover:text-slate-900 dark:hover:text-white'}`}
+            onClick={() => setInventorySubTab('active')}
+          >
+            Идэвхтэй тооллого
+          </button>
+          <button
+            className={`text-[11.5px] px-3 py-1.5 rounded font-medium transition-colors ${inventorySubTab === 'history' ? 'bg-blue-600 text-white' : 'text-mutedtext hover:text-slate-900 dark:hover:text-white'}`}
+            onClick={() => { setInventorySubTab('history'); setViewingHistoryCountId(null); }}
+          >
+            Тооллогын түүх
+          </button>
+        </div>
+      )}
       {tab === 'list' && (
         <div className="grid grid-cols-4 gap-[10px]">
           <div className="ds-card p-3">
@@ -476,22 +533,22 @@ export default function FixedAssets() {
           </div>
         </div>
       )}
-      {tab === 'inventory' && (
+      {tab === 'inventory' && inventorySubTab === 'active' && (
         <div className="grid grid-cols-4 gap-[10px]">
           <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Нийт хөрөнгийн тоо</div>
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт Үндсэн хөрөнгийн тоо</div>
             <div className="text-[19px] font-bold">{inventory.items.length}</div>
           </div>
           <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Олдсон</div>
+            <div className="text-[11px] text-mutedtext mb-1.5">Тоологдсон</div>
             <div className="text-[19px] font-bold text-customGreen">{inventory.foundAssetIds.size}</div>
           </div>
           <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Олдоогүй</div>
+            <div className="text-[11px] text-mutedtext mb-1.5">Тоологдоогүй</div>
             <div className="text-[19px] font-bold text-customRed">{inventory.items.length - inventory.foundAssetIds.size}</div>
           </div>
           <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Явц</div>
+            <div className="text-[11px] text-mutedtext mb-1.5">Тооллогын явц</div>
             <div className="text-[19px] font-bold">
               {inventory.items.length > 0 ? Math.round((inventory.foundAssetIds.size / inventory.items.length) * 100) : 0}%
             </div>
@@ -592,18 +649,18 @@ export default function FixedAssets() {
           </div>
         </div>
       )}
-      {tab === 'inventory' && (
+      {tab === 'inventory' && inventorySubTab === 'active' && (
         <div className="ds-table-wrap">
           <div className="flex-1 overflow-auto overscroll-contain">
             <table className="ds-table">
               <thead>
                 <tr>
                   <th className="py-2.5 px-3 w-10 text-center">№</th>
+                  <th className="py-2.5 px-3 w-[150px]">ХӨРӨНГИЙН БүРТГЭЛИЙН ДУГААР</th>
                   <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
-                  <th className="py-2.5 px-3 w-[130px]">БүРТГЭЛИЙН ДУГААР</th>
                   <th className="py-2.5 px-3 w-[110px]">ТӨЛӨВ</th>
-                  <th className="py-2.5 px-3 w-[140px]">ОЛДСОН ОГНОО</th>
-                  <th className="py-2.5 px-3 w-[100px] text-right">үЙЛДЭЛ</th>
+                  <th className="py-2.5 px-3 w-[170px]">ТООЛЛОГОД БүРТГЭСЭН ОГНОО</th>
+                  <th className="py-2.5 px-3 w-[130px] text-right">үЙЛДЭЛ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -613,18 +670,18 @@ export default function FixedAssets() {
                 {inventory.activeCount && inventory.loading && (
                   <tr><td colSpan={6} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
                 )}
-                {inventory.activeCount && !inventory.loading && inventory.items.map((item, idx) => (
+                {inventory.activeCount && !inventory.loading && filteredInventoryItems.map((item, idx) => (
                   <tr key={item.id}>
                     <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
-                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{item.asset?.name || '—'}</td>
                     <td className="py-2.5 px-3 font-mono text-[12px]">{item.asset?.barcode || '—'}</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{item.asset?.name || '—'}</td>
                     <td className="py-2.5 px-3 font-semibold">
-                      {item.found ? <span className="text-customGreen">Олдсон</span> : <span className="text-customRed">Олдоогүй</span>}
+                      {item.found ? <span className="text-customGreen">Тоологдсон</span> : <span className="text-customRed">Тоологдоогүй</span>}
                     </td>
                     <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
                     <td className="py-2.5 px-3 text-right">
                       {!item.found && (
-                        <button className="ds-btn-secondary" onClick={() => handleMarkFound(item.asset)}>Олдсон гэж тэмдэглэх</button>
+                        <button className="ds-btn-secondary" onClick={() => handleMarkFound(item.asset)}>Тооллогод бүртгэх</button>
                       )}
                     </td>
                   </tr>
@@ -634,7 +691,71 @@ export default function FixedAssets() {
           </div>
         </div>
       )}
-
+      {tab === 'inventory' && inventorySubTab === 'history' && !viewingHistoryCountId && (
+        <div className="ds-table-wrap">
+          <div className="flex-1 overflow-auto overscroll-contain">
+            <table className="ds-table">
+              <thead>
+                <tr>
+                  <th className="py-2.5 px-3">ЭХЭЛСЭН ОГНОО</th>
+                  <th className="py-2.5 px-3">ДУУССАН ОГНОО</th>
+                  <th className="py-2.5 px-3 text-right">ТООЛОГДСОН / НИЙТ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                {inventory.completedCounts.length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-darktext">Дуусгасан тооллого хараахан алга.</td></tr>
+                )}
+                {inventory.completedCounts.map((c) => (
+                  <tr key={c.id} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]" onClick={() => handleViewHistoryCount(c.id)}>
+                    <td className="py-2.5 px-3"><button type="button" className="text-customBlue hover:underline">{formatDate(c.started_at)}</button></td>
+                    <td className="py-2.5 px-3">{c.completed_at ? formatDate(c.completed_at) : '—'}</td>
+                    <td className="py-2.5 px-3 text-right">—</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {tab === 'inventory' && inventorySubTab === 'history' && viewingHistoryCountId && (
+        <>
+          <div className="ds-toolbar justify-start">
+            <button className="ds-btn-secondary" onClick={() => setViewingHistoryCountId(null)}>← Тооллогын түүх рүү буцах</button>
+          </div>
+          <div className="ds-table-wrap">
+            <div className="flex-1 overflow-auto overscroll-contain">
+              <table className="ds-table">
+                <thead>
+                  <tr>
+                    <th className="py-2.5 px-3 w-10 text-center">№</th>
+                    <th className="py-2.5 px-3 w-[150px]">ХӨРӨНГИЙН БүРТГЭЛИЙН ДУГААР</th>
+                    <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
+                    <th className="py-2.5 px-3 w-[110px]">ТӨЛӨВ</th>
+                    <th className="py-2.5 px-3 w-[170px]">ТООЛЛОГОД БүРТГЭСЭН ОГНОО</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                  {inventory.historyLoading && (
+                    <tr><td colSpan={5} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+                  )}
+                  {!inventory.historyLoading && inventory.historyItems.map((item, idx) => (
+                    <tr key={item.id}>
+                      <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
+                      <td className="py-2.5 px-3 font-mono text-[12px]">{item.asset?.barcode || '—'}</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{item.asset?.name || '—'}</td>
+                      <td className="py-2.5 px-3 font-semibold">
+                        {item.found ? <span className="text-customGreen">Тоологдсон</span> : <span className="text-customRed">Тоологдоогүй</span>}
+                      </td>
+                      <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       <EditFixedAssetModal
         key={editing?.id}
