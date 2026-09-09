@@ -35,6 +35,7 @@ import AssetShortLink from './pages/AssetShortLink';
 import AboutProgram from './components/AboutProgram';
 import Plan from './pages/Plan';
 import Billing from './pages/Billing';
+import TenantSuspendedScreen from './components/TenantSuspendedScreen';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -98,16 +99,7 @@ function TenantShell(props) {
   // бодит алдаа). SUPERSYSADMIN-д хамаарахгүй (тэд үргэлж хандах
   // ёстой).
   if (!isSuperSysAdmin && tenantStatus === 'suspended') {
-    return (
-      <div className="h-screen flex items-center justify-center bg-sidebg px-6">
-        <div className="max-w-md text-center">
-          <div className="text-[16px] font-semibold text-white mb-2">Хандалт хаагдсан байна</div>
-          <div className="text-[13px] text-mutedtext leading-relaxed">
-            Танай байгууллагын турших хугацаа дууссан тул хандалт түр хаагдлаа. Мэдээлэл тань 14 хоногийн турш хадгалагдана — үргэлжлүүлэхийг хүсвэл багц сонгож идэвхжүүлнэ vv.
-          </div>
-        </div>
-      </div>
-    );
+    return <TenantSuspendedScreen hoaId={hoaId} />;
   }
 
   return isOwnerRole ? <UserApp theme={props.theme} onToggleTheme={props.onToggleTheme} /> : <Layout {...props} />;

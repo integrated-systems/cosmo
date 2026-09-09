@@ -64,6 +64,7 @@ export default function TenantStatus() {
   const { plans } = usePlans();
   const [rows, setRows] = useState([]);
   const [adminEmails, setAdminEmails] = useState({});
+  const [upgradeRequests, setUpgradeRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [savingId, setSavingId] = useState(null);
@@ -83,6 +84,13 @@ export default function TenantStatus() {
       return;
     }
     setRows(data ?? []);
+
+    const { data: reqData } = await supabase
+      .from('plan_upgrade_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: true });
+    setUpgradeRequests(reqData ?? []);
 
     const { data: adminData, error: adminError } = await supabase.rpc('get_tenant_admin_emails');
     if (!adminError) {
@@ -186,6 +194,28 @@ export default function TenantStatus() {
     setEditing(null);
   }
 
+  // 2026-09-08 (22-2): Paused tenant-ийн "Багц ахиулах" хүсэлт —
+  // батлахад plan_key/status хоёуланг нь нэг дор шинэчилж, хандалтыг
+  // шууд сэргээнэ ("Approve" flow-той адил зарчим).
+  async function handleResolveRequest(req, approve) {
+    setSavingId(req.tenant_id);
+    if (approve) {
+      const { error: tErr } = await supabase.from('tenants').update({
+        plan_key: req.requested_plan_key,
+        status: 'active',
+        plan_activated_at: new Date().toISOString(),
+      }).eq('id', req.tenant_id);
+      if (tErr) { setSavingId(null); window.alert(tErr.message); return; }
+    }
+    const { error } = await supabase.from('plan_upgrade_requests').update({
+      status: approve ? 'approved' : 'rejected',
+      resolved_at: new Date().toISOString(),
+    }).eq('id', req.id);
+    setSavingId(null);
+    if (error) { window.alert(error.message); return; }
+    await loadTenants();
+  }
+
   async function handleDelete(row) {
     const graceMsg = isReadyForDeletion(row)
       ? ` Trial дуусаад 14 хоногийн хадгалалтын хугацаа аль хэдийн дууссан байна.`
@@ -201,6 +231,30 @@ export default function TenantStatus() {
   }
 
   return (
+    <>
+      {upgradeRequests.length > 0 && (
+        <div className="ds-card p-3 mb-3">
+          <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багц ахиулах хүсэлтүүд ({upgradeRequests.length})</div>
+          <div className="flex flex-col gap-2">
+            {upgradeRequests.map((req) => {
+              const tenant = rows.find((r) => r.id === req.tenant_id);
+              const plan = plans.find((p) => p.key === req.requested_plan_key);
+              return (
+                <div key={req.id} className="flex items-center justify-between text-[12px] border-b border-slate-200 dark:border-bordercol/50 pb-2 last:border-0 last:pb-0">
+                  <div>
+                    <span className="font-medium text-slate-900 dark:text-white">{tenant?.name || req.tenant_id}</span>
+                    <span className="text-mutedtext"> → {plan?.label || req.requested_plan_key} багц хүсч байна</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button className="ds-btn-primary !py-1 !px-2 text-[11px]" disabled={savingId === req.tenant_id} onClick={() => handleResolveRequest(req, true)}>Батлах</button>
+                    <button className="ds-btn-secondary !py-1 !px-2 text-[11px] text-customRed" disabled={savingId === req.tenant_id} onClick={() => handleResolveRequest(req, false)}>Татгалзах</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
@@ -308,5 +362,6 @@ export default function TenantStatus() {
 
       <ConfirmDialog />
     </div>
+    </>
   );
 }
