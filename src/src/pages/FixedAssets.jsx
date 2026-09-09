@@ -399,7 +399,7 @@ export default function FixedAssets() {
           location={location} onLocationChange={setLocation} locationOptions={locationOptions}
           search={search} onSearchChange={setSearch}
           onAddClick={handlePostDepreciation} canAdd
-          addLabel={depreciation.posting ? 'Батлаж байна...' : '+ Энэ сарын элэгдлийг батлах'}
+          addLabel={depreciation.posting ? 'Тооцоолж байна...' : 'Элэгдлийг тооцоолох'}
           addDisabled={depreciation.posting}
         />
       )}

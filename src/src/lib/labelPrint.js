@@ -64,14 +64,15 @@ export async function buildLabelPngBlob({ orgName, barcode, assetName, markSeria
   const qrY = Math.round((height - qrSize) / 2);
   ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
 
-  // Текстийн блок QR-тэй яг АДИЛ өндөртэй (qrY..qrY+qrSize), 4 мврийг
-  // тэр зайд тэнцүү хуваана. 2026-09-07 (11): хэрэглэгчийн заасны
-  // дагуу бүх 4 мвр ИЖИЛ хэмжээ (34px), ИЖИЛ жин (normal), ИЖИЛ өнгө
-  // (хар/default) — ямар ч визуал ялгаа үгүй, цэвэр текст.
+  // Текстийн блок QR-ийн ӨНДӨРТЭЙ АДИЛ БАЙХ шаардлагагүй — 4 мүр
+  // хоорондын зайг line-height 1.0 (фонтын хэмжээтэй тэнцүү) болгож,
+  // блокийг QR-ийн өндрийн ДУНД төвлөрүүлнэ (2026-09-08 (8), хэрэглэгчийн
+  // заасны дагуу — өмнө qrSize/4 ашиглаж хэт сарнисан зайтай байсан).
   const textX = qrX + qrSize + gap;
   const textMaxWidth = width - textX - padding;
-  const lineGap = qrSize / 4;
-  const baseY = qrY + lineGap * 0.68;
+  const lineGap = LINE_FONT_PX * 1.0;
+  const textBlockHeight = lineGap * 3.6; // 4 мөрийн бодит эзлэх өндөр (ойролцоо)
+  const baseY = qrY + (qrSize - textBlockHeight) / 2 + lineGap * 0.75;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#000000';
   ctx.font = `normal ${LINE_FONT_PX}px sans-serif`;
@@ -133,7 +134,7 @@ export async function shareOrDownloadLabel(blob, filename) {
   try {
     const file = new File([blob], filename, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Хeрeнгийн шошго' });
+      await navigator.share({ files: [file], title: 'Хөрөнгийн шошго' });
       return true;
     }
   } catch (err) {
