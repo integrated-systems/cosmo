@@ -57,7 +57,7 @@ export default function Plan() {
   if (loading) return <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>;
 
   return (
-    <div className="ds-table-wrap">
+    <div className="max-w-[960px] w-full mx-auto ds-table-wrap">
       <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
@@ -95,7 +95,7 @@ export default function Plan() {
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
-              <td className="py-2.5 px-3">Нийт (СИСАДМИН эс тооцвол)</td>
+              <td className="py-2.5 px-3"></td>
               <td></td>
               {totals.map((pct, i) => (
                 <td key={i} className="py-2.5 px-3 text-center">{pct}%</td>
