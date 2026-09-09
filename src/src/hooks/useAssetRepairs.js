@@ -97,7 +97,14 @@ export function useAssetRepairs(hoaId) {
     repairs.forEach((r) => {
       if (!r.start_date) return;
       const started = r.start_date <= todayStr;
-      const notEndedYet = !r.end_date || r.end_date >= todayStr;
+      // 2026-09-08 (10): АЛДАА ЗАСАВ — end_date >= todayStr (тэнцүү
+      // үтгатай) байсан тул "Ашиглалтад орсон" товч дарж end_date-г
+      // өнөөдрийн огноогоор тавихад, тэр ЯГ өнөөдөр ч гэсэн "хараахан
+      // дуусаагүй" гэж үзэгдсэн (индикатор шинэчлэгдээгүй шалтгаан).
+      // Одоо end_date БОЛ "үүнээс хойш ашиглалтад орсон" гэсэн
+      // үтгатай (тэнцүү БУС, exclusive) — end_date=өнөөдөр үед тэр
+      // ЯГ өнөөдрөөс эхлэн "Ашиглалтад" болно.
+      const notEndedYet = !r.end_date || r.end_date > todayStr;
       if (started && notEndedYet) set.add(r.asset_id);
     });
     return set;
