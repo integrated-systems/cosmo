@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
-import { formatMoney, formatDate } from '../lib/format';
+import { formatMoney } from '../lib/format';
 
 // SUPERSYSADMIN "Billing" хуудас — 2026-09-08 (17): багц бүрийн НЭГ
 // ТООТОД ногдох сарын үнэ (package_prices) болон tenant бүрийн
@@ -9,13 +9,26 @@ import { formatMoney, formatDate } from '../lib/format';
 // төлбөрийг тооцно. tenants.plan_key-г шууд шинэчилдэг (autosave).
 // 2026-09-08 (18): UI-г бүрэн дуусгах үе шат — Төлбөрийн төлөв/
 // Дараагийн огноо/Тэмдэглэл 3 талбарыг ГАРААР удирддаг байдлаар
-// сэргээв (bilинг_status/billing_next_date/billing_note, migration
+// сэргээв (billing_status/billing_next_date/billing_note, migration
 // 0104). "Тэмдэглэл" бол зөвхөн мөрөө дагасан чөлөөт текст —
 // хаанаас ч дуудагдахгүй, хаашаа ч дуудагддаггүй. Бодит нэхэмжлэх/
-// төлбөрийн автомат систем ХАРААХАН ХОЛБОГДООГүй — үүнийг ирээдүйд
-// цэгцэлнэ (хэрэглэгчийн тодорхой заасны дагуу).
+// төлбөрийн автомат систем ХАРААХАН ХОЛБОГДООГүй.
+// 2026-09-08 (19): "Trial" карт нэмж (үнэгүй, зөвхөн тоо), "Нийт
+// тоотын тоо" карт сэргээж, "Идэвхтэй tenant"-ийн багцын chip-үүдийг
+// (мөн БАГЦЫН ТАРИФ картуудыг) багц тус бүрийн уламжлалт өнгөөр
+// (demo-той ижил) ялгав. Контентыг max-w-[1200px] responsive
+// болгов.
 const PLAN_KEYS = ['basic', 'standard', 'premium', 'premium_plus'];
 const PLAN_LABELS = { basic: 'BASIC', standard: 'STANDARD', premium: 'PREMIUM', premium_plus: 'PREMIUM+' };
+// esukh.mn-ийн жишээ демо дээр ашигласан eнгийн схемтэй ижил —
+// "Идэвхтэй tenant" chip болон "БАГЦЫН ТАРИФ" картанд хоёуланд нь
+// нэг л газраас (Rule of two) ашиглана.
+const PLAN_COLOR = {
+  basic: { bg: 'bg-[#93c5fd26]', text: 'text-[#93c5fd]' },
+  standard: { bg: 'bg-[#60a5fa26]', text: 'text-[#60a5fa]' },
+  premium: { bg: 'bg-[#3b82f62e]', text: 'text-[#3b82f6]' },
+  premium_plus: { bg: 'bg-[#a78bfa2e]', text: 'text-[#a78bfa]' },
+};
 const STATUS_OPTIONS = [
   { key: 'paid', label: 'Төлөгдсөн', className: 'text-customGreen' },
   { key: 'pending', label: 'Хүлээгдэж буй', className: 'text-customOrange' },
@@ -74,25 +87,34 @@ export default function Billing() {
   }
 
   const mrr = tenants.reduce((s, t) => s + monthlyTotal(t), 0);
+  const totalUnits = Object.values(unitCounts).reduce((s, n) => s + n, 0);
   const planCounts = {};
   tenants.forEach((t) => { if (PLAN_KEYS.includes(t.plan_key)) planCounts[t.plan_key] = (planCounts[t.plan_key] || 0) + 1; });
+  const trialCount = tenants.filter((t) => t.plan_key === 'trial').length;
   const pendingCount = tenants.filter((t) => t.billing_status === 'pending').length;
   const overdueCount = tenants.filter((t) => t.billing_status === 'overdue').length;
 
   if (loading) return <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-5">
       <div>
-        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багцын нэг тоотын үнэ (жишээ)</div>
-        <div className="grid grid-cols-4 gap-[10px]">
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багцын тариф</div>
+        <div className="grid grid-cols-5 gap-[10px]">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">TRIAL</div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[17px] font-bold">{trialCount}</span>
+              <span className="text-[11px] text-mutedtext">tenant</span>
+            </div>
+          </div>
           {PLAN_KEYS.map((k) => (
-            <div key={k} className="ds-card p-3">
-              <div className="text-[11px] text-mutedtext mb-1.5">{PLAN_LABELS[k]}</div>
+            <div key={k} className={`ds-card p-3 ${PLAN_COLOR[k].bg}`}>
+              <div className={`text-[11px] mb-1.5 font-semibold ${PLAN_COLOR[k].text}`}>{PLAN_LABELS[k]}</div>
               <div className="flex items-baseline gap-1.5">
                 <input
                   type="number" min="0" step="100"
-                  className="ds-input w-20 text-[17px] font-bold"
+                  className="ds-input w-20 text-[17px] font-bold bg-transparent"
                   value={prices[k] ?? 0}
                   onChange={(e) => updatePrice(k, e.target.value)}
                 />
@@ -105,7 +127,7 @@ export default function Billing() {
 
       <div>
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Тойм</div>
-        <div className="grid grid-cols-4 gap-[10px]">
+        <div className="grid grid-cols-5 gap-[10px]">
           <div className="ds-card p-3">
             <div className="text-[11px] text-mutedtext mb-1.5">Сарын нийт орлого (MRR)</div>
             <div className="text-[19px] font-bold">{formatMoney(mrr)}₮</div>
@@ -115,11 +137,15 @@ export default function Billing() {
             <div className="text-[19px] font-bold mb-1.5">{tenants.length}</div>
             <div className="flex flex-wrap gap-1">
               {PLAN_KEYS.map((k) => (
-                <span key={k} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-mutedtext">
+                <span key={k} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PLAN_COLOR[k].bg} ${PLAN_COLOR[k].text}`}>
                   {PLAN_LABELS[k]}: {planCounts[k] || 0}
                 </span>
               ))}
             </div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Нийт тоотын тоо</div>
+            <div className="text-[19px] font-bold">{totalUnits}</div>
           </div>
           <div className="ds-card p-3">
             <div className="text-[11px] text-mutedtext mb-1.5">Хүлээгдэж буй төлбөр</div>
