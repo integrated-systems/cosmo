@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Modal from './Modal';
-import { PLANS } from '../data/plans';
+import { usePlans } from '../hooks/usePlans';
 import { supabase } from '../lib/supabaseClient';
 
 // TenantStatus.jsx-ийн "Үйлдэл→Засах" товч дарахад нээгдэх — tenant-ийн
@@ -10,13 +10,14 @@ import { supabase } from '../lib/supabaseClient';
 // Supabase-аар сэргээх имэйл явуулна — нууц үгийг ХЭЗЭЭ Ч харуулахгүй/
 // шилжүүлэхгүй, зөвхөн эрх+нэвтрэх боломж шилждэг) 2 үйлдэл нэмэв.
 export default function EditTenantModal({ tenant, adminEmail, onClose, onSave, onAdminChanged }) {
+  const { plans } = usePlans();
   const [form, setForm] = useState(() => ({
     name: tenant?.name || '',
     registrationNo: tenant?.registration_no || '',
     taxPayerNo: tenant?.tax_payer_no || '',
     email: tenant?.email || '',
     phone: tenant?.phone || '',
-    planKey: tenant?.plan_key || PLANS[0].key,
+    planKey: tenant?.plan_key || 'trial',
   }));
   const [saving, setSaving] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
@@ -109,7 +110,7 @@ export default function EditTenantModal({ tenant, adminEmail, onClose, onSave, o
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Багц</label>
         <select className="ds-select w-full" value={form.planKey} onChange={(e) => set('planKey', e.target.value)}>
-          {PLANS.map((p) => <option key={p.key} value={p.key}>{p.name}</option>)}
+          {plans.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
         </select>
       </div>
 

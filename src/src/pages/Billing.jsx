@@ -19,7 +19,10 @@ import { formatMoney } from '../lib/format';
 // (demo-той ижил) ялгав. Контентыг max-w-[1200px] responsive
 // болгов.
 const PLAN_KEYS = ['basic', 'standard', 'premium', 'premium_plus'];
-const PLAN_LABELS = { basic: 'BASIC', standard: 'STANDARD', premium: 'PREMIUM', premium_plus: 'PREMIUM+' };
+// 2026-09-08 (20): Харагдах нэрийг (label) package_prices-аас шууд
+// уншина (Rule of two — data/plans.js устаж, ЦОРЫН ГАНЦ эх сурвалж
+// боллоо). Энд ЗӨВХӨН өнгөний схемийг үлдээв — өнгө бол дизайны
+// сонголт тул код дотор байх нь зүйтэй.
 // esukh.mn-ийн жишээ демо дээр ашигласан eнгийн схемтэй ижил —
 // "Идэвхтэй tenant" chip болон "БАГЦЫН ТАРИФ" картанд хоёуланд нь
 // нэг л газраас (Rule of two) ашиглана.
@@ -37,6 +40,7 @@ const STATUS_OPTIONS = [
 
 export default function Billing() {
   const [prices, setPrices] = useState({});
+  const [labels, setLabels] = useState({});
   const [tenants, setTenants] = useState([]);
   const [unitCounts, setUnitCounts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -50,8 +54,13 @@ export default function Billing() {
     ]);
 
     const priceMap = {};
-    (priceRows || []).forEach((p) => { priceMap[p.plan_key] = Number(p.price_per_unit) || 0; });
+    const labelMap = {};
+    (priceRows || []).forEach((p) => {
+      priceMap[p.plan_key] = Number(p.price_per_unit) || 0;
+      labelMap[p.plan_key] = p.label;
+    });
     setPrices(priceMap);
+    setLabels(labelMap);
 
     const counts = {};
     (ownerRows || []).forEach((o) => { counts[o.tenant_id] = (counts[o.tenant_id] || 0) + 1; });
@@ -110,7 +119,7 @@ export default function Billing() {
           </div>
           {PLAN_KEYS.map((k) => (
             <div key={k} className={`ds-card p-3 ${PLAN_COLOR[k].bg}`}>
-              <div className={`text-[11px] mb-1.5 font-semibold ${PLAN_COLOR[k].text}`}>{PLAN_LABELS[k]}</div>
+              <div className={`text-[11px] mb-1.5 font-semibold uppercase ${PLAN_COLOR[k].text}`}>{(labels[k] || k)}</div>
               <div className="flex items-baseline gap-1.5">
                 <input
                   type="number" min="0" step="100"
@@ -137,7 +146,7 @@ export default function Billing() {
             <div className="flex flex-wrap gap-1">
               {PLAN_KEYS.map((k) => (
                 <span key={k} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PLAN_COLOR[k].bg} ${PLAN_COLOR[k].text}`}>
-                  {PLAN_LABELS[k]}: {planCounts[k] || 0}
+                  {(labels[k] || k)}: {planCounts[k] || 0}
                 </span>
               ))}
             </div>
@@ -184,7 +193,7 @@ export default function Billing() {
                       onChange={(e) => updateTenantField(t.id, 'plan_key', e.target.value)}
                     >
                       {!PLAN_KEYS.includes(t.plan_key) && <option value="">{t.plan_key || '—'}</option>}
-                      {PLAN_KEYS.map((k) => <option key={k} value={k}>{PLAN_LABELS[k]}</option>)}
+                      {PLAN_KEYS.map((k) => <option key={k} value={k}>{(labels[k] || k)}</option>)}
                     </select>
                   </td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">

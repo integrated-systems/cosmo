@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { PLANS } from '../data/plans';
+import { usePlans } from '../hooks/usePlans';
 import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import EditTenantModal from '../components/EditTenantModal';
 import { useConfirm } from '../hooks/useConfirm';
@@ -48,6 +48,7 @@ function formatTrialEnds(iso) {
 }
 
 export default function TenantStatus() {
+  const { plans } = usePlans();
   const [rows, setRows] = useState([]);
   const [adminEmails, setAdminEmails] = useState({});
   const [loading, setLoading] = useState(true);
@@ -234,12 +235,12 @@ export default function TenantStatus() {
                 <td className="py-2.5 px-3">
                   <select
                     className="ds-select w-full"
-                    value={r.plan_key || PLANS[0].key}
+                    value={r.plan_key || plans[0]?.key}
                     disabled={savingId === r.id}
                     onChange={(e) => handlePlanChange(r.id, e.target.value)}
                   >
-                    {PLANS.map((p) => (
-                      <option key={p.key} value={p.key}>{p.name}</option>
+                    {plans.map((p) => (
+                      <option key={p.key} value={p.key}>{p.label}</option>
                     ))}
                   </select>
                 </td>
