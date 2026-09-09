@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney, formatDate, formatDateTimeMinutes } from '../lib/format';
 import { exportToCsv } from '../lib/exportCsv';
+import { printTable } from '../lib/printTable';
 import { DEPRECIATION_METHODS, statusLabel } from '../lib/fixedAssetsFormat';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
@@ -352,55 +353,76 @@ export default function FixedAssets() {
 
   // 2026-09-08 (11): "Экспортлох" товч бүр — IAS 16.73 disclosure
   // тайланд шаардлагатай үндсэн мэдээллийг CSV болгож татна.
+  // 2026-09-08 (12): "Хэвлэх" товч ЯГ ИЖИЛ columns тодорхойлолтыг
+  // (Rule of two) дахин ашиглаж, printTable.js-ээр цэвэр (гоүл
+  // чимэглэлгүй, зүвхүн хар/цагаан) хүснэгэл хэвлэнэ.
+  const listColumns = [
+    { label: 'Бүртгэлийн дугаар', key: 'barcode' },
+    { label: 'Нэр, бренд', key: 'name' },
+    { label: 'Марк, модель, сериал', key: 'mark_serial' },
+    { label: 'Терел', value: (r) => r.type?.name },
+    { label: 'Авсан огноо', value: (r) => r.acquired_date ? formatDate(r.acquired_date) : '' },
+    { label: 'Худалдан авсан үнэ', key: 'purchase_price' },
+    { label: 'Капиталжуулсан нэмэлт', key: 'capitalized_amount' },
+    { label: 'Хуримтлагдсан элэгдэл', key: 'accumulated_depreciation' },
+    { label: 'Дансны үлдэгдэл үнэ', key: 'book_value' },
+    { label: 'Байршил', value: (r) => r.location?.name },
+    { label: 'Хариуцагч', value: (r) => r.responsible_position?.name },
+    { label: 'Терлев', value: (r) => statusLabel(r.status) },
+    { label: 'Актласан үнэ', key: 'write_off_amount' },
+    { label: 'Ашиг/Алдагдал', key: 'gain_loss' },
+  ];
+  const depreciationColumns = [
+    { label: 'үе', value: (p) => formatDate(p.period) },
+    { label: 'Хөрөнгө', value: (p) => p.asset?.name },
+    { label: 'Аргачлал', value: (p) => DEPRECIATION_METHODS[p.method_used] || p.method_used },
+    { label: 'Дүн', key: 'amount' },
+    { label: 'Батлагдсан огноо', value: (p) => formatDateTimeMinutes(p.created_at) },
+  ];
+  const repairColumns = [
+    { label: 'Хөрөнгө', value: (r) => r.asset?.name },
+    { label: 'Эхэлсэн', value: (r) => r.start_date ? formatDate(r.start_date) : '' },
+    { label: 'Дууссан', value: (r) => r.end_date ? formatDate(r.end_date) : '' },
+    { label: 'Тайлбар', key: 'description' },
+    { label: 'үнэ', key: 'amount' },
+    { label: 'Харилцагч', key: 'provider_org' },
+    { label: 'Капитал засвар', value: (r) => (r.is_capitalized ? 'Тийм' : 'Үгүй') },
+  ];
+  const inventoryColumns = [
+    { label: 'Бүртгэлийн дугаар', value: (i) => i.asset?.barcode },
+    { label: 'Хөрөнгө', value: (i) => i.asset?.name },
+    { label: 'Терлев', value: (i) => (i.found ? 'Тоологдсон' : 'Тоологдоогүй') },
+    { label: 'Тооллогод бүртгэсэн огноо', value: (i) => i.found_at ? formatDate(i.found_at) : '' },
+  ];
+
   function handleExportList() {
-    exportToCsv(`hoa_${hoaId}_fixed_assets.csv`, filteredRows, [
-      { label: 'Бүртгэлийн дугаар', key: 'barcode' },
-      { label: 'Нэр, бренд', key: 'name' },
-      { label: 'Марк, модель, сериал', key: 'mark_serial' },
-      { label: 'Терел', value: (r) => r.type?.name },
-      { label: 'Авсан огноо', value: (r) => r.acquired_date ? formatDate(r.acquired_date) : '' },
-      { label: 'Худалдан авсан үнэ', key: 'purchase_price' },
-      { label: 'Капиталжуулсан нэмэлт', key: 'capitalized_amount' },
-      { label: 'Хуримтлагдсан элэгдэл', key: 'accumulated_depreciation' },
-      { label: 'Дансны үлдэгдэл үнэ', key: 'book_value' },
-      { label: 'Байршил', value: (r) => r.location?.name },
-      { label: 'Хариуцагч', value: (r) => r.responsible_position?.name },
-      { label: 'Терлев', value: (r) => statusLabel(r.status) },
-      { label: 'Актласан үнэ', key: 'write_off_amount' },
-      { label: 'Ашиг/Алдагдал', key: 'gain_loss' },
-    ]);
+    exportToCsv(`hoa_${hoaId}_fixed_assets.csv`, filteredRows, listColumns);
+  }
+  function handlePrintList() {
+    printTable('Үндсэн хөрөнгийн жагсаалт', filteredRows, listColumns);
   }
 
   function handleExportDepreciation() {
-    exportToCsv(`hoa_${hoaId}_depreciation_postings.csv`, filteredPostings, [
-      { label: 'үе', value: (p) => formatDate(p.period) },
-      { label: 'Хөрөнгө', value: (p) => p.asset?.name },
-      { label: 'Аргачлал', value: (p) => DEPRECIATION_METHODS[p.method_used] || p.method_used },
-      { label: 'Дүн', key: 'amount' },
-      { label: 'Батлагдсан огноо', value: (p) => formatDateTimeMinutes(p.created_at) },
-    ]);
+    exportToCsv(`hoa_${hoaId}_depreciation_postings.csv`, filteredPostings, depreciationColumns);
+  }
+  function handlePrintDepreciation() {
+    printTable('Хуримтлагдсан элэгдэл', filteredPostings, depreciationColumns);
   }
 
   function handleExportRepairs() {
-    exportToCsv(`hoa_${hoaId}_repairs.csv`, repairs.repairs, [
-      { label: 'Хөрөнгө', value: (r) => r.asset?.name },
-      { label: 'Эхэлсэн', value: (r) => r.start_date ? formatDate(r.start_date) : '' },
-      { label: 'Дууссан', value: (r) => r.end_date ? formatDate(r.end_date) : '' },
-      { label: 'Тайлбар', key: 'description' },
-      { label: 'үнэ', key: 'amount' },
-      { label: 'Харилцагч', key: 'provider_org' },
-      { label: 'Капитал засвар', value: (r) => (r.is_capitalized ? 'Тийм' : 'Үгүй') },
-    ]);
+    exportToCsv(`hoa_${hoaId}_repairs.csv`, repairs.repairs, repairColumns);
+  }
+  function handlePrintRepairs() {
+    printTable('Засвар, үйлчилгээ', repairs.repairs, repairColumns);
   }
 
   function handleExportInventory() {
     const items = inventorySubTab === 'active' ? filteredInventoryItems : inventory.historyItems;
-    exportToCsv(`hoa_${hoaId}_inventory.csv`, items, [
-      { label: 'Бүртгэлийн дугаар', value: (i) => i.asset?.barcode },
-      { label: 'Хөрөнгө', value: (i) => i.asset?.name },
-      { label: 'Терлев', value: (i) => (i.found ? 'Тоологдсон' : 'Тоологдоогүй') },
-      { label: 'Тооллогод бүртгэсэн огноо', value: (i) => i.found_at ? formatDate(i.found_at) : '' },
-    ]);
+    exportToCsv(`hoa_${hoaId}_inventory.csv`, items, inventoryColumns);
+  }
+  function handlePrintInventory() {
+    const items = inventorySubTab === 'active' ? filteredInventoryItems : inventory.historyItems;
+    printTable('Тооллого', items, inventoryColumns);
   }
 
   // 2026-09-08: Тооллого (физик инвентаризаци) — эхлүүлэх/дуусгах үед
@@ -446,6 +468,7 @@ export default function FixedAssets() {
           statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
           onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
           onExportClick={handleExportList}
+          onPrintClick={handlePrintList}
         />
       )}
       {tab === 'depreciation' && (
@@ -455,6 +478,7 @@ export default function FixedAssets() {
           search={search} onSearchChange={setSearch}
           canAdd={false}
           onExportClick={handleExportDepreciation}
+          onPrintClick={handlePrintDepreciation}
         />
       )}
       {tab === 'repair' && (
@@ -463,7 +487,7 @@ export default function FixedAssets() {
             <input type="text" placeholder="Хайх..." className="ds-input w-full" disabled />
           </div>
           <div className="flex-1" />
-          <button className="ds-btn-secondary">Хэвлэх</button>
+          <button className="ds-btn-secondary" onClick={handlePrintRepairs}>Хэвлэх</button>
           <button className="ds-btn-secondary" onClick={handleExportRepairs}>Экспорт</button>
           <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>Хөрөнгийг засварт шилжүүлэх</button>
         </div>
@@ -488,6 +512,7 @@ export default function FixedAssets() {
             <input type="text" placeholder="Хайх (нэр, бүртгэлийн дугаар, марк/модель)..." className="ds-input min-w-[240px]" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="flex items-center gap-2">
+            <button className="ds-btn-secondary" onClick={handlePrintInventory}>Хэвлэх</button>
             <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
             {!inventory.activeCount ? (
               <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
@@ -756,6 +781,7 @@ export default function FixedAssets() {
         <>
           <div className="ds-toolbar justify-between">
             <button className="ds-btn-secondary" onClick={() => setViewingHistoryCountId(null)}>← Тооллогын түүх рүү буцах</button>
+            <button className="ds-btn-secondary" onClick={handlePrintInventory}>Хэвлэх</button>
             <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
           </div>
           <div className="ds-table-wrap">
