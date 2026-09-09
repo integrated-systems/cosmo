@@ -97,7 +97,7 @@ export default function Billing() {
   if (loading) return <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>;
 
   return (
-    <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-5">
+    <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-[10px]">
       <div>
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багцын тариф</div>
         <div className="grid grid-cols-5 gap-[10px]">
@@ -126,7 +126,6 @@ export default function Billing() {
       </div>
 
       <div>
-        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Тойм</div>
         <div className="grid grid-cols-5 gap-[10px]">
           <div className="ds-card p-3">
             <div className="text-[11px] text-mutedtext mb-1.5">Сарын нийт орлого (MRR)</div>
