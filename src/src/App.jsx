@@ -64,15 +64,20 @@ function TenantShell(props) {
   const { isSuperSysAdmin, user } = useAuth();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [isOwnerRole, setIsOwnerRole] = useState(false);
+  const [tenantStatus, setTenantStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); setLoading(false); return; }
+    if (isSuperSysAdmin || !hoaId || !user) { setIsOwnerRole(false); setTenantStatus(null); setLoading(false); return; }
     let cancelled = false;
-    supabase.from('user_roles').select('role').eq('user_id', user.id).eq('tenant_id', hoaId).then(({ data }) => {
+    Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', user.id).eq('tenant_id', hoaId),
+      supabase.from('tenants').select('status').eq('id', hoaId).single(),
+    ]).then(([{ data: roleRows }, { data: tenantRow }]) => {
       if (cancelled) return;
-      const rolesHere = (data ?? []).map((r) => r.role);
+      const rolesHere = (roleRows ?? []).map((r) => r.role);
       setIsOwnerRole(rolesHere.length > 0 && rolesHere.every((r) => r === 'owner'));
+      setTenantStatus(tenantRow?.status || null);
       setLoading(false);
     });
     return () => { cancelled = true; };
@@ -82,6 +87,25 @@ function TenantShell(props) {
     return (
       <div className="h-screen flex items-center justify-center bg-sidebg text-mutedtext text-sm">
         Ачаалж байна...
+      </div>
+    );
+  }
+
+  // 2026-09-08 (21): Trial дуусаад "Paused" (status='suspended')
+  // болсон tenant-ийн хандалтыг эндүүс хаана — өмнe нь энэ статус
+  // зөвхөн DB-д тэмдэглэгддэг байсан ч, ямар ч үр дагаваргүй байсан
+  // (expire_trials() cron ажилладаг ч хандалт хаагддаггүй байсан
+  // бодит алдаа). SUPERSYSADMIN-д хамаарахгүй (тэд үргэлж хандах
+  // ёстой).
+  if (!isSuperSysAdmin && tenantStatus === 'suspended') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-sidebg px-6">
+        <div className="max-w-md text-center">
+          <div className="text-[16px] font-semibold text-white mb-2">Хандалт хаагдсан байна</div>
+          <div className="text-[13px] text-mutedtext leading-relaxed">
+            Танай байгууллагын турших хугацаа дууссан тул хандалт түр хаагдлаа. Мэдээлэл тань 14 хоногийн турш хадгалагдана — үргэлжлүүлэхийг хүсвэл багц сонгож идэвхжүүлнэ vv.
+          </div>
+        </div>
       </div>
     );
   }

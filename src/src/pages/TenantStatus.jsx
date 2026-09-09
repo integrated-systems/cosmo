@@ -47,6 +47,19 @@ function formatTrialEnds(iso) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// 2026-09-08 (21): Trial дуусаад "Paused" (status='suspended') болсны
+// дараа 14 хоногийн хадгалалтын хугацаа (мэдээлэл устгахгүй) үргэлжилнэ.
+// Тэр хугацаа дуусахад л "Устгахад бэлэн" анхааруулга гарч ирнэ —
+// АВТОМАТААР УСТГАХГҮЙ, зөвхөн SUPERSYSADMIN-ийг гар аргаар (аль
+// хэдийн байгаа "Устгах" товч+баталгаажуулалт) шалгаж үзэхийг
+// урьдчилан анхааруулна.
+function isReadyForDeletion(row) {
+  if (row.plan_key !== 'trial' || row.status !== 'suspended' || !row.trial_ends_at) return false;
+  const graceEnd = new Date(row.trial_ends_at);
+  graceEnd.setDate(graceEnd.getDate() + 14);
+  return new Date() > graceEnd;
+}
+
 export default function TenantStatus() {
   const { plans } = usePlans();
   const [rows, setRows] = useState([]);
@@ -174,7 +187,10 @@ export default function TenantStatus() {
   }
 
   async function handleDelete(row) {
-    if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсөн устгах уу? Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
+    const graceMsg = isReadyForDeletion(row)
+      ? ` Trial дуусаад 14 хоногийн хадгалалтын хугацаа аль хэдийн дууссан байна.`
+      : '';
+    if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсөн устгах уу?${graceMsg} Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
     await supabase.rpc('log_audit_event', { p_tenant_id: row.id, p_action: 'delete_tenant', p_target_name: row.name });
     const { error } = await supabase.from('tenants').delete().eq('id', row.id);
     if (error) {
@@ -250,16 +266,21 @@ export default function TenantStatus() {
                   {r.approval_status !== 'approved' ? (
                     <span className="text-mutedtext text-[12px]">—</span>
                   ) : (
-                    <select
-                      className="ds-select w-full"
-                      value={r.status}
-                      disabled={savingId === r.id}
-                      onChange={(e) => handleStatusChange(r.id, e.target.value)}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
+                    <>
+                      <select
+                        className="ds-select w-full"
+                        value={r.status}
+                        disabled={savingId === r.id}
+                        onChange={(e) => handleStatusChange(r.id, e.target.value)}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s.key} value={s.key}>{s.label}</option>
+                        ))}
+                      </select>
+                      {isReadyForDeletion(r) && (
+                        <div className="mt-1 text-[10.5px] font-semibold text-customRed">⚠ Устгахад бэлэн (14 хоног үнгэрсэн)</div>
+                      )}
+                    </>
                   )}
                 </td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
