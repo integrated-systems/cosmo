@@ -76,7 +76,22 @@ export default function FixedAssets() {
   const { can } = useAccessRules(hoaId);
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const [tab, setTab] = useState('list');
+  // 2026-09-08 (14): tab-ыг URL query param-тай (?tab=...) синк хийв —
+  // өмнe нь зөвхөн local useState байсан тул pull-to-refresh үед
+  // (эсвэл ямар ч шалтгаанаар хуудас дахин ачаалагдахад) үүрд эхний
+  // "Үндсэн хөрөнгийн жагсаалт" таб руу шидэгддэг байсан. Одоо ямар
+  // ч дахин ачаалалт идэвхтэй байсан табыг зөв сэргээнэ.
+  const VALID_TABS = ['list', 'depreciation', 'repair', 'inventory'];
+  const tabParam = searchParams.get('tab');
+  const tab = VALID_TABS.includes(tabParam) ? tabParam : 'list';
+  function setTab(newTab) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (newTab === 'list') next.delete('tab'); else next.set('tab', newTab);
+      return next;
+    }, { replace: true });
+  }
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');

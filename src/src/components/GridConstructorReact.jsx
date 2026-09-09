@@ -836,7 +836,7 @@ export default function GridConstructorReact({ hoaId }) {
       </div>
 
       {/* ---------------- canvas ---------------- */}
-      <div className="flex-1 overflow-auto overscroll-contain rounded border border-bordercol">
+      <div className="flex-1 overflow-auto overscroll-contain rounded border border-bordercol" data-no-pull-refresh>
         <div
           ref={gridRef}
           onPointerDown={handleGridPointerDown}

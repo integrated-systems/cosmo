@@ -9,19 +9,42 @@ import { useEffect, useRef } from 'react';
 // 2026-08-19 (2-р засвар): ямар ч визуал индикатор (сум/текст) ХАРУУЛАХГүй
 // — өмнөх хувилбарт индикаторын үүсгэсэн нэмэлт div-ийн өндөр Topbar-ыг
 // шахаж (flex-shrink) байрлалаас нь хөдөлгөдөг байсныг олж, индикаторыг
-// бүрмөсөн арилгав. Одоо энэ hook зөвхөн ЗАН ТӨЛӨВ (side effect) — DOM-д
+// бүрмөсөн арилгав. Одоо энэ hook зөвхөн ЗАН ТөЛөВ (side effect) — DOM-д
 // ямар ч элемент нэмдэггүй тул navbar/layout огт хөдлөхгүй.
 //
 // 2026-08-31 (3-р засвар) ОЛСОН БОДИТ АЛДАА — "window.location.reload()"
-// бүтэн хуудсыг дахин ачаалж, хар хвх "ачаалж байна" нүүр агшин зуур
-// харагддаг, мвн (OwnerApp дээр) навигацийн slider Home руу буцдаг
-// байв (URL-ийн дэд зам зввв хадгалагдсан ч, апп-ийн эхлэлийн redirect
-// логик үүнийг үл хайхардаг). Одоо ЗААВАЛ биш "onRefresh" callback
-// авдаг болгож, дуудагдвал зүгээр түүнийг дуудна — бүтэн reload биш,
-// зүгээр тухайн дэд компонентыг дахин ачаалуулна (key-based remount).
-// onRefresh байхгүй бол (админ Layout шиг) хуучин "location.reload()"
-// зан үйлээ хэвээр үлдээнэ.
+// бүтэн хуудсыг дахин ачаалж, хар хөх "ачаалж байна" нүүр агшин зуур
+// харагддаг, мөн (OwnerApp дээр) навигацийн slider Home руу буцдаг
+// байв. Одоо ЗААВАЛ биш "onRefresh" callback авдаг болгож, дуудагдвал
+// зүгээр түүнийг дуудна.
+//
+// 2026-09-08 (14) 4-р засвар — iPad дээр Үндсэн (admin) программыг
+// ашиглаж байхад ХОЁР бодит алдаа олдов:
+//   (а) Триггэрийн нөхцөл зөвхөн ГАДНА scrollRef-ийн scrollTop-ыг
+//       шалгадаг байсан тул хүснэгэл/грид зэрэг ДОТООД (nested)
+//       overflow-auto контейнер дунд/доод хэсэгт скролл хийсэн үед ч
+//       гадна scrollTop=0 хэвээр үзэгдэж, дунд/доод хэсэгт байхад ч
+//       триггэрлэдэг байв. Одоо touch эхэлсэн цэгээс scrollRef хүртэлх
+//       БүХ scroll хийдэг ancestor-уудын scrollTop-ыг шалгаж, аль
+//       нэг нь 0-ээс их бол огт эхлүүлэхгүй.
+//   (б) "data-no-pull-refresh" attribute-тай элемент (эсвэл түүний
+//       дотор) дээр эхэлсэн touch-ыг бүрэн орхигдуулна — зураг зурах,
+//       газрын зураг чирэх зэрэг scroll БИШ гар хөдөлгөөнтэй хэсгүүдэд
+//       (жиш GridConstructorReact.jsx) ашиглана.
 const THRESHOLD = 80;
+
+function hasScrolledAncestor(target, boundary) {
+  let node = target;
+  while (node && node !== boundary?.parentElement) {
+    if (node.dataset && node.dataset.noPullRefresh !== undefined) return true;
+    const style = window.getComputedStyle(node);
+    const canScrollY = (style.overflowY === 'auto' || style.overflowY === 'scroll') && node.scrollHeight > node.clientHeight;
+    if (canScrollY && node.scrollTop > 0) return true;
+    if (node === boundary) break;
+    node = node.parentElement;
+  }
+  return false;
+}
 
 export function usePullToRefresh(scrollRef, onRefresh) {
   const startY = useRef(null);
@@ -32,8 +55,11 @@ export function usePullToRefresh(scrollRef, onRefresh) {
     if (!el) return;
 
     function handleTouchStart(e) {
-      if (el.scrollTop <= 0) startY.current = e.touches[0].clientY;
-      else startY.current = null;
+      if (el.scrollTop <= 0 && !hasScrolledAncestor(e.target, el)) {
+        startY.current = e.touches[0].clientY;
+      } else {
+        startY.current = null;
+      }
       pullDistance.current = 0;
     }
 
