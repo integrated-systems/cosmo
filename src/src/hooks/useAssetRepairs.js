@@ -61,6 +61,13 @@ export function useAssetRepairs(hoaId) {
     await load();
   }
 
+  async function markRepairComplete(repairId) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { error } = await supabase.from('asset_repairs').update({ end_date: todayStr }).eq('id', repairId);
+    if (error) throw error;
+    await load();
+  }
+
   const stats = useMemo(() => {
     const total = repairs.reduce((s, r) => s + (Number(r.amount) || 0), 0);
     const now = new Date();
@@ -82,7 +89,7 @@ export function useAssetRepairs(hoaId) {
 
   // Одоо идэвхтэй (эхэлсэн - дууссан хугацаанд, дуусаагүй бол
   // хугацаагүй үргэлжилсэнд тооцно) засвартай хөрөнгийн ID-ийн Set —
-  // FixedAssetsTable/AssetInfoModal-ийн "Тeлeв" баганад "Засварт"
+  // FixedAssetsTable/AssetInfoModal-ийн "Төлөв" баганад "Засварт"
   // (custom оранж) гэж автоматаар давхарлаж харуулахад ашиглана.
   const activeRepairAssetIds = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -96,5 +103,5 @@ export function useAssetRepairs(hoaId) {
     return set;
   }, [repairs]);
 
-  return { repairs, loading, addRepair, stats, activeRepairAssetIds, totalSpentByAsset, reload: load };
+  return { repairs, loading, addRepair, markRepairComplete, stats, activeRepairAssetIds, totalSpentByAsset, reload: load };
 }

@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
-
 // "Элэгдэл" таб (FixedAssets.jsx)-ийн өгөгдөл+үйлдэл — hook болгож
 // гаргасан нь Toolbar/Таб товч/Статистик карт/Хүснэгэл дарааллыг
 // FixedAssets.jsx дотор чөлөөтэй зохион байгуулах боломж өгнө (Rule
 // of two — DepreciationTab.jsx компонент дотор шигтгэвэл дараалал
 // өөрчлөхөд хэцүү болно).
-export function useDepreciationPostings(hoaId) {
+// 2026-09-08 (9): Хэрэглэгчийн заасны дагуу "Элэгдлийг тооцоолох"
+// товчийг бүрэн арилгаж, ЭНЭ hook нь mount бүрт чимээгүй (идэмпотэнт)
+// автоматаар тухайн сарыг шалгаж, хараахан батлагдаагүй бол шууд
+// батлана. Posting/ledger архитектур (audit trail, хаагдсан үе дахин
+// өөрчлөгддөггүй зарчим) бүрэн хэвээр үлдэнэ — зөвхөн үйлдлийг
+// автоматжуулсан (харна уу: FixedAssets.jsx-д товч байхгүй болсон).
+export function useDepreciationPostings(hoaId, onPosted) {
   const [postings, setPostings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
 
   const load = useCallback(async () => {
     if (!hoaId) return;
@@ -26,29 +30,30 @@ export function useDepreciationPostings(hoaId) {
     setLoading(false);
   }, [hoaId]);
 
-  useEffect(() => { load(); }, [load]);
-
   async function postCurrentMonth() {
     const today = new Date();
     const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-    setPosting(true);
     const { data, error } = await supabase.rpc('post_monthly_depreciation', { p_tenant_id: hoaId, p_period: period });
-    setPosting(false);
     if (error) throw error;
     await load();
+    if (data?.length > 0) onPosted?.();
     return data?.length || 0;
   }
 
-  const stats = useMemo(() => {
-    const total = postings.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const now = new Date();
-    const curYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const thisMonthAmount = postings
-      .filter((p) => (p.period || '').slice(0, 7) === curYm)
-      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
-    const latestPeriod = postings[0]?.period || null;
-    return { count: postings.length, total, thisMonthAmount, latestPeriod };
-  }, [postings]);
+  useEffect(() => {
+    if (!hoaId) return;
+    // Чимээгүй, автомат — амжилтгүй болвол (жиш эрхийн хүрээнд биш
+    // хэрэглэгч) алдаа үзүүлэхгүй, зүгээр л одоо байгаа мэдээллийг
+    // ачаална.
+    (async () => {
+      try {
+        await postCurrentMonth();
+      } catch {
+        await load();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId]);
 
-  return { postings, loading, posting, postCurrentMonth, stats, reload: load };
+  return { postings, loading, postCurrentMonth, reload: load };
 }

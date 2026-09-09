@@ -87,7 +87,7 @@ export default function FixedAssets() {
   const [inventorySubTab, setInventorySubTab] = useState('active');
   const [viewingHistoryCountId, setViewingHistoryCountId] = useState(null);
 
-  const depreciation = useDepreciationPostings(hoaId);
+  const depreciation = useDepreciationPostings(hoaId, () => loadAssets());
   const repairs = useAssetRepairs(hoaId);
   const inventory = useInventoryCount(hoaId);
 
@@ -327,23 +327,23 @@ export default function FixedAssets() {
     if (searchParams.get('asset')) setSearchParams({}, { replace: true });
   }
 
-  async function handlePostDepreciation() {
-    const today = new Date();
-    const periodLabel = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}`;
-    if (!(await confirm(`Энэ сарын (${periodLabel}) элэгдлийг батлах уу? Батлагдсаны дараа буцаах боломжгүй.`))) return;
+  async function handleAddRepair(form) {
     try {
-      const n = await depreciation.postCurrentMonth();
-      window.alert(`${n} хөрөнгийн элэгдэл батлагдлаа.`);
-      loadAssets();
+      await repairs.addRepair(form);
+      setAddingRepair(false);
     } catch (err) {
       window.alert(err.message);
     }
   }
 
-  async function handleAddRepair(form) {
+  // 2026-09-08 (9): Хугацаанаас oмнe засвар дуусахад "Ашиглалтад орсон"
+  // товчоор Дууссан огноог өнөөдрийн огноогоор шинэчилнэ — activeRepairAssetIds
+  // тооцоолол дараагийн ачаалалтад автоматаар "Ашиглалтад" болгоно
+  // (fixed_assets.status-д огт хүрэхгүй, зөвхөн давхарласан индикатор).
+  async function handleMarkRepairComplete(repairId) {
+    if (!(await confirm('Энэ засварыг өнөөдөр дуусгах уу? "Дууссан" огноо өнөөдрийн огноогоор шинэчлэгдэнэ.'))) return;
     try {
-      await repairs.addRepair(form);
-      setAddingRepair(false);
+      await repairs.markRepairComplete(repairId);
     } catch (err) {
       window.alert(err.message);
     }
@@ -398,9 +398,7 @@ export default function FixedAssets() {
           responsiblePerson={responsiblePerson} onResponsiblePersonChange={setResponsiblePerson} responsibleOptions={responsibleOptions}
           location={location} onLocationChange={setLocation} locationOptions={locationOptions}
           search={search} onSearchChange={setSearch}
-          onAddClick={handlePostDepreciation} canAdd
-          addLabel={depreciation.posting ? 'Тооцоолж байна...' : 'Элэгдлийг тооцоолох'}
-          addDisabled={depreciation.posting}
+          canAdd={false}
         />
       )}
       {tab === 'repair' && (
@@ -485,26 +483,6 @@ export default function FixedAssets() {
           <div className="ds-card p-3">
             <div className="text-[11px] text-mutedtext mb-1.5">Ашиглаж буй / Актлагдсан</div>
             <div className="text-[19px] font-bold">{summary.inUseCount} / {summary.writtenOffCount}</div>
-          </div>
-        </div>
-      )}
-      {tab === 'depreciation' && (
-        <div className="grid grid-cols-4 gap-[10px]">
-          <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Батлагдсан бүртгэлийн тоо</div>
-            <div className="text-[19px] font-bold">{depreciation.stats.count}</div>
-          </div>
-          <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Нийт батлагдсан дүн</div>
-            <div className="text-[19px] font-bold">{formatMoney(depreciation.stats.total)}₮</div>
-          </div>
-          <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Энэ сард батлагдсан дүн</div>
-            <div className="text-[19px] font-bold">{formatMoney(depreciation.stats.thisMonthAmount)}₮</div>
-          </div>
-          <div className="ds-card p-3">
-            <div className="text-[11px] text-mutedtext mb-1.5">Сүүлд батлагдсан үе</div>
-            <div className="text-[19px] font-bold">{depreciation.stats.latestPeriod ? formatDate(depreciation.stats.latestPeriod) : '—'}</div>
           </div>
         </div>
       )}
@@ -610,7 +588,7 @@ export default function FixedAssets() {
                   <th className="py-2.5 px-3 w-[110px] text-right">ҮНЭ</th>
                   <th className="py-2.5 px-3 w-[130px] text-right">НИЙТ ЗАРЦУУЛСАН</th>
                   <th className="py-2.5 px-3 w-[150px]">ХАРИЛЦАГЧ</th>
-                  <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
+                  <th className="py-2.5 px-3 w-[150px] text-right">ҮЙЛДЭЛ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -635,7 +613,11 @@ export default function FixedAssets() {
                         {formatMoney(totalSpent)}₮
                       </td>
                       <td className="py-2.5 px-3">{r.provider_org || '—'}</td>
-                      <td className="py-2.5 px-3 text-right"></td>
+                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                        {repairs.activeRepairAssetIds.has(r.asset_id) && (
+                          <button className="ds-btn-secondary whitespace-nowrap" onClick={() => handleMarkRepairComplete(r.id)}>Ашиглалтад орсон</button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
