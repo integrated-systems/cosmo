@@ -12,7 +12,12 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-export function printTable(title, rows, columns) {
+// 2026-09-08 (13): Хөтөч дэх Хэвлэх Preview цонхны "Header and Footer"
+// сонголтод гарч ирдэг гарчиг (баримт бичгийн <title>)-ыг ЭНЭ iframe
+// өрөийн тусдаа document учир динамик болгож болно — үүнийг
+// documentTitle параметрээр дамжуулж (FixedAssets.jsx-ээс "{tenant
+// СӨХ нэр} - Integrated Systems" гэж дуудна).
+export function printTable(title, rows, columns, documentTitle) {
   const headerHtml = columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join('');
   const rowsHtml = rows.map((r) => `<tr>${columns.map((c) => {
     let v = typeof c.value === 'function' ? c.value(r) : r[c.key];
@@ -20,7 +25,7 @@ export function printTable(title, rows, columns) {
     return `<td>${escapeHtml(v)}</td>`;
   }).join('')}</tr>`).join('');
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(documentTitle || title)}</title><style>
     @page { size: A4 landscape; margin: 12mm; }
     * { box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; margin: 0; }

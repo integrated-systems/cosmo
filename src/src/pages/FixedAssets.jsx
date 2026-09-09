@@ -399,21 +399,21 @@ export default function FixedAssets() {
     exportToCsv(`hoa_${hoaId}_fixed_assets.csv`, filteredRows, listColumns);
   }
   function handlePrintList() {
-    printTable('Үндсэн хөрөнгийн жагсаалт', filteredRows, listColumns);
+    printTable('Үндсэн хөрөнгийн жагсаалт', filteredRows, listColumns, `${orgName} - Integrated Systems`);
   }
 
   function handleExportDepreciation() {
     exportToCsv(`hoa_${hoaId}_depreciation_postings.csv`, filteredPostings, depreciationColumns);
   }
   function handlePrintDepreciation() {
-    printTable('Хуримтлагдсан элэгдэл', filteredPostings, depreciationColumns);
+    printTable('Хуримтлагдсан элэгдэл', filteredPostings, depreciationColumns, `${orgName} - Integrated Systems`);
   }
 
   function handleExportRepairs() {
     exportToCsv(`hoa_${hoaId}_repairs.csv`, repairs.repairs, repairColumns);
   }
   function handlePrintRepairs() {
-    printTable('Засвар, үйлчилгээ', repairs.repairs, repairColumns);
+    printTable('Засвар, үйлчилгээ', repairs.repairs, repairColumns, `${orgName} - Integrated Systems`);
   }
 
   function handleExportInventory() {
@@ -422,9 +422,8 @@ export default function FixedAssets() {
   }
   function handlePrintInventory() {
     const items = inventorySubTab === 'active' ? filteredInventoryItems : inventory.historyItems;
-    printTable('Тооллого', items, inventoryColumns);
+    printTable('Тооллого', items, inventoryColumns, `${orgName} - Integrated Systems`);
   }
-
   // 2026-09-08: Тооллого (физик инвентаризаци) — эхлүүлэх/дуусгах үед
   // тодорхой баталгаажуулалт шаардана (дуусгасны дараа буцаах боломжгүй).
   async function handleStartInventory() {
