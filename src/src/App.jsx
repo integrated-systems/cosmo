@@ -34,6 +34,7 @@ import FixedAssetConfig from './pages/FixedAssetConfig';
 import AssetShortLink from './pages/AssetShortLink';
 import AboutProgram from './components/AboutProgram';
 import Plan from './pages/Plan';
+import Billing from './pages/Billing';
 import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
@@ -239,8 +240,9 @@ function AppRoutes() {
             RequireRole ХЭРЭГТЭЙ. */}
         <Route path="tenant-status" element={<RequireRole roles={['supersysadmin']}><TenantStatus /></RequireRole>} />
         <Route path="plan" element={<RequireRole roles={['supersysadmin']}><Plan /></RequireRole>} />
+        <Route path="billing" element={<RequireRole roles={['supersysadmin']}><Billing /></RequireRole>} />
         {/* Цэснийн бусад бүх линк (47 модуль) — хуудас бүтээгдэх хүртэл ижил fallback */}
-        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/plan', '/clientele', '/property', '/addressing', '/finconfig', '/invoice', '/news', '/providers', '/msgr', '/rolesrules', '/accounts', '/logs', '/voting', '/uappconfig'].includes(i.path)).map((item) => {
+        {ALL_ITEMS.filter((i) => !['/dashboard', '/owners', '/restmarket', '/tenant-status', '/plan', '/billing', '/clientele', '/property', '/addressing', '/finconfig', '/invoice', '/news', '/providers', '/msgr', '/rolesrules', '/accounts', '/logs', '/voting', '/uappconfig'].includes(i.path)).map((item) => {
           const isTenantSaasItem = TENANT_ITEM_PATHS.includes(item.path) || item.path === SUPERSYSADMIN.path;
           const element = isTenantSaasItem
             ? <RequireRole roles={['supersysadmin']}><PageInProgress /></RequireRole>
