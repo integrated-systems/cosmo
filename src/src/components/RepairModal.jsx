@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import MoneyInput from './MoneyInput';
 
-// 2026-09-08: "Засвар бүртгэх" модаль — хэрэглэгчийн зурган жишээтэй
-// яг адил бүтэц (Хөрөнгө/Огноо/Үнэ/Тайлбар/Үйлчилгээ үзүүлэгч).
+// 2026-09-08: "Хөрөнгийг засварт шилжүүлэх" модаль — хэрэглэгчийн
+// зурган жишээтэй яг адил бүтэц (Хөрөнгө/Огноо/үнэ/Тайлбар/үйлчилгээ
+// үзүүлэгч).
 // 2026-09-08 (2): Огноо -> Эхэлсэн огноо + Дууссан огноо (хугацааны
 // завсар). Тэмдэглэл: Дууссан огноо хоосон үлдэж болно (засвар
 // үргэлжилж байгаа үед) — үүнийг activeRepairAssetIds (useAssetRepairs.js)
-// "Засварт" тeлeв тооцоход ашиглана.
+// "Засварт" төлөв тооцоход ашиглана.
 // 2026-09-08 (3): Хэрэглэгчийн заасны дагуу:
 //   - "Үнэ (₮)" талбар MoneyInput ашиглаж 0.00₮ форматтай харагдана
 //   - "Хөрөнгө" dropdown (мянга мянган мвр үед ашиглах боломжгүй
@@ -46,7 +47,7 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Засвар бүртгэх" footer={
+    <Modal open={open} onClose={onClose} title="Хөрөнгийг засварт шилжүүлэх" footer={
       <>
         <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
         <button className="ds-btn-primary" onClick={handleSave}>Хадгалах</button>
@@ -99,12 +100,15 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
 
 // Хөрөнгийн нэр эсвэл бүртгэлийн дугаараар (эхний үсэг/тоо бичих
 // үед) шүүгдэж, доор нь жагсаалт гарч ирдэг хайлтын элемент — олон
-// мянган мвртэй хүснэгэлд ердийн <select> ашиглах боломжгүй болсныг
-// шийдэв.
+// мянган мврт ердийн <select> ашиглах боломжгүй болсныг шийдэв.
+// 2026-09-08 (5): Актлагдсан (written_off) хөрөнгө засварт
+// шилжүүлэх боломжгүй тул хайлтад огт харагдахгүй/дуудагдахгүй
+// болгов.
 function AssetSearchCombobox({ assets, value, onChange }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const selected = assets.find((a) => a.id === value);
+  const selectableAssets = assets.filter((a) => a.status !== 'written_off');
+  const selected = selectableAssets.find((a) => a.id === value);
 
   useEffect(() => {
     setQuery(selected ? selected.name : '');
@@ -112,8 +116,8 @@ function AssetSearchCombobox({ assets, value, onChange }) {
 
   const q = query.trim().toLowerCase();
   const filtered = (q === ''
-    ? assets
-    : assets.filter((a) => a.name.toLowerCase().includes(q) || (a.barcode || '').toLowerCase().includes(q))
+    ? selectableAssets
+    : selectableAssets.filter((a) => a.name.toLowerCase().includes(q) || (a.barcode || '').toLowerCase().includes(q))
   ).slice(0, 50);
 
   return (

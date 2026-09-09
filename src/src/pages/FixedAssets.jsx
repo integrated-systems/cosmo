@@ -409,7 +409,7 @@ export default function FixedAssets() {
           <div className="flex-1" />
           <button className="ds-btn-secondary">Хэвлэх</button>
           <button className="ds-btn-secondary">Экспорт</button>
-          <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>+ Засвар бүртгэх</button>
+          <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>Хөрөнгийг засварт шилжүүлэх</button>
         </div>
       )}
       {tab === 'inventory' && inventorySubTab === 'active' && (
