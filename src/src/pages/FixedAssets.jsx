@@ -368,7 +368,7 @@ export default function FixedAssets() {
     { label: 'Дансны үлдэгдэл үнэ', key: 'book_value' },
     { label: 'Байршил', value: (r) => r.location?.name },
     { label: 'Хариуцагч', value: (r) => r.responsible_position?.name },
-    { label: 'Терлев', value: (r) => statusLabel(r.status) },
+    { label: 'Төлөв', value: (r) => statusLabel(r.status) },
     { label: 'Актласан үнэ', key: 'write_off_amount' },
     { label: 'Ашиг/Алдагдал', key: 'gain_loss' },
   ];
@@ -391,8 +391,8 @@ export default function FixedAssets() {
   const inventoryColumns = [
     { label: 'Бүртгэлийн дугаар', value: (i) => i.asset?.barcode },
     { label: 'Хөрөнгө', value: (i) => i.asset?.name },
-    { label: 'Терлев', value: (i) => (i.found ? 'Тоологдсон' : 'Тоологдоогүй') },
-    { label: 'Тооллогод бүртгэсэн огноо', value: (i) => i.found_at ? formatDate(i.found_at) : '' },
+    { label: 'Төлөв', value: (i) => (i.found ? 'Тоологдсон' : 'Тоологдоогүй') },
+    { label: 'Тооллогод бүртгэсэн огноо', value: (i) => i.found_at ? formatDateTimeMinutes(i.found_at) : '' },
   ];
 
   function handleExportList() {
@@ -739,7 +739,7 @@ export default function FixedAssets() {
                     <td className="py-2.5 px-3 font-semibold">
                       {item.found ? <span className="text-customGreen">Тоологдсон</span> : <span className="text-customRed">Тоологдоогүй</span>}
                     </td>
-                    <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
+                    <td className="py-2.5 px-3">{item.found_at ? formatDateTimeMinutes(item.found_at) : '—'}</td>
                     <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       {!item.found && (
                         <button className="ds-btn-secondary whitespace-nowrap" onClick={() => handleMarkFound(item.asset)}>Тооллогод бүртгэх</button>
@@ -781,8 +781,10 @@ export default function FixedAssets() {
         <>
           <div className="ds-toolbar justify-between">
             <button className="ds-btn-secondary" onClick={() => setViewingHistoryCountId(null)}>← Тооллогын түүх рүү буцах</button>
-            <button className="ds-btn-secondary" onClick={handlePrintInventory}>Хэвлэх</button>
-            <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
+            <div className="flex items-center gap-2">
+              <button className="ds-btn-secondary" onClick={handlePrintInventory}>Хэвлэх</button>
+              <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
+            </div>
           </div>
           <div className="ds-table-wrap">
             <div className="flex-1 overflow-auto overscroll-contain">
@@ -808,7 +810,7 @@ export default function FixedAssets() {
                       <td className="py-2.5 px-3 font-semibold">
                         {item.found ? <span className="text-customGreen">Тоологдсон</span> : <span className="text-customRed">Тоологдоогүй</span>}
                       </td>
-                      <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
+                      <td className="py-2.5 px-3">{item.found_at ? formatDateTimeMinutes(item.found_at) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

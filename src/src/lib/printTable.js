@@ -26,7 +26,7 @@ export function printTable(title, rows, columns) {
     body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; margin: 0; }
     h1 { font-size: 13px; font-weight: bold; margin: 0 0 4mm; }
     table { width: 100%; border-collapse: collapse; font-size: 9px; table-layout: auto; }
-    th, td { border: 1px solid #999; padding: 2px 5px; text-align: left; }
+    th, td { border: 0.25pt solid #000; padding: 2px 5px; text-align: left; }
     th { font-weight: bold; }
   </style></head><body>
     <h1>${escapeHtml(title)}</h1>
