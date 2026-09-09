@@ -19,7 +19,6 @@ export function statusClassName(status) {
   return FIXED_ASSET_STATUS[status]?.className ?? 'text-slate-700 dark:text-text';
 }
 
-export const UNIT_OPTIONS = ['ширхэг', 'м²', 'багц', 'иж бүрдэл', 'кг', 'литр'];
 
 export const DEPRECIATION_METHODS = {
   straight_line: 'Шугаман элэгдэл',

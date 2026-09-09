@@ -13,15 +13,15 @@ import UsageProgressBar from './UsageProgressBar';
 // оронд нь "Хүрүнгийн бүртгэлийн дугаар" текст багана оруулав — QR
 // хэвлэлт одоо зөвхөн AssetInfoModal дотроос хийгдэнэ (энд onPrint
 // шаардлагагүй болсон).
-// 2026-09-08 (2): activeRepairAssetIds үед тухайн хeрeнгийг статус
+// 2026-09-08 (2): activeRepairAssetIds үед тухайн хөрөнгийг статус
 // (written_off эс бэшгүй тохиолдолд) "Засварт" (custom оранж) гэж
 // автоматаар давхарлаж харуулна — RepairModal.jsx-ийн Эхэлсэн/Дууссан
 // огнооны хугацаанд байгаа үед л идэвхтэй (useAssetRepairs.js харна уу).
-// 2026-09-08 (6): "ТeЛeВ" баганын баруун талд "АШИГЛАЛТЫН ХУГАЦАА"
+// 2026-09-08 (6): "ТөЛөВ" баганын баруун талд "АШИГЛАЛТЫН ХУГАЦАА"
 // (жижигрүүлсэн progress bar, UsageProgressBar.jsx) нэмэв — мөр бүрт
-// хeрeнгийн ашиглалт хэр дуусч байгааг шууд харуулна.
+// хөрөнгийн ашиглалт хэр дуусч байгааг шууд харуулна.
 export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onDelete, onView, canEdit = true, canDelete = true, activeRepairAssetIds }) {
-  const colCount = 14;
+  const colCount = 13;
 
   return (
     <div className="ds-table-wrap">
@@ -34,7 +34,6 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
               <th className="py-2.5 px-3 w-[150px]">НЭР, БРЕНД</th>
               <th className="py-2.5 px-3 w-[170px]">ХӨРӨНГИЙН МАРК, МОДЕЛЬ, СЕРИАЛ, ЗАГВАР, КОД</th>
               <th className="py-2.5 px-3 w-[130px]">ТӨРӨЛ</th>
-              <th className="py-2.5 px-3 w-[90px]">Т.ХЭМЖЭЭ</th>
               <th className="py-2.5 px-3 w-[100px]">АВСАН ОГНОО</th>
               <th className="py-2.5 px-3 w-[110px] text-right">ХУДАЛДАН АВСАН ҮНЭ</th>
               <th className="py-2.5 px-3 w-[110px] text-right">ХУРИМТЛАГДСАН ЭЛЭГДЭЛ</th>
@@ -63,7 +62,6 @@ export default function FixedAssetsTable({ rows, loading, loadError, onEdit, onD
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.name}</td>
                 <td className="py-2.5 px-3">{r.mark_serial || '—'}</td>
                 <td className="py-2.5 px-3">{r.type?.name || '—'}</td>
-                <td className="py-2.5 px-3">{r.qty} {r.unit}</td>
                 <td className="py-2.5 px-3">{r.acquired_date ? formatDate(r.acquired_date) : '—'}</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.purchase_price)}₮</td>
                 <td className="py-2.5 px-3 text-right">{formatMoney(r.accumulated_depreciation)}₮</td>

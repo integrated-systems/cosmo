@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { supabase } from '../lib/supabaseClient';
-import { UNIT_OPTIONS, DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
+import { DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
 import { computeStraightLineDepreciation, computeAcceleratedDepreciation } from '../lib/depreciation';
 import { formatMoney, formatDate } from '../lib/format';
 import { useFixedAssetConfig } from '../hooks/useFixedAssetConfig';
@@ -38,8 +38,6 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
     markSerial: asset?.mark_serial || '',
     categoryId: asset?.category_id || '',
     typeId: asset?.type_id || '',
-    qty: asset?.qty ?? 1,
-    unit: asset?.unit || 'ширхэг',
     acquiredDate: asset?.acquired_date || '',
     purchasePrice: asset?.purchase_price ?? 0,
     sellerOrg: asset?.seller_org || '',
@@ -154,20 +152,10 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тоо хэмжээ</label>
-          <div className="flex gap-2">
-            <input type="number" min="0" step="any" className="ds-input w-full" value={form.qty} onChange={(e) => set('qty', e.target.value)} />
-            <select className="ds-select" value={form.unit} onChange={(e) => set('unit', e.target.value)}>
-              {UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Худалдан авсан огноо</label>
           <input type="date" className="ds-input w-full" value={form.acquiredDate} onChange={(e) => set('acquiredDate', e.target.value)} />
         </div>
-
-        <div className="col-span-2">
+        <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Худалдан авсан үнэ (₮)</label>
           <input type="number" min="0" step="any" className="ds-input w-full" value={form.purchasePrice} onChange={(e) => set('purchasePrice', e.target.value)} />
         </div>

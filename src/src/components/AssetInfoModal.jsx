@@ -56,7 +56,6 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
         <Row label="Хөрөнгийн марк, модель, сериал, загвар, код">{asset.mark_serial || '—'}</Row>
         <Row label="Ангилал"><span className="font-semibold">{asset.category?.name || '—'}</span></Row>
         <Row label="Төрөл"><span className="font-semibold">{asset.type?.name || '—'}</span></Row>
-        <Row label="Тоо хэмжээ">{asset.qty} {asset.unit}</Row>
         <Row label="Худалдан авсан огноо">{asset.acquired_date ? formatDate(asset.acquired_date) : '—'}</Row>
         <Row label="Худалдан авсан үнэ" bold>{formatMoney(asset.purchase_price)}₮</Row>
         {Number(asset.capitalized_amount) > 0 && (

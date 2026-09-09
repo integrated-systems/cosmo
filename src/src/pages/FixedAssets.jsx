@@ -230,8 +230,6 @@ export default function FixedAssets() {
       mark_serial: form.markSerial || null,
       category_id: form.categoryId || null,
       type_id: form.typeId || null,
-      qty: form.qty !== '' ? Number(form.qty) : 1,
-      unit: form.unit,
       acquired_date: form.acquiredDate || null,
       purchase_price: form.purchasePrice !== '' ? Number(form.purchasePrice) : 0,
       seller_org: form.sellerOrg || null,
@@ -657,12 +655,12 @@ export default function FixedAssets() {
                   <th className="py-2.5 px-3">ХӨРӨНГӨ</th>
                   <th className="py-2.5 px-3 w-[110px]">ТӨЛӨВ</th>
                   <th className="py-2.5 px-3 w-[170px]">ТООЛЛОГОД БүРТГЭСЭН ОГНОО</th>
-                  <th className="py-2.5 px-3 w-[130px] text-right">үЙЛДЭЛ</th>
+                  <th className="py-2.5 px-3 w-[160px] text-right">ҮЙЛДЭЛ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
                 {!inventory.activeCount && (
-                  <tr><td colSpan={6} className="py-8 text-center text-darktext">Идэвхтэй тооллого байхгүй — дээрх "+ Тооллого эхлүүлэх" товчийг дарна уу.</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-darktext">Идэвхтэй тооллого байхгүй — дээрх "Тооллого эхлүүлэх" товчийг дарна уу.</td></tr>
                 )}
                 {inventory.activeCount && inventory.loading && (
                   <tr><td colSpan={6} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
@@ -676,9 +674,9 @@ export default function FixedAssets() {
                       {item.found ? <span className="text-customGreen">Тоологдсон</span> : <span className="text-customRed">Тоологдоогүй</span>}
                     </td>
                     <td className="py-2.5 px-3">{item.found_at ? formatDate(item.found_at) : '—'}</td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
                       {!item.found && (
-                        <button className="ds-btn-secondary" onClick={() => handleMarkFound(item.asset)}>Тооллогод бүртгэх</button>
+                        <button className="ds-btn-secondary whitespace-nowrap" onClick={() => handleMarkFound(item.asset)}>Тооллогод бүртгэх</button>
                       )}
                     </td>
                   </tr>
