@@ -76,6 +76,11 @@ export default function AssetInfoModal({ open, onClose, asset, onEdit, canEdit, 
             <Row label="Актласан огноо">{asset.write_off_date ? formatDate(asset.write_off_date) : '—'}</Row>
             <Row label="Актласан шалтгаан"><span className="font-semibold">{asset.write_off_reason || '—'}</span></Row>
             <Row label="Актласан үнэ / орлого">{formatMoney(asset.write_off_amount || 0)}₮</Row>
+            <Row label="Ашиг / Алдагдал (IAS 16.71)">
+              <span className={`font-bold ${Number(asset.gain_loss) >= 0 ? 'text-customGreen' : 'text-customRed'}`}>
+                {Number(asset.gain_loss) >= 0 ? '+' : ''}{formatMoney(asset.gain_loss || 0)}₮
+              </span>
+            </Row>
           </>
         )}
         {asset.note && <Row label="Тэмдэглэл"><span className="font-semibold">{asset.note}</span></Row>}

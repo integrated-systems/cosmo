@@ -11,6 +11,7 @@ export default function FixedAssetsToolbar({
   search, onSearchChange,
   onAddClick, canAdd = true, addLabel = '+ Хөрөнгө нэмэх', addDisabled = false,
   statusFilter, onStatusFilterChange,
+  onExportClick,
 }) {
   return (
     <div className="ds-toolbar flex-wrap">
@@ -44,7 +45,7 @@ export default function FixedAssetsToolbar({
       </div>
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
-        <button className="ds-btn-secondary">Экспортлох</button>
+        <button className="ds-btn-secondary" onClick={onExportClick}>Экспортлох</button>
         {canAdd && <button className="ds-btn-primary" disabled={addDisabled} onClick={onAddClick}>{addLabel}</button>}
       </div>
     </div>

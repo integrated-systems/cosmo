@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney, formatDate, formatDateTimeMinutes } from '../lib/format';
-import { DEPRECIATION_METHODS } from '../lib/fixedAssetsFormat';
+import { exportToCsv } from '../lib/exportCsv';
+import { DEPRECIATION_METHODS, statusLabel } from '../lib/fixedAssetsFormat';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useConfirm } from '../hooks/useConfirm';
 import { useDepreciationPostings } from '../hooks/useDepreciationPostings';
@@ -349,6 +350,59 @@ export default function FixedAssets() {
     }
   }
 
+  // 2026-09-08 (11): "Экспортлох" товч бүр — IAS 16.73 disclosure
+  // тайланд шаардлагатай үндсэн мэдээллийг CSV болгож татна.
+  function handleExportList() {
+    exportToCsv(`hoa_${hoaId}_fixed_assets.csv`, filteredRows, [
+      { label: 'Бүртгэлийн дугаар', key: 'barcode' },
+      { label: 'Нэр, бренд', key: 'name' },
+      { label: 'Марк, модель, сериал', key: 'mark_serial' },
+      { label: 'Терел', value: (r) => r.type?.name },
+      { label: 'Авсан огноо', value: (r) => r.acquired_date ? formatDate(r.acquired_date) : '' },
+      { label: 'Худалдан авсан үнэ', key: 'purchase_price' },
+      { label: 'Капиталжуулсан нэмэлт', key: 'capitalized_amount' },
+      { label: 'Хуримтлагдсан элэгдэл', key: 'accumulated_depreciation' },
+      { label: 'Дансны үлдэгдэл үнэ', key: 'book_value' },
+      { label: 'Байршил', value: (r) => r.location?.name },
+      { label: 'Хариуцагч', value: (r) => r.responsible_position?.name },
+      { label: 'Терлев', value: (r) => statusLabel(r.status) },
+      { label: 'Актласан үнэ', key: 'write_off_amount' },
+      { label: 'Ашиг/Алдагдал', key: 'gain_loss' },
+    ]);
+  }
+
+  function handleExportDepreciation() {
+    exportToCsv(`hoa_${hoaId}_depreciation_postings.csv`, filteredPostings, [
+      { label: 'үе', value: (p) => formatDate(p.period) },
+      { label: 'Хөрөнгө', value: (p) => p.asset?.name },
+      { label: 'Аргачлал', value: (p) => DEPRECIATION_METHODS[p.method_used] || p.method_used },
+      { label: 'Дүн', key: 'amount' },
+      { label: 'Батлагдсан огноо', value: (p) => formatDateTimeMinutes(p.created_at) },
+    ]);
+  }
+
+  function handleExportRepairs() {
+    exportToCsv(`hoa_${hoaId}_repairs.csv`, repairs.repairs, [
+      { label: 'Хөрөнгө', value: (r) => r.asset?.name },
+      { label: 'Эхэлсэн', value: (r) => r.start_date ? formatDate(r.start_date) : '' },
+      { label: 'Дууссан', value: (r) => r.end_date ? formatDate(r.end_date) : '' },
+      { label: 'Тайлбар', key: 'description' },
+      { label: 'үнэ', key: 'amount' },
+      { label: 'Харилцагч', key: 'provider_org' },
+      { label: 'Капитал засвар', value: (r) => (r.is_capitalized ? 'Тийм' : 'Үгүй') },
+    ]);
+  }
+
+  function handleExportInventory() {
+    const items = inventorySubTab === 'active' ? filteredInventoryItems : inventory.historyItems;
+    exportToCsv(`hoa_${hoaId}_inventory.csv`, items, [
+      { label: 'Бүртгэлийн дугаар', value: (i) => i.asset?.barcode },
+      { label: 'Хөрөнгө', value: (i) => i.asset?.name },
+      { label: 'Терлев', value: (i) => (i.found ? 'Тоологдсон' : 'Тоологдоогүй') },
+      { label: 'Тооллогод бүртгэсэн огноо', value: (i) => i.found_at ? formatDate(i.found_at) : '' },
+    ]);
+  }
+
   // 2026-09-08: Тооллого (физик инвентаризаци) — эхлүүлэх/дуусгах үед
   // тодорхой баталгаажуулалт шаардана (дуусгасны дараа буцаах боломжгүй).
   async function handleStartInventory() {
@@ -391,6 +445,7 @@ export default function FixedAssets() {
           search={search} onSearchChange={setSearch}
           statusFilter={statusFilter} onStatusFilterChange={setStatusFilter}
           onAddClick={() => setAdding(true)} canAdd={can('fixedassets', 'add')}
+          onExportClick={handleExportList}
         />
       )}
       {tab === 'depreciation' && (
@@ -399,6 +454,7 @@ export default function FixedAssets() {
           location={location} onLocationChange={setLocation} locationOptions={locationOptions}
           search={search} onSearchChange={setSearch}
           canAdd={false}
+          onExportClick={handleExportDepreciation}
         />
       )}
       {tab === 'repair' && (
@@ -408,7 +464,7 @@ export default function FixedAssets() {
           </div>
           <div className="flex-1" />
           <button className="ds-btn-secondary">Хэвлэх</button>
-          <button className="ds-btn-secondary">Экспорт</button>
+          <button className="ds-btn-secondary" onClick={handleExportRepairs}>Экспорт</button>
           <button className="ds-btn-primary" onClick={() => setAddingRepair(true)}>Хөрөнгийг засварт шилжүүлэх</button>
         </div>
       )}
@@ -431,15 +487,18 @@ export default function FixedAssets() {
             </select>
             <input type="text" placeholder="Хайх (нэр, бүртгэлийн дугаар, марк/модель)..." className="ds-input min-w-[240px]" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          {!inventory.activeCount ? (
-            <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
-              {inventory.starting ? 'Эхлүүлж байна...' : 'Тооллого эхлүүлэх'}
-            </button>
-          ) : (
-            <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={handleCompleteInventory}>
-              Тооллого дуусгах
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
+            {!inventory.activeCount ? (
+              <button className="ds-btn-primary" disabled={inventory.starting} onClick={handleStartInventory}>
+                {inventory.starting ? 'Эхлүүлж байна...' : 'Тооллого эхлүүлэх'}
+              </button>
+            ) : (
+              <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={handleCompleteInventory}>
+                Тооллого дуусгах
+              </button>
+            )}
+          </div>
         </div>
       )}
       <div className="flex gap-2">
@@ -695,8 +754,9 @@ export default function FixedAssets() {
       )}
       {tab === 'inventory' && inventorySubTab === 'history' && viewingHistoryCountId && (
         <>
-          <div className="ds-toolbar justify-start">
+          <div className="ds-toolbar justify-between">
             <button className="ds-btn-secondary" onClick={() => setViewingHistoryCountId(null)}>← Тооллогын түүх рүү буцах</button>
+            <button className="ds-btn-secondary" onClick={handleExportInventory}>Экспортлох</button>
           </div>
           <div className="ds-table-wrap">
             <div className="flex-1 overflow-auto overscroll-contain">
