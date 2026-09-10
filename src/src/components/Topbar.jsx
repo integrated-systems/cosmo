@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
+import { usePlans } from '../hooks/usePlans';
 import ProfileModal from './ProfileModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
@@ -14,32 +15,50 @@ function formatExpiryDate(iso) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// 2026-09-08 (24): АЛДАА ЗАСАВ — эхний талбар үүрд өөрчлөгддөггүй
+// `trial_ends_at`-ыг л харуулдаг байсан тул, Trial-с бодит багц руу
+// шилжсэний дараа ч хуучин Trial-ийн дуусах огноог (динамикаар
+// солигдохгүйгээр) харуулсаар байв. Одоо `plan_activated_at`
+// (багц СүүЛД идэвхжсэн/солигдсон өдөр — Billing/TenantStatus/
+// Багц ахиулах батлах бүгд үүнийг шинэчилдэг) дээр үндэслэж,
+// САРЫН мөчлөөр (+1 сар) төлбөрийн дараагийн огноог тооцоолж харуулна.
+function addOneMonth(iso) {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { hoaId } = useParams();
-  const [expiryLabel, setExpiryLabel] = useState(null);
+  const { plans } = usePlans();
+  const [tenantInfo, setTenantInfo] = useState(null);
   const [planMenuOpen, setPlanMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   // 2026-08-30: Мессенжерийн push notification-ийг STAFF тал хүлээн
-  // авахын тулд БүРТГүүЛЭХ UI шаардлагатай байсан — өмнв нь ЗӨВХӨН
+  // авахын тулд БүРТГүүЛЭХ UI шаардлагатай байсан — өмнө нь ЗөВХөН
   // OwnerApp-ийн Профайл хуудсанд л ийм товч байсан тул admin/staff
   // хэзээ ч push мэдэгдэл хүлээж авдаггүй байв.
   const { supported: pushSupported, subscribed: pushSubscribed, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushNotifications(hoaId);
 
   // 2026-08-19 хэрэглэгч тодорхой заасан: "Захиалах" товчны дизайн/
   // хүрээг ОГТ өөрчлөхгүйгээр, дотор нь тухайн tenant-ийн Төлбөрийн
-  // хугацаа (trial_ends_at) дуусах огноог YYYY/MM/DD форматаар
-  // харуулна (аль ч багцийн tenant-д хамаарна — зөвхөн Trial биш).
-  // Огноо байхгүй бол хуучин "Захиалах" текст хэвээрээ үлдэнэ.
+  // хугацаа дуусах огноог YYYY/MM/DD форматаар харуулна (аль ч
+  // багцийн tenant-д хамаарна — зөвхөн Trial биш).
+  // 2026-09-08 (24): plan_activated_at+1 сараар тооцоолж, plan_key-г
+  // ч хамт татаж "Сунгах" товчинд идэвхтэй багцын нэрийг харуулна.
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
-    supabase.from('tenants').select('trial_ends_at').eq('id', hoaId).single().then(({ data }) => {
-      if (!cancelled) setExpiryLabel(data?.trial_ends_at ? formatExpiryDate(data.trial_ends_at) : null);
+    supabase.from('tenants').select('plan_key, plan_activated_at').eq('id', hoaId).single().then(({ data }) => {
+      if (!cancelled) setTenantInfo(data || null);
     });
     return () => { cancelled = true; };
   }, [hoaId]);
+
+  const expiryLabel = tenantInfo?.plan_activated_at ? formatExpiryDate(addOneMonth(tenantInfo.plan_activated_at)) : null;
+  const currentPlanLabel = plans.find((p) => p.key === tenantInfo?.plan_key)?.label || null;
 
   // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж
   // match хийнэ.
@@ -47,7 +66,7 @@ export default function Topbar({ theme, onToggleTheme }) {
   const current = ALL_ITEMS.find((i) => i.path === pathAfterHoa);
   // 2026-08-19: "Сонгууль, санал асуулга" хуудасны дэд route-үүд
   // (/voting/new, /voting/:id/edit) яг таарахгүй тул үндсэн Voting
-  // цэсний гарчгийг ашиглана — vv нь тусдаа "Хянах самбар" хуудас
+  // цэсний гарчгийг ашиглана — энэ нь тусдаа "Хянах самбар" хуудас
   // БИШ, зүгээр л үүний нэг хэсэг.
   const votingItem = ALL_ITEMS.find((i) => i.path === '/voting');
   const title = current?.label || (pathAfterHoa.startsWith('/voting') ? votingItem?.label : null) || 'Хянах самбар';
@@ -58,25 +77,21 @@ export default function Topbar({ theme, onToggleTheme }) {
       <span className="text-[14px] font-semibold text-slate-900 dark:text-white">{title}</span>
 
       <div className="flex items-center gap-2">
-      <button
-        onClick={() => {}}
+      <div
         title={expiryLabel ? `Төлбөрийн хугацаа дуусах: ${expiryLabel}` : 'Захиалах'}
         className="h-8 px-3 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
-          flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext hover:text-slate-900
-          dark:hover:text-white transition-colors cursor-pointer"
+          flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext select-none"
       >
         {expiryLabel || 'Захиалах'}
-      </button>
+      </div>
 
-      <button
-        onClick={() => {}}
-        title="Сунгах"
+      <div
+        title={currentPlanLabel || 'Сунгах'}
         className="h-8 px-3 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
-          flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext hover:text-slate-900
-          dark:hover:text-white transition-colors cursor-pointer"
+          flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext select-none"
       >
-        Сунгах
-      </button>
+        {currentPlanLabel || 'Сунгах'}
+      </div>
 
       <button
         onClick={() => navigate(`/${hoaId}/emails`)}
