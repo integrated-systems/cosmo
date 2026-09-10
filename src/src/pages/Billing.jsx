@@ -243,7 +243,7 @@ export default function Billing() {
       </div>
 
       <div>
-        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Хандалт хаагдсан зурвас (Paused дэлгэц)</div>
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Хандах эрх дууссан зурвас (Paused дэлгэц)</div>
         <textarea
           className="ds-input w-full text-[12px] leading-relaxed"
           rows={3}

@@ -50,7 +50,7 @@ export default function TenantSuspendedScreen({ hoaId }) {
   return (
     <div className="h-screen overflow-y-auto flex items-center justify-center bg-sidebg px-6 py-10">
       <div className="max-w-lg w-full text-center">
-        <div className="text-[16px] font-semibold text-white mb-2">Хандалт хаагдсан байна</div>
+        <div className="text-[16px] font-semibold text-white mb-2">Хандах эрх дууссан байна</div>
         <div className="text-[13px] text-mutedtext leading-relaxed mb-6">
           {message}
         </div>
