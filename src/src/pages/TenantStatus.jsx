@@ -138,16 +138,12 @@ export default function TenantStatus() {
   // нээхгүйгээр) солих боломжтой болгов.
   async function handlePlanChange(tenantId, newPlanKey) {
     setSavingId(tenantId);
-    const { data, error } = await supabase
-      .from('tenants')
-      .update({ plan_key: newPlanKey, plan_activated_at: new Date().toISOString() })
-      .eq('id', tenantId)
-      .select()
-      .single();
+    const { error } = await supabase.rpc('reactivate_tenant_plan', { p_tenant_id: tenantId, p_plan_key: newPlanKey });
     setSavingId(null);
     if (error) { window.alert(error.message); return; }
-    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'change_plan', p_details: { new_plan: newPlanKey }, p_target_name: data.name });
-    setRows((prev) => prev.map((r) => (r.id === tenantId ? data : r)));
+    const row = rows.find((r) => r.id === tenantId);
+    supabase.rpc('log_audit_event', { p_tenant_id: tenantId, p_action: 'change_plan', p_details: { new_plan: newPlanKey }, p_target_name: row?.name });
+    await loadTenants();
   }
 
   // Approve: approval_status='approved' болгож, ШИНЭЭР 14 хоногийн
@@ -213,11 +209,7 @@ export default function TenantStatus() {
   async function handleResolveRequest(req, approve) {
     setSavingId(req.tenant_id);
     if (approve) {
-      const { error: tErr } = await supabase.from('tenants').update({
-        plan_key: req.requested_plan_key,
-        status: 'active',
-        plan_activated_at: new Date().toISOString(),
-      }).eq('id', req.tenant_id);
+      const { error: tErr } = await supabase.rpc('reactivate_tenant_plan', { p_tenant_id: req.tenant_id, p_plan_key: req.requested_plan_key });
       if (tErr) { setSavingId(null); window.alert(tErr.message); return; }
     }
     const { error } = await supabase.from('plan_upgrade_requests').update({

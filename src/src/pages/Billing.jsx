@@ -108,10 +108,34 @@ export default function Billing() {
     if (value === 'paid') {
       setTenants((prev) => prev.map((t) => (t.id === tenantId ? { ...t, billing_status: value } : t)));
       const { error } = await supabase.from('tenants').update({ billing_status: value, billing_period_start: new Date().toISOString() }).eq('id', tenantId);
-      if (error) window.alert(error.message);
+      if (error) { window.alert(error.message); return; }
+
+      // 2026-09-08 (28): "Төлөгдсөн" гэж тэмдэглэх бүр аудит бүртгэл
+      // (хэн, хэзээ, хэдэн төгрөг) хадгална.
+      const t = tenants.find((x) => x.id === tenantId);
+      if (t) {
+        const { data: userData } = await supabase.auth.getUser();
+        const unitPrice = prices[t.plan_key] || 0;
+        const units = unitCounts[t.id] || 0;
+        await supabase.from('payment_records').insert({
+          tenant_id: tenantId,
+          plan_key: t.plan_key,
+          unit_price: unitPrice,
+          unit_count: units,
+          amount: unitPrice * units,
+          marked_by: userData?.user?.id || null,
+        });
+      }
     } else {
       await updateTenantField(tenantId, 'billing_status', value);
     }
+  }
+
+  async function changeTenantPlan(tenantId, planKey) {
+    setTenants((prev) => prev.map((t) => (t.id === tenantId ? { ...t, plan_key: planKey, billing_status: 'pending' } : t)));
+    const { error } = await supabase.rpc('reactivate_tenant_plan', { p_tenant_id: tenantId, p_plan_key: planKey });
+    if (error) { window.alert(error.message); return; }
+    await load();
   }
 
   async function updateTenantField(tenantId, field, value) {
@@ -225,7 +249,7 @@ export default function Billing() {
                     <select
                       className="ds-select"
                       value={PLAN_KEYS.includes(t.plan_key) ? t.plan_key : ''}
-                      onChange={(e) => updateTenantField(t.id, 'plan_key', e.target.value)}
+                      onChange={(e) => changeTenantPlan(t.id, e.target.value)}
                     >
                       {!PLAN_KEYS.includes(t.plan_key) && <option value="">{t.plan_key || '—'}</option>}
                       {PLAN_KEYS.map((k) => <option key={k} value={k}>{(labels[k] || k)}</option>)}
