@@ -3,30 +3,16 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
+import { formatDate, planPeriodEnd } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
 import ProfileModal from './ProfileModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
 
-// YYYY/MM/DD формат — хэрэглэгчийн тодорхой заасан.
-function formatExpiryDate(iso) {
-  const d = new Date(iso);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-}
-
-// 2026-09-08 (24): АЛДАА ЗАСАВ — эхний талбар үүрд өөрчлөгддөггүй
-// `trial_ends_at`-ыг л харуулдаг байсан тул, Trial-с бодит багц руу
-// шилжсэний дараа ч хуучин Trial-ийн дуусах огноог (динамикаар
-// солигдохгүйгээр) харуулсаар байв. Одоо `plan_activated_at`
-// (багц СүүЛД идэвхжсэн/солигдсон өдөр — Billing/TenantStatus/
-// Багц ахиулах батлах бүгд үүнийг шинэчилдэг) дээр үндэслэж,
-// САРЫН мөчлөөр (+1 сар) төлбөрийн дараагийн огноог тооцоолж харуулна.
-function addOneMonth(iso) {
-  const d = new Date(iso);
-  d.setMonth(d.getMonth() + 1);
-  return d;
-}
+// 2026-09-08 (25): planPeriodEnd/formatDate-ыг src/lib/format.js
+// руу гаргаж, TenantStatus.jsx-тэй хамт нэг л газраас ашиглана
+// (Rule of two).
 
 export default function Topbar({ theme, onToggleTheme }) {
   const location = useLocation();
@@ -57,7 +43,7 @@ export default function Topbar({ theme, onToggleTheme }) {
     return () => { cancelled = true; };
   }, [hoaId]);
 
-  const expiryLabel = tenantInfo?.plan_activated_at ? formatExpiryDate(addOneMonth(tenantInfo.plan_activated_at)) : null;
+  const expiryLabel = tenantInfo?.plan_activated_at ? formatDate(planPeriodEnd(tenantInfo.plan_activated_at)) : null;
   const currentPlanLabel = plans.find((p) => p.key === tenantInfo?.plan_key)?.label || null;
 
   // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж

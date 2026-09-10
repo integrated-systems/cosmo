@@ -14,8 +14,15 @@ export default function TenantSuspendedScreen({ hoaId }) {
   const [pendingRequest, setPendingRequest] = useState(undefined);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
 
   const paidPlans = plans.filter((p) => p.key !== 'trial');
+
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'suspended_message').single().then(({ data }) => {
+      setMessage(data?.value || '');
+    });
+  }, []);
 
   useEffect(() => {
     if (!hoaId) return;
@@ -45,7 +52,7 @@ export default function TenantSuspendedScreen({ hoaId }) {
       <div className="max-w-lg w-full text-center">
         <div className="text-[16px] font-semibold text-white mb-2">Хандалт хаагдсан байна</div>
         <div className="text-[13px] text-mutedtext leading-relaxed mb-6">
-          Танай байгууллагын турших хугацаа дууссан тул хандалт түр хаагдлаа. Мэдээлэл тань 14 хоногийн турш хадгалагдана — үргэлжлүүлэхийг хүсвэл доорх багцын аль нэгийг сонгож хүсэлт илгээнэ vv.
+          {message}
         </div>
 
         {pendingRequest === undefined && (

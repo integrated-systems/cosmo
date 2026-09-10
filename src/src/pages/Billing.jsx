@@ -43,14 +43,16 @@ export default function Billing() {
   const [labels, setLabels] = useState({});
   const [tenants, setTenants] = useState([]);
   const [unitCounts, setUnitCounts] = useState({});
+  const [suspendedMessage, setSuspendedMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }] = await Promise.all([
+    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }] = await Promise.all([
       supabase.from('package_prices').select('*'),
       fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, status, billing_status, billing_next_date, billing_note')),
       fetchAllRows(() => supabase.from('owners').select('tenant_id')),
+      supabase.from('app_settings').select('value').eq('key', 'suspended_message').single(),
     ]);
 
     const priceMap = {};
@@ -67,6 +69,7 @@ export default function Billing() {
     setUnitCounts(counts);
 
     setTenants(tenantRows || []);
+    setSuspendedMessage(settingsRow?.value || '');
     setLoading(false);
   }
 
@@ -76,6 +79,12 @@ export default function Billing() {
     const num = Number(value) || 0;
     setPrices((prev) => ({ ...prev, [planKey]: num }));
     const { error } = await supabase.from('package_prices').update({ price_per_unit: num }).eq('plan_key', planKey);
+    if (error) window.alert(error.message);
+  }
+
+  async function updateSuspendedMessage(value) {
+    setSuspendedMessage(value);
+    const { error } = await supabase.from('app_settings').update({ value }).eq('key', 'suspended_message');
     if (error) window.alert(error.message);
   }
 
@@ -231,6 +240,16 @@ export default function Billing() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div>
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Хандалт хаагдсан зурвас (Paused дэлгэц)</div>
+        <textarea
+          className="ds-input w-full text-[12px] leading-relaxed"
+          rows={3}
+          defaultValue={suspendedMessage}
+          onBlur={(e) => { if (e.target.value !== suspendedMessage) updateSuspendedMessage(e.target.value); }}
+        />
       </div>
 
       <div className="ds-card p-3 text-[11.5px] text-mutedtext leading-relaxed">

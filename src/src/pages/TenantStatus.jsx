@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { formatDate, planPeriodEnd } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
 import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import EditTenantModal from '../components/EditTenantModal';
@@ -40,12 +41,6 @@ const APPROVAL_COLOR = {
   approved: 'bg-green-500/[0.18] text-customGreen border-green-500/30',
   rejected: 'bg-red-500/[0.18] text-customRed border-red-500/30',
 };
-
-function formatTrialEnds(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-}
 
 // 2026-09-08 (21): Trial дуусаад "Paused" (status='suspended') болсны
 // дараа 14 хоногийн хадгалалтын хугацаа (мэдээлэл устгахгүй) үргэлжилнэ.
@@ -314,8 +309,8 @@ export default function TenantStatus() {
                     ))}
                   </select>
                 </td>
-                <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatTrialEnds(r.plan_activated_at) : '—'}</td>
-                <td className="py-2.5 px-3 whitespace-nowrap">{r.trial_ends_at ? formatTrialEnds(r.trial_ends_at) : '—'}</td>
+                <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatDate(r.plan_activated_at) : '—'}</td>
+                <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatDate(planPeriodEnd(r.plan_activated_at)) : '—'}</td>
                 <td className="py-2.5 px-3">
                   {r.approval_status !== 'approved' ? (
                     <span className="text-mutedtext text-[12px]">—</span>

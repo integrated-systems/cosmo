@@ -10,6 +10,16 @@ export function formatDate(date) {
   return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())}`;
 }
 
+// 2026-09-08 (25): Багцын сарын мөчлөгийн дуусах огноо — plan_activated_at
+// + 1 сар. Topbar.jsx болон TenantStatus.jsx хоёулаа ашигладаг тул
+// нэг л газраас гаргав (Rule of two).
+export function planPeriodEnd(planActivatedAt) {
+  if (!planActivatedAt) return null;
+  const d = new Date(planActivatedAt);
+  d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
 export function formatTime(date) {
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d)) return '';
