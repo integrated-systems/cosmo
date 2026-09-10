@@ -22,13 +22,11 @@ import { useConfirm } from '../hooks/useConfirm';
 const STATUS_OPTIONS = [
   { key: 'active', label: 'Active' },
   { key: 'suspended', label: 'Paused' },
-  { key: 'cancelled', label: 'Stopped' },
 ];
 
 const STATUS_COLOR = {
   active: 'bg-green-500/[0.18] text-customGreen border-green-500/30',
   suspended: 'bg-orange-500/[0.18] text-customOrange border-orange-500/30',
-  cancelled: 'bg-red-500/[0.18] text-customRed border-red-500/30',
 };
 
 const APPROVAL_LABEL = {
@@ -48,10 +46,18 @@ const APPROVAL_COLOR = {
 // АВТОМАТААР УСТГАХГҮЙ, зөвхөн SUPERSYSADMIN-ийг гар аргаар (аль
 // хэдийн байгаа "Устгах" товч+баталгаажуулалт) шалгаж үзэхийг
 // урьдчилан анхааруулна.
-function isReadyForDeletion(row) {
-  if (row.plan_key !== 'trial' || row.status !== 'suspended' || !row.trial_ends_at) return false;
-  const graceEnd = new Date(row.trial_ends_at);
-  graceEnd.setDate(graceEnd.getDate() + 14);
+// 2026-09-08 (27): Trial болон төлбөртэй tenant хоёуланд нь ижил
+// зарчмаар (paused_at үндэс) ажиллана, гэхдээ хадгалалтын хугацаа
+// нь ялгаатай (Trial=14 хоног, Төлбөртэй=6 сар) — Billing хуудсанд
+// SUPERSYSADMIN тохируулдаг app_settings-ээс уншина.
+function isReadyForDeletion(row, retentionSettings) {
+  if (row.status !== 'suspended' || !row.paused_at) return false;
+  const graceEnd = new Date(row.paused_at);
+  if (row.plan_key === 'trial') {
+    graceEnd.setDate(graceEnd.getDate() + (retentionSettings.trialDays || 14));
+  } else {
+    graceEnd.setMonth(graceEnd.getMonth() + (retentionSettings.paidMonths || 6));
+  }
   return new Date() > graceEnd;
 }
 
@@ -60,11 +66,23 @@ export default function TenantStatus() {
   const [rows, setRows] = useState([]);
   const [adminEmails, setAdminEmails] = useState({});
   const [upgradeRequests, setUpgradeRequests] = useState([]);
+  const [retentionSettings, setRetentionSettings] = useState({ trialDays: 14, paidMonths: 6 });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [savingId, setSavingId] = useState(null);
   const [editing, setEditing] = useState(null);
   const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    supabase.from('app_settings').select('key, value').in('key', ['trial_retention_days', 'paid_retention_months']).then(({ data }) => {
+      const map = {};
+      (data || []).forEach((r) => { map[r.key] = r.value; });
+      setRetentionSettings({
+        trialDays: Number(map.trial_retention_days) || 14,
+        paidMonths: Number(map.paid_retention_months) || 6,
+      });
+    });
+  }, []);
 
   async function loadTenants() {
     setLoading(true);
@@ -212,8 +230,8 @@ export default function TenantStatus() {
   }
 
   async function handleDelete(row) {
-    const graceMsg = isReadyForDeletion(row)
-      ? ` Trial дуусаад 14 хоногийн хадгалалтын хугацаа аль хэдийн дууссан байна.`
+    const graceMsg = isReadyForDeletion(row, retentionSettings)
+      ? ` Хадгалалтын хугацаа (${row.plan_key === 'trial' ? retentionSettings.trialDays + ' хоног' : retentionSettings.paidMonths + ' сар'}) аль хэдийн дууссан байна.`
       : '';
     if (!(await confirm(`"${row.name}" СӨХ-ыг бүрмөсөн устгах уу?${graceMsg} Энэ үйлдлийг буцаах боломжгүй (өмчлөгч/зах зээлийн дата хамт устана).`))) return;
     await supabase.rpc('log_audit_event', { p_tenant_id: row.id, p_action: 'delete_tenant', p_target_name: row.name });
@@ -326,8 +344,8 @@ export default function TenantStatus() {
                           <option key={s.key} value={s.key}>{s.label}</option>
                         ))}
                       </select>
-                      {isReadyForDeletion(r) && (
-                        <div className="mt-1 text-[10.5px] font-semibold text-customRed">⚠ Устгахад бэлэн (14 хоног үнгэрсэн)</div>
+                      {isReadyForDeletion(r, retentionSettings) && (
+                        <div className="mt-1 text-[10.5px] font-semibold text-customRed">⚠ Устгахад бэлэн (хадгалалтын хугацаа үнгэрсэн)</div>
                       )}
                     </>
                   )}

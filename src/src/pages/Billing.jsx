@@ -44,16 +44,25 @@ export default function Billing() {
   const [tenants, setTenants] = useState([]);
   const [unitCounts, setUnitCounts] = useState({});
   const [suspendedMessage, setSuspendedMessage] = useState('');
+  const [retention, setRetention] = useState({ trial_retention_days: 14, paid_retention_months: 6 });
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }] = await Promise.all([
+    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }, { data: retentionRows }] = await Promise.all([
       supabase.from('package_prices').select('*'),
       fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, status, billing_status, billing_next_date, billing_note')),
       fetchAllRows(() => supabase.from('owners').select('tenant_id')),
       supabase.from('app_settings').select('value').eq('key', 'suspended_message').single(),
+      supabase.from('app_settings').select('key, value').in('key', ['trial_retention_days', 'paid_retention_months']),
     ]);
+
+    const retentionMap = {};
+    (retentionRows || []).forEach((r) => { retentionMap[r.key] = r.value; });
+    setRetention({
+      trial_retention_days: Number(retentionMap.trial_retention_days) || 14,
+      paid_retention_months: Number(retentionMap.paid_retention_months) || 6,
+    });
 
     const priceMap = {};
     const labelMap = {};
@@ -82,10 +91,27 @@ export default function Billing() {
     if (error) window.alert(error.message);
   }
 
+  async function updateRetentionSetting(key, value) {
+    const num = Number(value) || 0;
+    setRetention((prev) => ({ ...prev, [key]: num }));
+    const { error } = await supabase.from('app_settings').update({ value: String(num) }).eq('key', key);
+    if (error) window.alert(error.message);
+  }
+
   async function updateSuspendedMessage(value) {
     setSuspendedMessage(value);
     const { error } = await supabase.from('app_settings').update({ value }).eq('key', 'suspended_message');
     if (error) window.alert(error.message);
+  }
+
+  async function updateBillingStatus(tenantId, value) {
+    if (value === 'paid') {
+      setTenants((prev) => prev.map((t) => (t.id === tenantId ? { ...t, billing_status: value } : t)));
+      const { error } = await supabase.from('tenants').update({ billing_status: value, billing_period_start: new Date().toISOString() }).eq('id', tenantId);
+      if (error) window.alert(error.message);
+    } else {
+      await updateTenantField(tenantId, 'billing_status', value);
+    }
   }
 
   async function updateTenantField(tenantId, field, value) {
@@ -213,7 +239,7 @@ export default function Billing() {
                     <select
                       className={`ds-select font-semibold ${STATUS_OPTIONS.find((s) => s.key === t.billing_status)?.className || ''}`}
                       value={t.billing_status || 'paid'}
-                      onChange={(e) => updateTenantField(t.id, 'billing_status', e.target.value)}
+                      onChange={(e) => updateBillingStatus(t.id, e.target.value)}
                     >
                       {STATUS_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                     </select>
@@ -250,6 +276,32 @@ export default function Billing() {
           defaultValue={suspendedMessage}
           onBlur={(e) => { if (e.target.value !== suspendedMessage) updateSuspendedMessage(e.target.value); }}
         />
+        <div className="grid grid-cols-2 gap-[10px] mt-2">
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Trial tenant-ийн хадгалалтын хугацаа</div>
+            <div className="flex items-baseline gap-1.5">
+              <input
+                type="number" min="0" step="1"
+                className="ds-input w-20 text-[15px] font-bold"
+                value={retention.trial_retention_days}
+                onChange={(e) => updateRetentionSetting('trial_retention_days', e.target.value)}
+              />
+              <span className="text-[11px] text-mutedtext">хоног</span>
+            </div>
+          </div>
+          <div className="ds-card p-3">
+            <div className="text-[11px] text-mutedtext mb-1.5">Төлбөртэй tenant-ийн хадгалалтын хугацаа</div>
+            <div className="flex items-baseline gap-1.5">
+              <input
+                type="number" min="0" step="1"
+                className="ds-input w-20 text-[15px] font-bold"
+                value={retention.paid_retention_months}
+                onChange={(e) => updateRetentionSetting('paid_retention_months', e.target.value)}
+              />
+              <span className="text-[11px] text-mutedtext">сар</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="ds-card p-3 text-[11.5px] text-mutedtext leading-relaxed">

@@ -37,7 +37,7 @@ export default function Topbar({ theme, onToggleTheme }) {
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
-    supabase.from('tenants').select('plan_key, plan_activated_at').eq('id', hoaId).single().then(({ data }) => {
+    supabase.from('tenants').select('plan_key, plan_activated_at, billing_status').eq('id', hoaId).single().then(({ data }) => {
       if (!cancelled) setTenantInfo(data || null);
     });
     return () => { cancelled = true; };
@@ -45,6 +45,9 @@ export default function Topbar({ theme, onToggleTheme }) {
 
   const expiryLabel = tenantInfo?.plan_activated_at ? formatDate(planPeriodEnd(tenantInfo.plan_activated_at)) : null;
   const currentPlanLabel = plans.find((p) => p.key === tenantInfo?.plan_key)?.label || null;
+  // 2026-09-08 (27): Төлбөрийн "Хугацаа хэтэрсэн" (billing_status===
+  // 'overdue') үед Багц дуусах огноог улаанаар анивчуулж анхааруулна.
+  const isOverdue = tenantInfo?.billing_status === 'overdue';
 
   // URL нь /:hoaId/xxx хэлбэртэй тул эхний segment-ийг (hoaId) тайлж
   // match хийнэ.
@@ -65,8 +68,11 @@ export default function Topbar({ theme, onToggleTheme }) {
       <div className="flex items-center gap-2">
       <div
         title={expiryLabel ? `Төлбөрийн хугацаа дуусах: ${expiryLabel}` : 'Захиалах'}
-        className="h-8 px-3 rounded-lg border border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg
-          flex items-center justify-center text-[12px] font-medium text-slate-600 dark:text-mutedtext select-none"
+        className={`h-8 px-3 rounded-lg border flex items-center justify-center text-[12px] font-medium select-none ${
+          isOverdue
+            ? 'border-red-500/50 bg-red-500/10 text-customRed animate-pulse'
+            : 'border-slate-200 dark:border-bordercol bg-slate-50 dark:bg-sidebg text-slate-600 dark:text-mutedtext'
+        }`}
       >
         {expiryLabel || 'Захиалах'}
       </div>
