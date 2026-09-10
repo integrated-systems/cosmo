@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MENU_SECTIONS, SUPERSYSADMIN, SUPERSYSADMIN_TENANT_ITEMS } from '../config/menu';
 import { MailIcon, SunIcon, MoonIcon, SettingsIcon } from './icons/Icons';
 import { supabase } from '../lib/supabaseClient';
-import { formatDate, planPeriodEnd } from '../lib/format';
+import { formatDate, tenantPlanEndDate } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
 import ProfileModal from './ProfileModal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -37,13 +37,14 @@ export default function Topbar({ theme, onToggleTheme }) {
   useEffect(() => {
     if (!hoaId) return;
     let cancelled = false;
-    supabase.from('tenants').select('plan_key, plan_activated_at, billing_status').eq('id', hoaId).single().then(({ data }) => {
+    supabase.from('tenants').select('plan_key, plan_activated_at, billing_status, trial_ends_at').eq('id', hoaId).single().then(({ data }) => {
       if (!cancelled) setTenantInfo(data || null);
     });
     return () => { cancelled = true; };
   }, [hoaId]);
 
-  const expiryLabel = tenantInfo?.plan_activated_at ? formatDate(planPeriodEnd(tenantInfo.plan_activated_at)) : null;
+  const expiryDate = tenantPlanEndDate(tenantInfo);
+  const expiryLabel = expiryDate ? formatDate(expiryDate) : null;
   const currentPlanLabel = plans.find((p) => p.key === tenantInfo?.plan_key)?.label || null;
   // 2026-09-08 (27): Төлбөрийн "Хугацаа хэтэрсэн" (billing_status===
   // 'overdue') үед Багц дуусах огноог улаанаар анивчуулж анхааруулна.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { formatDate, planPeriodEnd } from '../lib/format';
+import { formatDate, tenantPlanEndDate } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
 import { EditIcon, DeleteIcon } from '../components/icons/Icons';
 import EditTenantModal from '../components/EditTenantModal';
@@ -320,7 +320,9 @@ export default function TenantStatus() {
                   </select>
                 </td>
                 <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatDate(r.plan_activated_at) : '—'}</td>
-                <td className="py-2.5 px-3 whitespace-nowrap">{r.plan_activated_at ? formatDate(planPeriodEnd(r.plan_activated_at)) : '—'}</td>
+                <td className="py-2.5 px-3 whitespace-nowrap">
+                  {(() => { const d = tenantPlanEndDate(r); return d ? formatDate(d) : '—'; })()}
+                </td>
                 <td className="py-2.5 px-3">
                   {r.approval_status !== 'approved' ? (
                     <span className="text-mutedtext text-[12px]">—</span>

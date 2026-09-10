@@ -20,6 +20,20 @@ export function planPeriodEnd(planActivatedAt) {
   return d;
 }
 
+// 2026-09-08 (29): АЛДАА ЗАСАВ — Trial бол сарын төлбөрийн мөчлөгтэй
+// БИШ (14 хоногийн тоолуур, trial_ends_at) тул planPeriodEnd()-ыг
+// үүнд ашиглах нь буруу үр дүн (`+1 сар`, утга учиргүй) өгдөг байв.
+// Topbar.jsx болон TenantStatus.jsx хоёулаа ЭНЭ нэг функцээр
+// дамжина (Rule of two) — plan_key-ээс хамааран зөв эх сурвалжийг
+// (trial_ends_at vs planPeriodEnd(plan_activated_at)) сонгоно.
+export function tenantPlanEndDate(tenant) {
+  if (!tenant) return null;
+  if (tenant.plan_key === 'trial') {
+    return tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null;
+  }
+  return tenant.plan_activated_at ? planPeriodEnd(tenant.plan_activated_at) : null;
+}
+
 export function formatTime(date) {
   const d = date instanceof Date ? date : new Date(date);
   if (isNaN(d)) return '';
