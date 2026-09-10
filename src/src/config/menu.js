@@ -99,11 +99,11 @@ export const SUPERSYSADMIN = { key: 'supersysadmin', label: 'SUPERSYSADMIN', pat
 // өөрийн оршин суугчид руу чиглэсэн PaymentConfig-тай АНДУУРАХГҮЙ).
 // Нэрс зориудаар англиар — Монгол орчуулгаар ойлголтын зөрүү гарахгүйн тулд.
 export const SUPERSYSADMIN_TENANT_ITEMS = [
-  { key: 'billing', label: 'Billing', path: '/billing' },
-  { key: 'renewal', label: 'Renewal', path: '/renewal' },
   { key: 'plan', label: 'Plan', path: '/plan' },
-  { key: 'usage', label: 'Usage', path: '/usage' },
+  { key: 'billing', label: 'Billing', path: '/billing' },
   { key: 'tenantstatus', label: 'Tenant Status', path: '/tenant-status' },
+  { key: 'renewal', label: 'Renewal records', path: '/renewal' },
+  { key: 'usage', label: 'Usage', path: '/usage' },
   { key: 'contract', label: 'Contract', path: '/contract' },
   { key: 'support', label: 'Support', path: '/support' },
 ];
