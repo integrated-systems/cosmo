@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatDate } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
+import { computeTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
 
 // SUPERSYSADMIN "Usage" хуудас — 2026-09-08 (31): Supabase-ийн дэд
 // бүтцийн хэрэглээ (file storage, egress г.м.) БИШ, харин Cosmo
@@ -16,16 +17,29 @@ export default function Usage() {
   const [ownerCounts, setOwnerCounts] = useState({});
   const [unitCounts, setUnitCounts] = useState({});
   const [assetCounts, setAssetCounts] = useState({});
+  const [globalStats, setGlobalStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [{ data: tenantRows }, { data: ownerRows }, { data: unitRows }, { data: assetRows }] = await Promise.all([
+      const [
+        { data: tenantRows }, { data: ownerRows }, { data: unitRows }, { data: assetRows },
+        { data: fullOwnerRows }, { data: fullClienteleRows }, { data: layoutRows }, { data: parkingRows }, { data: storageRows }, { data: providerRows },
+      ] = await Promise.all([
         fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, created_at')),
         fetchAllRows(() => supabase.from('owners').select('tenant_id')),
         fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id')),
         fetchAllRows(() => supabase.from('fixed_assets').select('tenant_id')),
+        // 2026-09-08 (32): Зүүн Sidebar-ийн доод инфо картын мврүүдийг
+        // (Sidebar.jsx, useTenantStats.js-тэй ИЖИЛ логик, Rule of two)
+        // БүХ tenant-ээр нь нэгтгэн Usage хуудсанд ч харуулав.
+        fetchAllRows(() => supabase.from('owners').select('tenant_id,people_count,child_0_5,child_6_18,storages,parkings,vehicles')),
+        fetchAllRows(() => supabase.from('clientele').select('tenant_id,storages,parkings,vehicles')),
+        fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('hidden', false)),
+        fetchAllRows(() => supabase.from('unit_parking').select('id').eq('hidden', false)),
+        fetchAllRows(() => supabase.from('unit_storage').select('id').eq('hidden', false)),
+        fetchAllRows(() => supabase.from('providers').select('id')),
       ]);
       setTenants(tenantRows || []);
       const countBy = (rows) => {
@@ -36,6 +50,14 @@ export default function Usage() {
       setOwnerCounts(countBy(ownerRows));
       setUnitCounts(countBy(unitRows));
       setAssetCounts(countBy(assetRows));
+      setGlobalStats(computeTenantStats(
+        fullOwnerRows || [],
+        fullClienteleRows || [],
+        layoutRows || [],
+        parkingRows || [],
+        storageRows || [],
+        providerRows || [],
+      ));
       setLoading(false);
     }
     load();
@@ -70,6 +92,54 @@ export default function Usage() {
           <div className="text-[19px] font-bold">{totalAssets}</div>
         </div>
       </div>
+
+      {globalStats && (
+        <div>
+          <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Бүх СӨХ-үүдийн нэгтгэсэн статистик (Sidebar-ийн инфо картын нийлбэр)</div>
+          <div className="grid grid-cols-5 gap-[10px]">
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Байр · Орц</div>
+              <div className="text-[16px] font-bold">{globalStats.buildingCount} · {globalStats.entranceCount}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Оршин суугч</div>
+              <div className="text-[16px] font-bold">{globalStats.residentCount}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Хүүхэд 0-5 нас</div>
+              <div className="text-[16px] font-bold">{globalStats.child05}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Хүүхэд 6-18 нас</div>
+              <div className="text-[16px] font-bold">{globalStats.child618}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Тоот</div>
+              <div className="text-[16px] font-bold">{formatOwnedRatio(globalStats.toot.owned, globalStats.toot.total)}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Зогсоол</div>
+              <div className="text-[16px] font-bold">{formatOwnedRatio(globalStats.parking.owned, globalStats.parking.total)}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Агуулах</div>
+              <div className="text-[16px] font-bold">{formatOwnedRatio(globalStats.storage.owned, globalStats.storage.total)}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Бүртгэлтэй машин</div>
+              <div className="text-[16px] font-bold">{globalStats.vehicleCount}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Талбай өмчлөгч</div>
+              <div className="text-[16px] font-bold">{globalStats.talbaiOwnerCount}</div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] text-mutedtext mb-1.5">Харилцагч байгууллага</div>
+              <div className="text-[16px] font-bold">{globalStats.harilzagchCount}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Tenant тус бүрийн хэрэглээ</div>
