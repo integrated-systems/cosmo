@@ -41,7 +41,7 @@ export const MENU_SECTIONS = [
     title: 'ДОТООД ҮЙЛ АЖИЛЛАГАА',
     groupKey: 'hoamanager',
     items: [
-      { key: 'hrm', label: 'Хүний нөөцийн удирдлага', path: '/hrm' },
+      { key: 'hrm', label: 'Ажилтны бүртгэл', path: '/hrm' },
       { key: 't&a', label: 'Цаг бүртгэл', path: '/ta' },
       { key: 'repairs', label: 'Засвар үйлчилгээ', path: '/repairs' },
       { key: 'maintenances', label: 'Тохижилт үйлчилгээ', path: '/maintenances' },
