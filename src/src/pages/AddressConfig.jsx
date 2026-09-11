@@ -317,7 +317,7 @@ function UnitLayoutDesigner() {
             <div className="flex items-end gap-3">
               {bld.entrances.map((entrance) => (
                 <div key={entrance.id} className="shrink-0 flex flex-col">
-                  <div className="flex flex-col gap-1 mb-1 w-fit">
+                  <div className="flex justify-center gap-1 mb-1 w-full">
                     <button
                       onClick={() => addFloor(bld.id, entrance.id)}
                       title="Давхар нэмэх"
@@ -330,13 +330,13 @@ function UnitLayoutDesigner() {
                       onClick={() => removeFloor(bld.id, entrance.id)}
                       title="Давхар хасах"
                       style={{ height: '24px', width: '24px' }}
-                      className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
+                      className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center shrink-0"
                     >
                       <ChevronDownIcon />
                     </button>
                   </div>
 
-                  <div className="flex items-start gap-1">
+                  <div className="flex items-center gap-1">
                     <div className="flex flex-col gap-1">
                       {entrance.floors.map((floor) => (
                         <div key={floor.id} className="flex items-center gap-2">
@@ -375,7 +375,7 @@ function UnitLayoutDesigner() {
                         onClick={() => removeUnitColumn(bld.id, entrance.id)}
                         title="Тоот хасах"
                         style={{ width: '24px', height: '24px' }}
-                        className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
+                        className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center shrink-0"
                       >
                         <ChevronLeftIcon />
                       </button>
