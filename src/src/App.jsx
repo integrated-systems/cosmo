@@ -22,6 +22,7 @@ import Accounts from './pages/Accounts';
 import Logs from './pages/Logs';
 import UserAppConfig from './pages/UserAppConfig';
 import { useTenantGate } from './hooks/useTenantGate';
+import TenantGateScreen from './components/TenantGateScreen';
 import UserApp from './UserApp';
 import NewsPage from './pages/News';
 import Providers from './pages/Providers';
@@ -118,6 +119,29 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
   // (useTenantGate hook-oor хуваалцдаг).
   const { isPending, isRejected, isDeactivated } = useTenantGate();
 
+  // 2026-09-09 (34): АЛДАА ЗАСАВ — эдгээр 3 төлөвт (батлагдаагүй,
+  // татгалзсан, идэвхгүй) ч Sidebar/Topbar (бүтэн менү бүтэц) үргэлж
+  // харагддаг байсан, зөвхөн гол контентын хэсэг "Хүлээгдэж байна"
+  // гэсэн зурвасаар сэлгэгддэг байв. Бодит мэдээлэл алдагдаагүй ч
+  // (Outlet хэзээ ч зурагддаггүй) UX-ийн хувьд зохимжгүй (батлагдаагүй
+  // хэрэглэгчид бүтэн менү харуулах шаардлагагүй) байсан тул
+  // TenantSuspendedScreen.jsx-тэй ижил зарчимаар бүтэн дэлгэц
+  // (Sidebar/Topbar-гүй) харуулдаг болгов.
+  if (isDeactivated) {
+    return <TenantGateScreen icon="🚫" title="Нэвтрэх эрхгүй бүртгэлийн хаяг" />;
+  }
+  if (isPending || isRejected) {
+    return (
+      <TenantGateScreen
+        icon={isPending ? '⏳' : '🚫'}
+        title={isPending ? 'Хүлээгдэж байна' : 'Хүсэлт татгалзагдсан'}
+        message={isPending
+          ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ үү.'
+          : 'Уучлаарай, таны үүсгэсэн СӨХ-ны хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
+      />
+    );
+  }
+
   return (
     <div className="h-screen overflow-hidden flex font-sans text-[13px] bg-white dark:bg-appbg text-slate-800 dark:text-white">
       <Sidebar isOpen={isOpen} isMobile={isMobile} onToggle={onToggle} isSuperSysAdmin={isSuperSysAdmin} />
@@ -129,26 +153,7 @@ function Layout({ theme, onToggleTheme, isOpen, isMobile, onToggle }) {
         <Topbar theme={theme} onToggleTheme={onToggleTheme} />
 
         <div ref={scrollRef} className="flex-1 min-w-0 p-2.5 overflow-y-auto overflow-x-auto bg-slate-100 dark:bg-appbg flex flex-col gap-2.5">
-          {isDeactivated ? (
-            <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
-              <div className="text-4xl">🚫</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white">Нэвтрэх эрхгүй бүртгэлийн хаяг</div>
-            </div>
-          ) : isPending || isRejected ? (
-            <div className="ds-card p-8 flex flex-col items-center justify-center text-center gap-3" style={{ minHeight: '60vh' }}>
-              <div className="text-4xl">{isPending ? '⏳' : '🚫'}</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-white">
-                {isPending ? 'Хүлээгдэж байна' : 'Хүсэлт татгалзагдсан'}
-              </div>
-              <div className="text-sm text-slate-500 dark:text-mutedtext max-w-md">
-                {isPending
-                  ? 'Таны үүсгэсэн СӨХ SuperSysAdmin-ийн зөвшөөрлийг хүлээж байна. Зөвшөөрсний дараа энэ хуудас руу дахин орж үзнэ уу.'
-                  : 'Уучлаарай, таны үүсгэсэн СӨХ-ны хүсэлтийг зөвшөөргдөөгүй. Дэлгэрэнгүй мэдээлэл авахыг хүсвэл СӨХ үйлчилгээ үзүүлэгчтэй холбогдоно уу.'}
-              </div>
-            </div>
-          ) : (
-            <Outlet />
-          )}
+          <Outlet />
           <div className="text-center text-[10.5px] text-darktext py-2">© 2026 Integrated Systems</div>
         </div>
       </div>
