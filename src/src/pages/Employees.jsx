@@ -321,6 +321,7 @@ async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCod
   const period = new Date().toISOString().slice(0, 7);
   const { data: entry, error: entryError } = await supabase.from('journal_entries').insert({
     tenant_id: hoaId,
+    period,
     description: `${period} сарын цалингийн журнал`,
     source_type: 'payroll',
     created_by: userId || null,
@@ -338,6 +339,8 @@ async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCod
 
 function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode }) {
   const [posting, setPosting] = useState(false);
+  const [alreadyPostedPeriod, setAlreadyPostedPeriod] = useState(undefined);
+  const currentPeriod = new Date().toISOString().slice(0, 7);
   const activeEmployees = employees.filter((e) => e.status === 'active');
   const rows = activeEmployees.map((e) => ({ e, calc: computePayroll(e, ndshTax, hhoatTax, additionsByCode) }));
   const totals = rows.reduce((acc, r) => ({
@@ -348,16 +351,29 @@ function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode }
     employerCost: acc.employerCost + r.calc.employerCost,
   }), { gross: 0, ndsh: 0, hhoat: 0, net: 0, employerCost: 0 });
 
+  useEffect(() => {
+    if (!hoaId) return;
+    supabase.from('journal_entries').select('id').eq('tenant_id', hoaId).eq('source_type', 'payroll').eq('period', currentPeriod).maybeSingle().then(({ data }) => {
+      setAlreadyPostedPeriod(!!data);
+    });
+  }, [hoaId, currentPeriod]);
+
   async function handlePost() {
-    if (rows.length === 0) return;
+    if (rows.length === 0 || alreadyPostedPeriod) return;
     if (!window.confirm('Энэ сарын цалингийн журналын бичилтийг үүсгэх үү? Үүнийг буцаах боломжгүй (шинэ буцаах бичилт хийх шаардлагатай болно).')) return;
     setPosting(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       await postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCode, userData?.user?.id);
       window.alert('Журналын бичилт амжилттай үүслээ. "Нягтлан бодох бүртгэл" хуудаснаас харна уу.');
+      setAlreadyPostedPeriod(true);
     } catch (err) {
-      window.alert(err.message);
+      if (err.code === '23505') {
+        window.alert('Энэ сарын цалингийн журнал аль хэдийн үүссэн байна — дахин үүсгэх боломжгүй.');
+        setAlreadyPostedPeriod(true);
+      } else {
+        window.alert(err.message);
+      }
     }
     setPosting(false);
   }
@@ -369,8 +385,13 @@ function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode }
         <div className="flex gap-2 shrink-0">
           <button className="ds-btn-secondary">Хэвлэх</button>
           <button className="ds-btn-secondary">Экспорт</button>
-          <button className="ds-btn-primary" onClick={handlePost} disabled={posting || rows.length === 0}>
-            {posting ? 'үүсгэж байна...' : 'Цалин төлөх (журнал үүсгэх)'}
+          <button
+            className="ds-btn-primary"
+            onClick={handlePost}
+            disabled={posting || rows.length === 0 || alreadyPostedPeriod || alreadyPostedPeriod === undefined}
+            title={alreadyPostedPeriod ? 'Энэ сард аль хэдийн журнал үүссэн байна' : ''}
+          >
+            {posting ? 'үүсгэж байна...' : alreadyPostedPeriod ? `${currentPeriod} сар төлөгдсөн` : 'Цалин төлөх (журнал үүсгэх)'}
           </button>
         </div>
       </div>

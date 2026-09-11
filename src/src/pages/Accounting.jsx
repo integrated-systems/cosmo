@@ -7,6 +7,37 @@ import { formatMoney, formatDateTimeMinutes } from '../lib/format';
 import TabButton from '../components/TabButton';
 import { useChartOfAccounts } from '../hooks/useChartOfAccounts';
 
+// 2026-09-09: Журналын бүх мөрийг татах логикийг НЭГ л газраас
+// (Rule of two) — Тэнцвэржүүлсэн тайлан, Орлого зарлагын тайлан,
+// Тэнцэл 3 таб бүгд ЭНЭ hook-ыг ашиглана.
+function useAllJournalLines(hoaId) {
+  const [lines, setLines] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!hoaId) return;
+    setLoading(true);
+    fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id)').eq('journal_entries.tenant_id', hoaId)).then(({ data }) => {
+      setLines(data || []);
+      setLoading(false);
+    });
+  }, [hoaId]);
+  return { lines, loading };
+}
+
+// Хөрөнгө/Зардал ангилал Дт үлдэгдэлтэй, өглөг/Эздийн эрх/Орлого
+// ангилал Кт үлдэгдэлтэй байдаг стандарт зарчим.
+const DEBIT_NORMAL_CATEGORIES = ['cash', 'short_term_investment', 'receivable', 'inventory', 'prepaid_expense', 'fixed_asset', 'expense'];
+const ASSET_CATEGORIES = ['cash', 'short_term_investment', 'receivable', 'inventory', 'prepaid_expense', 'fixed_asset'];
+
+function accountBalance(acc, lines) {
+  const accLines = lines.filter((l) => l.account_code === acc.code);
+  const totalDebit = accLines.reduce((s, l) => s + Number(l.debit), 0);
+  const totalCredit = accLines.reduce((s, l) => s + Number(l.credit), 0);
+  const isDebitNormal = DEBIT_NORMAL_CATEGORIES.includes(acc.category);
+  const balance = isDebitNormal ? totalDebit - totalCredit : totalCredit - totalDebit;
+  return { totalDebit, totalCredit, balance, isDebitNormal };
+}
+
 // "Нягтлан бодох бүртгэл" (/accounting) — 2026-09-09, Ажилтны
 // бүртгэлийн 4-р (сүүлийн) үе шат. "Дансны төлөвлөгөө" таб (эх
 // сурвалж), "Журналын бичилт" таб (Ажилтны бүртгэл-с "Цалин төлөх"
@@ -116,29 +147,11 @@ function JournalEntriesTab({ hoaId }) {
 
 function TrialBalanceTab({ hoaId }) {
   const { accounts, loading: accountsLoading, categoryLabels } = useChartOfAccounts(hoaId);
-  const [lines, setLines] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!hoaId) return;
-    setLoading(true);
-    fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id)').eq('journal_entries.tenant_id', hoaId)).then(({ data }) => {
-      setLines(data || []);
-      setLoading(false);
-    });
-  }, [hoaId]);
-
-  // 2026-09-09: Хөрөнгө/Зардал ангилал Дт үлдэгдэлтэй, өглөг/Эздийн
-  // эрх/Орлого ангилал Кт үлдэгдэлтэй байдаг стандарт зарчим.
-  const DEBIT_NORMAL_CATEGORIES = ['cash', 'short_term_investment', 'receivable', 'inventory', 'prepaid_expense', 'fixed_asset', 'expense'];
+  const { lines, loading } = useAllJournalLines(hoaId);
 
   const rows = accounts.map((acc) => {
-    const accLines = lines.filter((l) => l.account_code === acc.code);
-    const totalDebit = accLines.reduce((s, l) => s + Number(l.debit), 0);
-    const totalCredit = accLines.reduce((s, l) => s + Number(l.credit), 0);
+    const { totalDebit, totalCredit, balance, isDebitNormal } = accountBalance(acc, lines);
     if (totalDebit === 0 && totalCredit === 0) return null;
-    const isDebitNormal = DEBIT_NORMAL_CATEGORIES.includes(acc.category);
-    const balance = isDebitNormal ? totalDebit - totalCredit : totalCredit - totalDebit;
     return { acc, totalDebit, totalCredit, balance, isDebitNormal };
   }).filter(Boolean);
 
@@ -199,20 +212,178 @@ function TrialBalanceTab({ hoaId }) {
   );
 }
 
+// "Орлого, зарлагын тайлан" (Income Statement) — Орлогын данснуудын
+// нийлбэрээс Зардлын данснуудын нийлбэрийг хасаж, цэвэр ашиг/
+// алдагдлыг тооцно.
+function IncomeStatementTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  const incomeRows = accounts.filter((a) => a.category === 'income').map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+  const expenseRows = accounts.filter((a) => a.category === 'expense').map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+  const totalIncome = incomeRows.reduce((s, r) => s + r.balance, 0);
+  const totalExpense = expenseRows.reduce((s, r) => s + r.balance, 0);
+  const netResult = totalIncome - totalExpense;
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Одоогийн бүх журналын бичилтэд үндэслэсэн орлого, зарлагын нэгтгэсэн тайлан.
+      </div>
+      {(loading || accountsLoading) ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className="ds-card p-3">
+            <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Орлого</div>
+            {incomeRows.length === 0 ? (
+              <div className="text-[12px] text-mutedtext">Орлогын бичилт бүртгэгдээгүй байна</div>
+            ) : incomeRows.map((r) => (
+              <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+                <span>{r.acc.code} — {r.acc.name}</span>
+                <span>{formatMoney(r.balance)}₮</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+              <span>Нийт орлого</span>
+              <span>{formatMoney(totalIncome)}₮</span>
+            </div>
+          </div>
+
+          <div className="ds-card p-3">
+            <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Зардал</div>
+            {expenseRows.length === 0 ? (
+              <div className="text-[12px] text-mutedtext">Зардлын бичилт бүртгэгдээгүй байна</div>
+            ) : expenseRows.map((r) => (
+              <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+                <span>{r.acc.code} — {r.acc.name}</span>
+                <span>{formatMoney(r.balance)}₮</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+              <span>Нийт зардал</span>
+              <span>{formatMoney(totalExpense)}₮</span>
+            </div>
+          </div>
+
+          <div className="ds-card p-3">
+            <div className={`flex justify-between text-[15px] font-bold ${netResult >= 0 ? 'text-customGreen' : 'text-customRed'}`}>
+              <span>{netResult >= 0 ? 'Цэвэр ашиг' : 'Цэвэр алдагдал'}</span>
+              <span>{formatMoney(Math.abs(netResult))}₮</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "Тэнцэл" (Balance Sheet) — Хөрөнгө = өглөг + Эздийн эрх (тайлант
+// үеийн цэвэр ашиг/алдагдлыг Эздийн эрхэд нэмж тооцсоноор тэнцэнэ).
+function BalanceSheetTab({ hoaId }) {
+  const { accounts, loading: accountsLoading, categoryLabels } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  const assetRows = accounts.filter((a) => ASSET_CATEGORIES.includes(a.category)).map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+  const payableRows = accounts.filter((a) => a.category === 'payable').map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+  const equityRows = accounts.filter((a) => a.category === 'equity').map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+
+  const incomeTotal = accounts.filter((a) => a.category === 'income').reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
+  const expenseTotal = accounts.filter((a) => a.category === 'expense').reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
+  const netResult = incomeTotal - expenseTotal;
+
+  const totalAssets = assetRows.reduce((s, r) => s + r.balance, 0);
+  const totalPayables = payableRows.reduce((s, r) => s + r.balance, 0);
+  const totalEquity = equityRows.reduce((s, r) => s + r.balance, 0) + netResult;
+  const isBalanced = Math.abs(totalAssets - (totalPayables + totalEquity)) < 1;
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Хөрөнгө = өглөг + Эздийн эрх (тайлант үеийн цэвэр ашиг/алдагдлыг Эздийн эрхэд нэмж тооцсон).
+      </div>
+      {(loading || accountsLoading) ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="ds-card p-3">
+            <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Хөрөнгө</div>
+            {assetRows.length === 0 ? (
+              <div className="text-[12px] text-mutedtext">Бичилт бүртгэгдээгүй</div>
+            ) : assetRows.map((r) => (
+              <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+                <span>{r.acc.code} — {r.acc.name}</span>
+                <span>{formatMoney(r.balance)}₮</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+              <span>Нийт хөрөнгө</span>
+              <span>{formatMoney(totalAssets)}₮</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="ds-card p-3">
+              <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">өглөг</div>
+              {payableRows.length === 0 ? (
+                <div className="text-[12px] text-mutedtext">Бичилт бүртгэгдээгүй</div>
+              ) : payableRows.map((r) => (
+                <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+                  <span>{r.acc.code} — {r.acc.name}</span>
+                  <span>{formatMoney(r.balance)}₮</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+                <span>Нийт өглөг</span>
+                <span>{formatMoney(totalPayables)}₮</span>
+              </div>
+            </div>
+            <div className="ds-card p-3">
+              <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Эздийн эрх</div>
+              {equityRows.map((r) => (
+                <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+                  <span>{r.acc.code} — {r.acc.name}</span>
+                  <span>{formatMoney(r.balance)}₮</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-[12.5px] py-0.5">
+                <span>Тайлант үеийн цэвэр {netResult >= 0 ? 'ашиг' : 'алдагдал'}</span>
+                <span>{formatMoney(netResult)}₮</span>
+              </div>
+              <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+                <span>Нийт эздийн эрх</span>
+                <span>{formatMoney(totalEquity)}₮</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={`ds-card p-3 col-span-2 text-center text-[13px] font-semibold ${isBalanced ? 'text-customGreen' : 'text-customRed'}`}>
+            {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (Хөрөнгө {formatMoney(totalAssets)}₮ vs өглөг+Эрх {formatMoney(totalPayables + totalEquity)}₮)
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Accounting() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('coa');
 
   return (
     <div>
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         <TabButton active={tab === 'coa'} onClick={() => setTab('coa')}>Дансны төлөвлөгөө</TabButton>
         <TabButton active={tab === 'journal'} onClick={() => setTab('journal')}>Журналын бичилт</TabButton>
         <TabButton active={tab === 'balance'} onClick={() => setTab('balance')}>Тэнцвэржүүлсэн тайлан</TabButton>
+        <TabButton active={tab === 'income'} onClick={() => setTab('income')}>Орлого, зарлагын тайлан</TabButton>
+        <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
       {tab === 'journal' && <JournalEntriesTab hoaId={hoaId} />}
       {tab === 'balance' && <TrialBalanceTab hoaId={hoaId} />}
+      {tab === 'income' && <IncomeStatementTab hoaId={hoaId} />}
+      {tab === 'balancesheet' && <BalanceSheetTab hoaId={hoaId} />}
     </div>
   );
 }
