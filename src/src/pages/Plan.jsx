@@ -81,7 +81,13 @@ export default function Plan() {
                   <tr key={r.id}>
                     <td className="py-2 px-3 whitespace-nowrap">{r.feature_label}</td>
                     <td className="py-2 px-3 text-center">
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.is_done ? 'bg-customGreen' : 'bg-slate-300 dark:bg-white/10'}`} />
+                      <button
+                        onClick={() => toggle(r, 'is_done')}
+                        title={r.is_done ? 'Хийгдсэн (дарж буцаах)' : 'Хийгдээгүй (дарж тэмдэглэх)'}
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-full cursor-pointer"
+                      >
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${r.is_done ? 'bg-customGreen' : 'bg-slate-300 dark:bg-white/10'}`} />
+                      </button>
                     </td>
                     {PKG_KEYS.map((p) => (
                       <td key={p.key} className="py-2 px-3 text-center">
