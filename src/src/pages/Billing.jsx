@@ -44,18 +44,22 @@ export default function Billing() {
   const [tenants, setTenants] = useState([]);
   const [unitCounts, setUnitCounts] = useState({});
   const [suspendedMessage, setSuspendedMessage] = useState('');
+  const [tosText, setTosText] = useState('');
   const [retention, setRetention] = useState({ trial_retention_days: 14, paid_retention_months: 6 });
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }, { data: retentionRows }] = await Promise.all([
+    const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }, { data: tosRow }, { data: retentionRows }] = await Promise.all([
       supabase.from('package_prices').select('*'),
       fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, status, billing_status, billing_next_date, billing_note')),
       fetchAllRows(() => supabase.from('owners').select('tenant_id')),
       supabase.from('app_settings').select('value').eq('key', 'suspended_message').single(),
+      supabase.from('app_settings').select('value').eq('key', 'terms_of_service').single(),
       supabase.from('app_settings').select('key, value').in('key', ['trial_retention_days', 'paid_retention_months']),
     ]);
+
+    setTosText(tosRow?.value || '');
 
     const retentionMap = {};
     (retentionRows || []).forEach((r) => { retentionMap[r.key] = r.value; });
@@ -101,6 +105,12 @@ export default function Billing() {
   async function updateSuspendedMessage(value) {
     setSuspendedMessage(value);
     const { error } = await supabase.from('app_settings').update({ value }).eq('key', 'suspended_message');
+    if (error) window.alert(error.message);
+  }
+
+  async function updateTosText(value) {
+    setTosText(value);
+    const { error } = await supabase.from('app_settings').update({ value }).eq('key', 'terms_of_service');
     if (error) window.alert(error.message);
   }
 
@@ -326,6 +336,16 @@ export default function Billing() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div>
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Terms of Service (Гэрээний нөхцөл)</div>
+        <textarea
+          className="ds-input w-full text-[12px] leading-relaxed"
+          rows={6}
+          defaultValue={tosText}
+          onBlur={(e) => { if (e.target.value !== tosText) updateTosText(e.target.value); }}
+        />
       </div>
 
       <div className="ds-card p-3 text-[11.5px] text-mutedtext leading-relaxed">

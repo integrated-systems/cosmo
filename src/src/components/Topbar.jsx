@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { formatDate, tenantPlanEndDate } from '../lib/format';
 import { usePlans } from '../hooks/usePlans';
 import ProfileModal from './ProfileModal';
+import Modal from './Modal';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const ALL_ITEMS = [...MENU_SECTIONS.flatMap((s) => s.items), SUPERSYSADMIN, ...SUPERSYSADMIN_TENANT_ITEMS];
@@ -22,6 +23,8 @@ export default function Topbar({ theme, onToggleTheme }) {
   const [tenantInfo, setTenantInfo] = useState(null);
   const [planMenuOpen, setPlanMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [tosOpen, setTosOpen] = useState(false);
+  const [tosText, setTosText] = useState('');
   // 2026-08-30: Мессенжерийн push notification-ийг STAFF тал хүлээн
   // авахын тулд БүРТГүүЛЭХ UI шаардлагатай байсан — өмнө нь ЗөВХөН
   // OwnerApp-ийн Профайл хуудсанд л ийм товч байсан тул admin/staff
@@ -159,6 +162,17 @@ export default function Topbar({ theme, onToggleTheme }) {
                 Багц сунгах
               </button>
               <button
+                onClick={async () => {
+                  setPlanMenuOpen(false);
+                  const { data } = await supabase.from('app_settings').select('value').eq('key', 'terms_of_service').single();
+                  setTosText(data?.value || '');
+                  setTosOpen(true);
+                }}
+                className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
+              >
+                Terms of Services
+              </button>
+              <button
                 onClick={() => { setPlanMenuOpen(false); navigate(`/${hoaId}/about-program`); }}
                 className="w-full text-left px-3.5 py-2.5 text-[12.5px] text-slate-700 dark:text-text hover:bg-slate-100 dark:hover:bg-appbg transition-colors border-t border-slate-200 dark:border-bordercol"
               >
@@ -171,6 +185,12 @@ export default function Topbar({ theme, onToggleTheme }) {
       </div>
 
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <Modal open={tosOpen} onClose={() => setTosOpen(false)} title="Terms of Service" size="xl">
+        <div className="whitespace-pre-line leading-relaxed max-h-[70vh] overflow-y-auto pr-1">
+          {tosText}
+        </div>
+      </Modal>
     </header>
   );
 }
