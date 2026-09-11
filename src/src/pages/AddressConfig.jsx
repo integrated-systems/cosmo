@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
-import { ChevronUpIcon, ChevronRightIcon, DeleteIcon } from '../components/icons/Icons';
+import { ChevronUpIcon, ChevronDownIcon, ChevronRightIcon, ChevronLeftIcon, DeleteIcon } from '../components/icons/Icons';
 import UnitEditModal from '../components/UnitEditModal';
 import GridConstructorReact from '../components/GridConstructorReact';
 import TabButton from '../components/TabButton';
@@ -317,12 +317,12 @@ function UnitLayoutDesigner() {
             <div className="flex items-end gap-3">
               {bld.entrances.map((entrance) => (
                 <div key={entrance.id} className="shrink-0 flex flex-col">
-                  <div className="flex items-center gap-1 mb-1">
+                  <div className="flex flex-col gap-1 mb-1 w-fit">
                     <button
                       onClick={() => addFloor(bld.id, entrance.id)}
                       title="Давхар нэмэх"
-                      style={{ height: '24px' }}
-                      className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center"
+                      style={{ height: '24px', width: '24px' }}
+                      className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center shrink-0"
                     >
                       <ChevronUpIcon />
                     </button>
@@ -330,13 +330,13 @@ function UnitLayoutDesigner() {
                       onClick={() => removeFloor(bld.id, entrance.id)}
                       title="Давхар хасах"
                       style={{ height: '24px', width: '24px' }}
-                      className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center text-xs"
+                      className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
                     >
-                      −
+                      <ChevronDownIcon />
                     </button>
                   </div>
 
-                  <div className="flex items-stretch gap-1">
+                  <div className="flex items-start gap-1">
                     <div className="flex flex-col gap-1">
                       {entrance.floors.map((floor) => (
                         <div key={floor.id} className="flex items-center gap-2">
@@ -366,8 +366,8 @@ function UnitLayoutDesigner() {
                       <button
                         onClick={() => addUnitColumn(bld.id, entrance.id)}
                         title="Давхарт байрлах тоот нэмэх"
-                        style={{ width: '24px' }}
-                        className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center"
+                        style={{ width: '24px', height: '24px' }}
+                        className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded text-blue-400 flex items-center justify-center shrink-0"
                       >
                         <ChevronRightIcon />
                       </button>
@@ -375,9 +375,9 @@ function UnitLayoutDesigner() {
                         onClick={() => removeUnitColumn(bld.id, entrance.id)}
                         title="Тоот хасах"
                         style={{ width: '24px', height: '24px' }}
-                        className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed text-xs flex items-center justify-center"
+                        className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-customRed flex items-center justify-center shrink-0"
                       >
-                        −
+                        <ChevronLeftIcon />
                       </button>
                     </div>
                   </div>
