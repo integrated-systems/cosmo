@@ -8,6 +8,7 @@ import { DeleteIcon, EditIcon } from '../components/icons/Icons';
 import { formatMoney } from '../lib/format';
 import TabButton from '../components/TabButton';
 import { SectionLockBadge } from '../components/SectionLockBadge';
+import Modal from '../components/Modal';
 
 // "Санхүүгийн тохиргоо" (СИСАДМИН, /finconfig) — 2026-09-04 хэрэглэгчийн
 // шийдвэрээр хуучин, тусдаа "НББ тохиргоо" (accconfig) болон "Тариф
@@ -662,6 +663,339 @@ function JobPositionsList({ hoaId }) {
   );
 }
 
+const TAX_CALC_TYPES = [
+  { value: 'simple', label: 'Энгийн (нэг хувь хэмжээ)' },
+  { value: 'two_party', label: '2 талт (ажилтан/ажил өлгөгч тусдаа — НДШ маягийн)' },
+  { value: 'progressive', label: 'Шатласан (progressive — ХХОАТ маягийн)' },
+];
+
+// "Цалин - Татвар, шимтгэл" таб — 2026-09-09 хэрэглэгчийн хуучин
+// "suh" системийн дэлгэцийг үндэслэв. Ямар ч журнал бичилт
+// автоматаар үүсгэдэггүй — зөвхөн тооцооллын тохиргоо ("Суурь данс"
+// нь одоохондоо чөлөөт текст, Нягтлан бодох бүртгэл модуль
+// бүтээгдсэний дараа бодит дансны төлөвлөгөөтэй холбоно).
+function TaxSettingsCard({ hoaId }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  async function load() {
+    setLoading(true);
+    const { data } = await fetchAllRows(() => supabase.from('payroll_tax_settings').select('*').eq('tenant_id', hoaId).order('sort_order').order('created_at'));
+    setRows(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+
+  function startAdd() {
+    setForm({ code: '', name: '', calc_type: 'simple', rate_pct: 10, employee_rate_pct: '', employer_rate_pct: '', base_account: '', is_active: true, notes: '' });
+    setEditing('new');
+  }
+  function startEdit(row) { setForm({ ...row }); setEditing(row.id); }
+
+  async function save() {
+    if (!form.code.trim() || !form.name.trim()) return;
+    const payload = {
+      code: form.code.trim(),
+      name: form.name.trim(),
+      calc_type: form.calc_type,
+      rate_pct: form.calc_type !== 'two_party' ? (Number(form.rate_pct) || 0) : null,
+      employee_rate_pct: form.calc_type === 'two_party' ? (Number(form.employee_rate_pct) || 0) : null,
+      employer_rate_pct: form.calc_type === 'two_party' ? (Number(form.employer_rate_pct) || 0) : null,
+      base_account: form.base_account.trim() || null,
+      is_active: form.is_active,
+      notes: form.notes.trim() || null,
+    };
+    if (editing === 'new') {
+      const { error } = await supabase.from('payroll_tax_settings').insert({ tenant_id: hoaId, sort_order: rows.length, ...payload });
+      if (error) { window.alert(error.message); return; }
+    } else {
+      const { error } = await supabase.from('payroll_tax_settings').update(payload).eq('id', editing);
+      if (error) { window.alert(error.message); return; }
+    }
+    setEditing(null);
+    setForm(null);
+    load();
+  }
+
+  async function remove(row) {
+    const ok = await confirm(`"${row.name}" татварыг устгах уу?`);
+    if (!ok) return;
+    await supabase.from('payroll_tax_settings').delete().eq('id', row.id);
+    load();
+  }
+
+  async function toggleActive(row) {
+    await supabase.from('payroll_tax_settings').update({ is_active: !row.is_active }).eq('id', row.id);
+    load();
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[12px] text-mutedtext" style={{ maxWidth: 680 }}>
+          Эндээс тохируулсан татвар/шимтгэл "Нягтлан бодох бүртгэл → Татвар" tab-д тооцоологдож харагдана. Ямар ч журнал бичилт автоматаар үүсгэдэггүй — зөвхөн тооцооллын тохиргоо.
+        </div>
+        <button className="ds-btn-primary shrink-0" onClick={startAdd}>+ Шинэ татвар нэмэх</button>
+      </div>
+
+      {loading ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : rows.length === 0 ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Татвар, шимтгэл тохируулаагүй байна</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((r) => (
+            <div key={r.id} className="ds-card p-3">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{r.name}</div>
+                  <div className="text-[11px] text-mutedtext">Код: {r.code}{r.base_account ? ` · Суурь данс: ${r.base_account}` : ''}</div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${r.is_active ? 'bg-green-500/[0.15] text-customGreen' : 'bg-slate-300/40 dark:bg-white/10 text-mutedtext'}`} onClick={() => toggleActive(r)}>
+                    {r.is_active ? 'Идэвхтэй' : 'Идэвхгүй'}
+                  </button>
+                  <button className="ds-icon-btn" onClick={() => startEdit(r)}><EditIcon /></button>
+                  <button className="ds-icon-btn danger" onClick={() => remove(r)}><DeleteIcon /></button>
+                </div>
+              </div>
+              {r.calc_type === 'two_party' ? (
+                <>
+                  <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">Ажилтны хувь хэмжээ</span><span>{r.employee_rate_pct}%</span></div>
+                  <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">Ажил өлгөгчийн хувь хэмжээ</span><span>{r.employer_rate_pct}%</span></div>
+                </>
+              ) : (
+                <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">Хувь хэмжээ</span><span>{r.rate_pct}%</span></div>
+              )}
+              {r.notes && <div className="text-[11px] text-mutedtext mt-1.5">⚠ {r.notes}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal open={!!editing} onClose={() => { setEditing(null); setForm(null); }} title={editing === 'new' ? 'Шинэ татвар нэмэх' : 'Татвар засах'} size="md">
+        {form && (
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Код (жиш: hhoat, ndsh)</div>
+              <input className="ds-input w-full" placeholder="давтагдашгүй, латин үсэгтэй" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Нэр</div>
+              <input className="ds-input w-full" placeholder="жиш: Хувь хүний орлогын албан татвар" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Тооцооллын төрөл</div>
+              <select className="ds-select w-full" value={form.calc_type} onChange={(e) => setForm((f) => ({ ...f, calc_type: e.target.value }))}>
+                {TAX_CALC_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            {form.calc_type === 'two_party' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[11px] text-mutedtext mb-1">Ажилтны хувь хэмжээ (%)</div>
+                  <input type="number" step="0.1" className="ds-input w-full" value={form.employee_rate_pct} onChange={(e) => setForm((f) => ({ ...f, employee_rate_pct: e.target.value }))} />
+                </div>
+                <div>
+                  <div className="text-[11px] text-mutedtext mb-1">Ажил өлгөгчийн хувь хэмжээ (%)</div>
+                  <input type="number" step="0.1" className="ds-input w-full" value={form.employer_rate_pct} onChange={(e) => setForm((f) => ({ ...f, employer_rate_pct: e.target.value }))} />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-[11px] text-mutedtext mb-1">Хувь хэмжээ (%)</div>
+                <input type="number" step="0.1" className="ds-input w-full" value={form.rate_pct} onChange={(e) => setForm((f) => ({ ...f, rate_pct: e.target.value }))} />
+              </div>
+            )}
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Суурь данс</div>
+              <input className="ds-input w-full" placeholder="жиш: 7010" value={form.base_account} onChange={(e) => setForm((f) => ({ ...f, base_account: e.target.value }))} />
+            </div>
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
+              Идэвхтэй
+            </label>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Тэмдэглэл</div>
+              <textarea className="ds-input w-full" rows={2} placeholder="жиш: онцлог үнэлгээ, эсвэл баталгаажуулах шаардлагатай зүйл" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 mt-1">
+              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Болих</button>
+              <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <ConfirmDialog />
+    </div>
+  );
+}
+
+const ADDITION_FREQUENCIES = [
+  { value: 'monthly', label: 'Сар бүр' },
+  { value: 'quarterly', label: 'Улирал бүр' },
+  { value: 'yearly', label: 'Жилд нэг удаа' },
+];
+
+// "Цалин - Нэмэгдэл" таб — Хоол/Унаа/Утасны мөнгийг эндээс тохируулна
+// (дүн бүх ажилтанд ижил, глобаль тохиргооноор тодорхойлогдоно).
+// "Ажилтан нэмэх/засах" модальд зөвхөн тухайн ажилтанд хамаарах
+// эсэхийг чекбоксоор сонгоно.
+function AdditionSettingsCard({ hoaId }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  async function load() {
+    setLoading(true);
+    const { data } = await fetchAllRows(() => supabase.from('payroll_addition_settings').select('*').eq('tenant_id', hoaId).order('sort_order').order('created_at'));
+    setRows(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+
+  function startAdd() {
+    setForm({ code: '', name: '', frequency: 'monthly', amount: 0, expense_account: '', taxable_incometax: true, taxable_socialins: true, is_active: true, notes: '' });
+    setEditing('new');
+  }
+  function startEdit(row) { setForm({ ...row }); setEditing(row.id); }
+
+  async function save() {
+    if (!form.code.trim() || !form.name.trim()) return;
+    const payload = {
+      code: form.code.trim(),
+      name: form.name.trim(),
+      frequency: form.frequency,
+      amount: Number(form.amount) || 0,
+      expense_account: form.expense_account.trim() || null,
+      taxable_incometax: form.taxable_incometax,
+      taxable_socialins: form.taxable_socialins,
+      is_active: form.is_active,
+      notes: form.notes.trim() || null,
+    };
+    if (editing === 'new') {
+      const { error } = await supabase.from('payroll_addition_settings').insert({ tenant_id: hoaId, sort_order: rows.length, ...payload });
+      if (error) { window.alert(error.message); return; }
+    } else {
+      const { error } = await supabase.from('payroll_addition_settings').update(payload).eq('id', editing);
+      if (error) { window.alert(error.message); return; }
+    }
+    setEditing(null);
+    setForm(null);
+    load();
+  }
+
+  async function remove(row) {
+    const ok = await confirm(`"${row.name}" нэмэгдлийг устгах уу?`);
+    if (!ok) return;
+    await supabase.from('payroll_addition_settings').delete().eq('id', row.id);
+    load();
+  }
+
+  async function toggleActive(row) {
+    await supabase.from('payroll_addition_settings').update({ is_active: !row.is_active }).eq('id', row.id);
+    load();
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[12px] text-mutedtext" style={{ maxWidth: 680 }}>
+          Хоол/Унаа/Утасны мөнгийг эндээс тохируулна — дүн бүх ажилтанд ижил (глобаль). "Ажилтан нэмэх/засах" модальд зөвхөн тухайн ажилтанд хамаарах эсэхийг чекбоксоор сонгоно.
+        </div>
+        <button className="ds-btn-primary shrink-0" onClick={startAdd}>+ Шинэ нэмэгдэл нэмэх</button>
+      </div>
+
+      {loading ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : rows.length === 0 ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Нэмэгдэл тохируулаагүй байна</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((r) => (
+            <div key={r.id} className="ds-card p-3">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white">{r.name}</div>
+                  <div className="text-[11px] text-mutedtext">
+                    Код: {r.code}{r.expense_account ? ` · Дт данс: ${r.expense_account}` : ''} · {ADDITION_FREQUENCIES.find((f) => f.value === r.frequency)?.label}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${r.is_active ? 'bg-green-500/[0.15] text-customGreen' : 'bg-slate-300/40 dark:bg-white/10 text-mutedtext'}`} onClick={() => toggleActive(r)}>
+                    {r.is_active ? 'Идэвхтэй' : 'Идэвхгүй'}
+                  </button>
+                  <button className="ds-icon-btn" onClick={() => startEdit(r)}><EditIcon /></button>
+                  <button className="ds-icon-btn danger" onClick={() => remove(r)}><DeleteIcon /></button>
+                </div>
+              </div>
+              <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">Дүн ({ADDITION_FREQUENCIES.find((f) => f.value === r.frequency)?.label})</span><span className="font-semibold">{formatMoney(r.amount)}₮</span></div>
+              <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">ХХОАТ-д тооцох</span><span>{r.taxable_incometax ? 'Тийм' : 'Үгүй'}</span></div>
+              <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">НДШ-д тооцох</span><span>{r.taxable_socialins ? 'Тийм' : 'Үгүй'}</span></div>
+              {r.notes && <div className="text-[11px] text-mutedtext mt-1.5">⚠ {r.notes}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal open={!!editing} onClose={() => { setEditing(null); setForm(null); }} title={editing === 'new' ? 'Шинэ нэмэгдэл нэмэх' : 'Нэмэгдэл засах'} size="md">
+        {form && (
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Код (жиш: meal, transport)</div>
+              <input className="ds-input w-full" placeholder="давтагдашгүй, латин үсэгтэй" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} />
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Нэр</div>
+              <input className="ds-input w-full" placeholder="жиш: Хоол мөнгө" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Давтамж</div>
+              <select className="ds-select w-full" value={form.frequency} onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))}>
+                {ADDITION_FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Дүн</div>
+              <input type="number" className="ds-input w-full" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Зарлагын данс (Дт)</div>
+              <input className="ds-input w-full" placeholder="жиш: 7011" value={form.expense_account} onChange={(e) => setForm((f) => ({ ...f, expense_account: e.target.value }))} />
+            </div>
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input type="checkbox" checked={form.taxable_incometax} onChange={(e) => setForm((f) => ({ ...f, taxable_incometax: e.target.checked }))} />
+              ХХОАТ-д тооцох
+            </label>
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input type="checkbox" checked={form.taxable_socialins} onChange={(e) => setForm((f) => ({ ...f, taxable_socialins: e.target.checked }))} />
+              НДШ-д тооцох
+            </label>
+            <label className="flex items-center gap-2 text-[12.5px]">
+              <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
+              Идэвхтэй
+            </label>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">Тэмдэглэл (хууль зүйн үндэслэл г.м.)</div>
+              <textarea className="ds-input w-full" rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 mt-1">
+              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Болих</button>
+              <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+      <ConfirmDialog />
+    </div>
+  );
+}
+
 const TARIFF_TABS = [
   { key: 'owner', label: 'Сууц өмчлөгчийн СӨХ-ны төлбөр' },
   { key: 'client', label: 'Талбай өмчлөгч (ААН)-ийн СӨХ-ны төлбөр' },
@@ -735,9 +1069,8 @@ export default function FinConfig() {
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
           {nbbTab === 'org_info' && <OrgReportInfoCard hoaId={hoaId} />}
           {nbbTab === 'positions' && <JobPositionsList hoaId={hoaId} />}
-          {['bonuses', 'taxes'].includes(nbbTab) && (
-            <InProgress label={NBB_TABS.find((t) => t.key === nbbTab)?.label} />
-          )}
+          {nbbTab === 'bonuses' && <AdditionSettingsCard hoaId={hoaId} />}
+          {nbbTab === 'taxes' && <TaxSettingsCard hoaId={hoaId} />}
         </>
       )}
     </>
