@@ -295,7 +295,49 @@ function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onD
   );
 }
 
-function PayrollPreview({ employees, ndshTax, hhoatTax, additionsByCode }) {
+// 2026-09-09 (39): Цалин "төлөгдсөн" үед журналын бичилт (Дт/Кт)
+// автоматаар үүсгэнэ. Үндсэн цалин -> 7010, ажил олгогчийн НДШ
+// зардал -> 7020, Цалингийн өглөг -> 3030 (стандарт seed дансад
+// үндэслэсэн тогтмол код), нэмэгдэл бүр өөрийн expense_account-
+// руугаа, НДШ/ХХОАТ бүр өөрийн liability_account-руугаа бичигдэнэ.
+async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCode, userId) {
+  const lines = {};
+  const addDebit = (code, amount) => { if (!code || !amount) return; lines[code] = lines[code] || { debit: 0, credit: 0 }; lines[code].debit += amount; };
+  const addCredit = (code, amount) => { if (!code || !amount) return; lines[code] = lines[code] || { debit: 0, credit: 0 }; lines[code].credit += amount; };
+
+  rows.forEach(({ e, calc }) => {
+    addDebit('7010', Number(e.base_salary));
+    (e.addition_codes || []).forEach((code) => {
+      const a = additionsByCode[code];
+      if (a && a.is_active) addDebit(a.expense_account, Number(a.amount));
+    });
+    const employerNdshShare = calc.employerCost - calc.grossPay;
+    addDebit('7020', employerNdshShare);
+    addCredit(ndshTax?.liability_account, calc.ndshAmount + employerNdshShare);
+    addCredit(hhoatTax?.liability_account, calc.hhoatAmount);
+    addCredit('3030', calc.netPay);
+  });
+
+  const period = new Date().toISOString().slice(0, 7);
+  const { data: entry, error: entryError } = await supabase.from('journal_entries').insert({
+    tenant_id: hoaId,
+    description: `${period} сарын цалингийн журнал`,
+    source_type: 'payroll',
+    created_by: userId || null,
+  }).select().single();
+  if (entryError) throw entryError;
+
+  const lineRows = Object.entries(lines).map(([account_code, { debit, credit }]) => ({
+    entry_id: entry.id, account_code, debit: Math.round(debit), credit: Math.round(credit),
+  }));
+  const { error: linesError } = await supabase.from('journal_entry_lines').insert(lineRows);
+  if (linesError) throw linesError;
+
+  return entry;
+}
+
+function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode }) {
+  const [posting, setPosting] = useState(false);
   const activeEmployees = employees.filter((e) => e.status === 'active');
   const rows = activeEmployees.map((e) => ({ e, calc: computePayroll(e, ndshTax, hhoatTax, additionsByCode) }));
   const totals = rows.reduce((acc, r) => ({
@@ -306,6 +348,20 @@ function PayrollPreview({ employees, ndshTax, hhoatTax, additionsByCode }) {
     employerCost: acc.employerCost + r.calc.employerCost,
   }), { gross: 0, ndsh: 0, hhoat: 0, net: 0, employerCost: 0 });
 
+  async function handlePost() {
+    if (rows.length === 0) return;
+    if (!window.confirm('Энэ сарын цалингийн журналын бичилтийг үүсгэх үү? Үүнийг буцаах боломжгүй (шинэ буцаах бичилт хийх шаардлагатай болно).')) return;
+    setPosting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      await postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCode, userData?.user?.id);
+      window.alert('Журналын бичилт амжилттай үүслээ. "Нягтлан бодох бүртгэл" хуудаснаас харна уу.');
+    } catch (err) {
+      window.alert(err.message);
+    }
+    setPosting(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -313,6 +369,9 @@ function PayrollPreview({ employees, ndshTax, hhoatTax, additionsByCode }) {
         <div className="flex gap-2 shrink-0">
           <button className="ds-btn-secondary">Хэвлэх</button>
           <button className="ds-btn-secondary">Экспорт</button>
+          <button className="ds-btn-primary" onClick={handlePost} disabled={posting || rows.length === 0}>
+            {posting ? 'үүсгэж байна...' : 'Цалин төлөх (журнал үүсгэх)'}
+          </button>
         </div>
       </div>
       <div className="ds-table-wrap">
@@ -460,7 +519,7 @@ export default function Employees() {
         />
       )}
       {tab === 'payroll' && (
-        <PayrollPreview employees={employees} ndshTax={ndshTax} hhoatTax={hhoatTax} additionsByCode={additionsByCode} />
+        <PayrollPreview hoaId={hoaId} employees={employees} ndshTax={ndshTax} hhoatTax={hhoatTax} additionsByCode={additionsByCode} />
       )}
 
       <EmployeeModal

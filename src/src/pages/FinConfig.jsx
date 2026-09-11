@@ -691,10 +691,10 @@ function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
   useEffect(() => { if (hoaId) load(); }, [hoaId]);
 
   function startAdd() {
-    setForm({ code: '', name: '', calc_type: 'simple', rate_pct: 10, employee_rate_pct: '', employer_rate_pct: '', base_account: '', is_active: true, notes: '' });
+    setForm({ code: '', name: '', calc_type: 'simple', rate_pct: 10, employee_rate_pct: '', employer_rate_pct: '', base_account: '', liability_account: '', is_active: true, notes: '' });
     setEditing('new');
   }
-  function startEdit(row) { setForm({ ...row, base_account: row.base_account || '', notes: row.notes || '' }); setEditing(row.id); }
+  function startEdit(row) { setForm({ ...row, base_account: row.base_account || '', liability_account: row.liability_account || '', notes: row.notes || '' }); setEditing(row.id); }
 
   async function save() {
     if (!form.code.trim() || !form.name.trim()) return;
@@ -706,6 +706,7 @@ function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
       employee_rate_pct: form.calc_type === 'two_party' ? (Number(form.employee_rate_pct) || 0) : null,
       employer_rate_pct: form.calc_type === 'two_party' ? (Number(form.employer_rate_pct) || 0) : null,
       base_account: form.base_account.trim() || null,
+      liability_account: form.liability_account.trim() || null,
       is_active: form.is_active,
       notes: form.notes.trim() || null,
     };
@@ -753,7 +754,7 @@ function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">{r.name}</div>
-                  <div className="text-[11px] text-mutedtext">Код: {r.code}{r.base_account ? ` · Суурь данс: ${accountLabel(r.base_account)}` : ''}</div>
+                  <div className="text-[11px] text-mutedtext">Код: {r.code}{r.base_account ? ` · Суурь данс: ${accountLabel(r.base_account)}` : ''}{r.liability_account ? ` · өглөг данс: ${accountLabel(r.liability_account)}` : ''}</div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${r.is_active ? 'bg-green-500/[0.15] text-customGreen' : 'bg-slate-300/40 dark:bg-white/10 text-mutedtext'}`} onClick={() => toggleActive(r)}>
@@ -814,6 +815,21 @@ function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
             <div>
               <div className="text-[11px] text-mutedtext mb-1">Суурь данс</div>
               <select className="ds-select w-full" value={form.base_account} onChange={(e) => setForm((f) => ({ ...f, base_account: e.target.value }))}>
+                <option value="">— Сонгох —</option>
+                {Object.entries(categoryLabels).map(([cat, catLabel]) => {
+                  const inCat = accounts.filter((a) => a.category === cat);
+                  if (inCat.length === 0) return null;
+                  return (
+                    <optgroup key={cat} label={catLabel}>
+                      {inCat.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </div>
+            <div>
+              <div className="text-[11px] text-mutedtext mb-1">өглөг данс (Кт — журналын бичилтэд ашиглана)</div>
+              <select className="ds-select w-full" value={form.liability_account} onChange={(e) => setForm((f) => ({ ...f, liability_account: e.target.value }))}>
                 <option value="">— Сонгох —</option>
                 {Object.entries(categoryLabels).map(([cat, catLabel]) => {
                   const inCat = accounts.filter((a) => a.category === cat);
