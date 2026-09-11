@@ -9,6 +9,7 @@ import { formatMoney } from '../lib/format';
 import TabButton from '../components/TabButton';
 import { SectionLockBadge } from '../components/SectionLockBadge';
 import Modal from '../components/Modal';
+import { useChartOfAccounts } from '../hooks/useChartOfAccounts';
 
 // "Санхүүгийн тохиргоо" (СИСАДМИН, /finconfig) — 2026-09-04 хэрэглэгчийн
 // шийдвэрээр хуучин, тусдаа "НББ тохиргоо" (accconfig) болон "Тариф
@@ -674,7 +675,7 @@ const TAX_CALC_TYPES = [
 // автоматаар үүсгэдэггүй — зөвхөн тооцооллын тохиргоо ("Суурь данс"
 // нь одоохондоо чөлөөт текст, Нягтлан бодох бүртгэл модуль
 // бүтээгдсэний дараа бодит дансны төлөвлөгөөтэй холбоно).
-function TaxSettingsCard({ hoaId }) {
+function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -693,7 +694,7 @@ function TaxSettingsCard({ hoaId }) {
     setForm({ code: '', name: '', calc_type: 'simple', rate_pct: 10, employee_rate_pct: '', employer_rate_pct: '', base_account: '', is_active: true, notes: '' });
     setEditing('new');
   }
-  function startEdit(row) { setForm({ ...row }); setEditing(row.id); }
+  function startEdit(row) { setForm({ ...row, base_account: row.base_account || '', notes: row.notes || '' }); setEditing(row.id); }
 
   async function save() {
     if (!form.code.trim() || !form.name.trim()) return;
@@ -752,7 +753,7 @@ function TaxSettingsCard({ hoaId }) {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">{r.name}</div>
-                  <div className="text-[11px] text-mutedtext">Код: {r.code}{r.base_account ? ` · Суурь данс: ${r.base_account}` : ''}</div>
+                  <div className="text-[11px] text-mutedtext">Код: {r.code}{r.base_account ? ` · Суурь данс: ${accountLabel(r.base_account)}` : ''}</div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${r.is_active ? 'bg-green-500/[0.15] text-customGreen' : 'bg-slate-300/40 dark:bg-white/10 text-mutedtext'}`} onClick={() => toggleActive(r)}>
@@ -812,7 +813,18 @@ function TaxSettingsCard({ hoaId }) {
             )}
             <div>
               <div className="text-[11px] text-mutedtext mb-1">Суурь данс</div>
-              <input className="ds-input w-full" placeholder="жиш: 7010" value={form.base_account} onChange={(e) => setForm((f) => ({ ...f, base_account: e.target.value }))} />
+              <select className="ds-select w-full" value={form.base_account} onChange={(e) => setForm((f) => ({ ...f, base_account: e.target.value }))}>
+                <option value="">— Сонгох —</option>
+                {Object.entries(categoryLabels).map(([cat, catLabel]) => {
+                  const inCat = accounts.filter((a) => a.category === cat);
+                  if (inCat.length === 0) return null;
+                  return (
+                    <optgroup key={cat} label={catLabel}>
+                      {inCat.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+                    </optgroup>
+                  );
+                })}
+              </select>
             </div>
             <label className="flex items-center gap-2 text-[12.5px]">
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
@@ -844,7 +856,7 @@ const ADDITION_FREQUENCIES = [
 // (дүн бүх ажилтанд ижил, глобаль тохиргооноор тодорхойлогдоно).
 // "Ажилтан нэмэх/засах" модальд зөвхөн тухайн ажилтанд хамаарах
 // эсэхийг чекбоксоор сонгоно.
-function AdditionSettingsCard({ hoaId }) {
+function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -863,7 +875,7 @@ function AdditionSettingsCard({ hoaId }) {
     setForm({ code: '', name: '', frequency: 'monthly', amount: 0, expense_account: '', taxable_incometax: true, taxable_socialins: true, is_active: true, notes: '' });
     setEditing('new');
   }
-  function startEdit(row) { setForm({ ...row }); setEditing(row.id); }
+  function startEdit(row) { setForm({ ...row, expense_account: row.expense_account || '', notes: row.notes || '' }); setEditing(row.id); }
 
   async function save() {
     if (!form.code.trim() || !form.name.trim()) return;
@@ -923,7 +935,7 @@ function AdditionSettingsCard({ hoaId }) {
                 <div>
                   <div className="font-semibold text-slate-900 dark:text-white">{r.name}</div>
                   <div className="text-[11px] text-mutedtext">
-                    Код: {r.code}{r.expense_account ? ` · Дт данс: ${r.expense_account}` : ''} · {ADDITION_FREQUENCIES.find((f) => f.value === r.frequency)?.label}
+                    Код: {r.code}{r.expense_account ? ` · Дт данс: ${accountLabel(r.expense_account)}` : ''} · {ADDITION_FREQUENCIES.find((f) => f.value === r.frequency)?.label}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -966,7 +978,18 @@ function AdditionSettingsCard({ hoaId }) {
             </div>
             <div>
               <div className="text-[11px] text-mutedtext mb-1">Зарлагын данс (Дт)</div>
-              <input className="ds-input w-full" placeholder="жиш: 7011" value={form.expense_account} onChange={(e) => setForm((f) => ({ ...f, expense_account: e.target.value }))} />
+              <select className="ds-select w-full" value={form.expense_account} onChange={(e) => setForm((f) => ({ ...f, expense_account: e.target.value }))}>
+                <option value="">— Сонгох —</option>
+                {Object.entries(categoryLabels).map(([cat, catLabel]) => {
+                  const inCat = accounts.filter((a) => a.category === cat);
+                  if (inCat.length === 0) return null;
+                  return (
+                    <optgroup key={cat} label={catLabel}>
+                      {inCat.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+                    </optgroup>
+                  );
+                })}
+              </select>
             </div>
             <label className="flex items-center gap-2 text-[12.5px]">
               <input type="checkbox" checked={form.taxable_incometax} onChange={(e) => setForm((f) => ({ ...f, taxable_incometax: e.target.checked }))} />
@@ -1020,6 +1043,7 @@ export default function FinConfig() {
   const [group, setGroup] = useState('tariff'); // 'tariff' | 'nbb'
   const [tariffTab, setTariffTab] = useState('owner');
   const [nbbTab, setNbbTab] = useState('income_cats');
+  const { accounts, accountLabel, categoryLabels } = useChartOfAccounts(hoaId);
 
   return (
     <>
@@ -1069,8 +1093,8 @@ export default function FinConfig() {
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
           {nbbTab === 'org_info' && <OrgReportInfoCard hoaId={hoaId} />}
           {nbbTab === 'positions' && <JobPositionsList hoaId={hoaId} />}
-          {nbbTab === 'bonuses' && <AdditionSettingsCard hoaId={hoaId} />}
-          {nbbTab === 'taxes' && <TaxSettingsCard hoaId={hoaId} />}
+          {nbbTab === 'bonuses' && <AdditionSettingsCard hoaId={hoaId} accounts={accounts} accountLabel={accountLabel} categoryLabels={categoryLabels} />}
+          {nbbTab === 'taxes' && <TaxSettingsCard hoaId={hoaId} accounts={accounts} accountLabel={accountLabel} categoryLabels={categoryLabels} />}
         </>
       )}
     </>
