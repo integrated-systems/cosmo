@@ -9,6 +9,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { useAccessRules } from '../hooks/useAccessRules';
+import { usePlanFeatures } from '../hooks/usePlanFeatures';
 
 const navItemBase = 'px-4 py-1.5 text-[13px] leading-[1.2] cursor-pointer flex items-center justify-between no-underline transition-colors';
 const navItemInactive = 'text-slate-600 dark:text-mutedtext hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-menuhover';
@@ -28,6 +29,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { stats } = useTenantStats(hoaId);
   const { can: canAccess } = useAccessRules(hoaId);
+  const { hasFeature } = usePlanFeatures(hoaId);
   const [msgrUnread, setMsgrUnread] = useState(0);
   const [pendingTenantCount, setPendingTenantCount] = useState(0);
 
@@ -73,7 +75,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
 
   // HoaSwitcher-ээс шинэ СӨХ сонгоход SPA soft-navigate (react-router) БИШ,
   // **бүтэн хуудсыг рефреш** (window.location.reload()) хийж тэр даруй
-  // шинэ СӨХ-ийн хуудсыг цэвэрхэн ачаална — component state/дата хоорондоо
+  // шинэ СӨХ-ны хуудсыг цэвэрхэн ачаална — component state/дата хоорондоо
   // холилдохоос бүрэн сэргийлнэ.
   function handleHoaChange(newHoaId) {
     sessionStorage.setItem(HOA_PICKED_KEY, 'true');
@@ -123,7 +125,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
       <HoaSwitcher isSuperSysAdmin={isSuperSysAdmin} value={hoaId} onChange={handleHoaChange} tenants={tenants} />
 
       {/* Ердийн (supersysadmin биш) tenant хэрэглэгчид зориулсан — сонголт
-          биш, зүгээр нэвтэрсэн өөрийн СӨХ-ийн нэрийг харуулах статик мөр.
+          биш, зүгээр нэвтэрсэн өөрийн СӨХ-ны нэрийг харуулах статик мөр.
           2026-08-19: зөвхөн 1 tenant дээр эрхтэй үед л үзүүлнэ — 2+ үед
           HoaSwitcher-ийн dropdown-той давхцахаас сэргийлнэ. */}
       {!isSuperSysAdmin && tenants.length <= 1 && (
@@ -141,7 +143,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
             <div className="text-[10px] text-slate-600 dark:text-text px-4 py-1.5 tracking-[0.5px] font-semibold uppercase leading-[1.2]">
               {section.title}
             </div>
-            {section.items.filter((item) => item.key !== 'emails' && canAccess(item.key, 'view')).map((item) => {
+            {section.items.filter((item) => item.key !== 'emails' && canAccess(item.key, 'view') && (isSuperSysAdmin || hasFeature(item.key))).map((item) => {
               const badge = item.key === 'msgr' ? (msgrUnread > 0 ? msgrUnread : null) : item.badge;
               return (
               <NavLink

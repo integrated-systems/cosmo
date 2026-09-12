@@ -45,6 +45,7 @@ import VotingEditPage from './pages/VotingEditPage';
 import VotingResultsPage from './pages/VotingResultsPage';
 import VotingProtocolPage from './pages/VotingProtocolPage';
 import RequireRole from './components/RequireRole';
+import RequireFeature from './components/RequireFeature';
 import { useTheme } from './hooks/useTheme';
 import { useSidebar } from './hooks/useSidebar';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -225,7 +226,7 @@ function AppRoutes() {
             UserApp.jsx-ийн isHome шалгалт үүнээс ӨМНӨ таслан зогсоож,
             owner-д зориулсан TileGrid-ыг шууд үзүүлдэг. */}
         <Route index element={<Dashboard />} />
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="dashboard" element={<RequireFeature featureKey="dashboard"><Dashboard /></RequireFeature>} />
         <Route path="userapp-profile" element={null} />
         <Route path="userapp-dashboard" element={null} />
         <Route path="userapp-msgr" element={null} />
@@ -233,35 +234,35 @@ function AppRoutes() {
         <Route path="userapp-phonebook" element={null} />
         <Route path="userapp-about" element={null} />
         <Route path="userapp-classifieds" element={null} />
-        <Route path="owners" element={<Owners />} />
+        <Route path="owners" element={<RequireFeature featureKey="owners"><Owners /></RequireFeature>} />
         {/* restmarket СИСАДМИН (tenant-level) цэсэнд байгаа тул бусад СИСАДМИН
             модуль шиг RequireRole-гүй — зөвхөн SUPERSYSADMIN_TENANT_ITEMS +
             SUPERSYSADMIN.path л supersysadmin эрх шаарддаг */}
-        <Route path="restmarket" element={<RealEstateMarket />} />
-        <Route path="clientele" element={<Clientele />} />
-        <Route path="property" element={<Property />} />
-        <Route path="addressing" element={<AddressConfig />} />
-        <Route path="finconfig" element={<FinConfig />} />
-        <Route path="hrm" element={<Employees />} />
-        <Route path="accounting" element={<Accounting />} />
-        <Route path="invoice" element={<Invoice />} />
-        <Route path="rolesrules" element={<AccessRules />} />
-        <Route path="accounts" element={<Accounts />} />
-        <Route path="logs" element={<Logs />} />
-        <Route path="uappconfig" element={<UserAppConfig />} />
-        <Route path="news" element={<NewsPage />} />
-        <Route path="providers" element={<Providers />} />
-        <Route path="msgr" element={<Msgr />} />
-        <Route path="voting" element={<VotingPage />} />
-        <Route path="classifieds" element={<AdminClassifieds />} />
-        <Route path="parking" element={<ParkingPage />} />
-        <Route path="fixedassets" element={<FixedAssets />} />
-        <Route path="fixedassconfig" element={<FixedAssetConfig />} />
+        <Route path="restmarket" element={<RequireFeature featureKey="restmarket"><RealEstateMarket /></RequireFeature>} />
+        <Route path="clientele" element={<RequireFeature featureKey="clientele"><Clientele /></RequireFeature>} />
+        <Route path="property" element={<RequireFeature featureKey="property"><Property /></RequireFeature>} />
+        <Route path="addressing" element={<RequireFeature featureKey="addressing"><AddressConfig /></RequireFeature>} />
+        <Route path="finconfig" element={<RequireFeature featureKey="finconfig"><FinConfig /></RequireFeature>} />
+        <Route path="hrm" element={<RequireFeature featureKey="hrm"><Employees /></RequireFeature>} />
+        <Route path="accounting" element={<RequireFeature featureKey="accounting"><Accounting /></RequireFeature>} />
+        <Route path="invoice" element={<RequireFeature featureKey="invoice"><Invoice /></RequireFeature>} />
+        <Route path="rolesrules" element={<RequireFeature featureKey="rolesrules"><AccessRules /></RequireFeature>} />
+        <Route path="accounts" element={<RequireFeature featureKey="accounts"><Accounts /></RequireFeature>} />
+        <Route path="logs" element={<RequireFeature featureKey="logs"><Logs /></RequireFeature>} />
+        <Route path="uappconfig" element={<RequireFeature featureKey="uappconfig"><UserAppConfig /></RequireFeature>} />
+        <Route path="news" element={<RequireFeature featureKey="news"><NewsPage /></RequireFeature>} />
+        <Route path="providers" element={<RequireFeature featureKey="providers"><Providers /></RequireFeature>} />
+        <Route path="msgr" element={<RequireFeature featureKey="msgr"><Msgr /></RequireFeature>} />
+        <Route path="voting" element={<RequireFeature featureKey="voting"><VotingPage /></RequireFeature>} />
+        <Route path="classifieds" element={<RequireFeature featureKey="classifieds"><AdminClassifieds /></RequireFeature>} />
+        <Route path="parking" element={<RequireFeature featureKey="parking"><ParkingPage /></RequireFeature>} />
+        <Route path="fixedassets" element={<RequireFeature featureKey="fixedassets"><FixedAssets /></RequireFeature>} />
+        <Route path="fixedassconfig" element={<RequireFeature featureKey="fixedassconfig"><FixedAssetConfig /></RequireFeature>} />
         <Route path="about-program" element={<AboutProgram />} />
-        <Route path="voting/new" element={<VotingEditPage />} />
-        <Route path="voting/:pollId/edit" element={<VotingEditPage />} />
-        <Route path="voting/:pollId/results" element={<VotingResultsPage />} />
-        <Route path="voting/:pollId/protocol" element={<VotingProtocolPage />} />
+        <Route path="voting/new" element={<RequireFeature featureKey="voting"><VotingEditPage /></RequireFeature>} />
+        <Route path="voting/:pollId/edit" element={<RequireFeature featureKey="voting"><VotingEditPage /></RequireFeature>} />
+        <Route path="voting/:pollId/results" element={<RequireFeature featureKey="voting"><VotingResultsPage /></RequireFeature>} />
+        <Route path="voting/:pollId/protocol" element={<RequireFeature featureKey="voting"><VotingProtocolPage /></RequireFeature>} />
         {/* Tenant Status — SUPERSYSADMIN-ийн Төлбөрийн 3-р алхам (гараар
             invoice горим). SUPERSYSADMIN_TENANT_ITEMS-д багтдаг тул
             RequireRole ХЭРЭГТЭЙ. */}
