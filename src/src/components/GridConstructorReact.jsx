@@ -875,7 +875,7 @@ export default function GridConstructorReact({ hoaId }) {
                 style={{ position: 'absolute', left, top, width: w, height: h, cursor: 'grab', zIndex: mCand ? 50 : 1 }}
               >
                 <div
-                  className={`absolute inset-[1px] border ${s.kind === 'warehouse' ? 'rounded-full' : 'rounded-[1px]'} ${!s.borderColor ? 'border-slate-500/30' : ''} ${!s.fillColor && !selectedIds.has(s.id) ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute border ${s.kind === 'warehouse' ? 'inset-[2px] rounded-full' : 'inset-[1px] rounded-[1px]'} ${!s.borderColor ? 'border-slate-500/30' : ''} ${!s.fillColor && !selectedIds.has(s.id) ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(s.borderColor ? { borderColor: s.borderColor } : {}),
                     ...(selectedIds.has(s.id) ? { background: 'rgba(95,224,208,0.18)' } : s.fillColor ? { background: s.fillColor } : {}),
