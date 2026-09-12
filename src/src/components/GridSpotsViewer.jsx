@@ -155,7 +155,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 title={s.label || ''}
               >
                 <div
-                  className={`absolute inset-[1px] rounded-[1px] border transition-colors ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute inset-[1px] border transition-colors ${s.kind === 'warehouse' ? 'rounded-full' : 'rounded-[1px]'} ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
                     ...(hasCustomFill ? { background: s.fillColor } : {}),
