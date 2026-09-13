@@ -16,9 +16,9 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // Markdown агуулгыг renderMarkdown()-ээр (marked+dompurify) аюулгүй
 // HTML болгож харуулна.
 // 2026-09-08 (2): "Зохиогчийн эрх" таб нэмэв (Хөгжүүлсэн логийн
-// баруун тал) — ганц карттай, Устгах/Нуух үгүй, зeвхeн Засах.
+// баруун тал) — ганц карттай, Устгах/Нуух үгүй, зөвхөн Засах.
 // Картнуудын хэсгийг max-w-[960px] mx-auto болгож том дэлгэцэнд ч
-// хэт eргeн болохгүйгээр хязгаарлав (жижиг дэлгэцэд бүрэн респонсив).
+// хэт өргөн болохгүйгээр хязгаарлав (жижиг дэлгэцэд бүрэн респонсив).
 const TABS = [
   { key: 'guide', label: 'Ашиглах заавар' },
   { key: 'changelog', label: 'Хөгжүүлсэн лог' },
@@ -54,7 +54,7 @@ export default function AboutProgram() {
       : (a.sort_order - b.sort_order));
 
   async function handleDelete(doc) {
-    if (!(await confirm(`"${doc.title}" картыг бүрмeсeн устгах уу?`))) return;
+    if (!(await confirm(`"${doc.title}" картыг бүрмөсөн устгах уу?`))) return;
     const { error } = await supabase.from('program_docs').delete().eq('id', doc.id);
     if (error) { window.alert(error.message); return; }
     load();
@@ -149,7 +149,7 @@ function ProgramDocModal({ open, onClose, doc, docType, onSaved }) {
   const [isPublished, setIsPublished] = useState(doc?.is_published ?? false);
 
   async function save() {
-    if (!title.trim()) { window.alert('Гарчгийг бeглeнe vv.'); return; }
+    if (!title.trim()) { window.alert('Гарчгийг бөглөнө уу.'); return; }
     const payload = {
       doc_type: docType,
       title: title.trim(),
@@ -169,7 +169,7 @@ function ProgramDocModal({ open, onClose, doc, docType, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title={doc ? 'Карт засах' : 'Шинэ карт нэмэх'} size="lg" footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
       </>
     }>

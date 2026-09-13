@@ -434,7 +434,7 @@ export default function VotingEditPage() {
       )}
 
       <div className="flex justify-end gap-2">
-        <button className="ds-btn-secondary" onClick={() => navigate(`/${hoaId}/voting`)}>Болих</button>
+        <button className="ds-btn-secondary" onClick={() => navigate(`/${hoaId}/voting`)}>Хаах</button>
         <button className="ds-btn-secondary" onClick={() => handleSave('draft')} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
         <button className="ds-btn-primary" onClick={() => handleSave('active')} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Нийтлэх'}</button>
       </div>

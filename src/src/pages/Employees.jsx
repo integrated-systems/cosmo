@@ -251,7 +251,7 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
         </div>
 
         <div className="flex justify-end gap-2 mt-1">
-          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
           <button className="ds-btn-primary" onClick={onSave}>Хадгалах</button>
         </div>
       </div>
@@ -529,6 +529,17 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
 
   if (!employee) return null;
   const positionName = positions.find((p) => p.id === employee.position_id)?.name || '—';
+
+  // 2026-09-13: БОДИТ АЛДАА ЗАСАВ — Он/Сар сонгосон үед, тухайн
+  // ажилтан ТЭР үед хараахан ажилд ороогүй байсан ч, одоогийн
+  // тохиргоогоор тооцоолсон цалин үзүүлдэг байсан. Мөнгөтэй
+  // холбоотой тул сонгосон үе ажилд орсон огнооноос oмнe бол
+  // тооцоолол үзүүлэхгүй, тодорхой анхааруулга харуулна.
+  const hireDate = employee.hire_date ? new Date(employee.hire_date) : null;
+  const selectedPeriodKey = year * 12 + month;
+  const hirePeriodKey = hireDate ? hireDate.getFullYear() * 12 + (hireDate.getMonth() + 1) : null;
+  const notYetHired = hirePeriodKey != null && selectedPeriodKey < hirePeriodKey;
+
   const calc = computePayroll(employee, ndshTax, hhoatTax, additionsByCode);
   const checkedAdditions = (employee.addition_codes || []).map((c) => additionsByCode[c]).filter((a) => a && a.is_active);
   const employerNdshShare = calc.employerCost - calc.grossPay;
@@ -558,29 +569,37 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
       </div>
 
       <div className="flex flex-col gap-1 text-[12.5px]">
-        <div className="flex justify-between py-1"><span className="text-mutedtext">Үндсэн цалин</span><span>{formatMoney(employee.base_salary)}₮</span></div>
-        {checkedAdditions.map((a) => (
-          <div key={a.code} className="flex justify-between py-0.5 pl-4"><span className="text-mutedtext">{a.name}</span><span>{formatMoney(a.amount)}₮</span></div>
-        ))}
-        <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
-          <span>Нийт цалин</span><span>{formatMoney(calc.grossPay)}₮</span>
-        </div>
-        <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажилтны хэсэг)</span><span className="text-customRed">-{formatMoney(calc.ndshAmount)}₮</span></div>
-        <div className="flex justify-between py-1"><span className="text-mutedtext">ХХОАТ</span><span className="text-customRed">-{formatMoney(calc.hhoatAmount)}₮</span></div>
-        <div className="flex justify-between py-2 font-bold text-[14px] border-t border-slate-200 dark:border-bordercol mt-1">
-          <span>ГАРТ ОЛГОХ ДүН</span><span>{formatMoney(calc.netPay)}₮</span>
-        </div>
+        {notYetHired ? (
+          <div className="ds-card p-4 text-center text-mutedtext">
+            {employee.last_name} {employee.first_name} нь {formatDate(employee.hire_date)}-нд ажилд орсон тул, {year}-{String(month).padStart(2, '0')} үед хараахан ажилд ороогүй байсан. Цалингийн тооцоолол харуулах боломжгүй.
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between py-1"><span className="text-mutedtext">Үндсэн цалин</span><span>{formatMoney(employee.base_salary)}₮</span></div>
+            {checkedAdditions.map((a) => (
+              <div key={a.code} className="flex justify-between py-0.5 pl-4"><span className="text-mutedtext">{a.name}</span><span>{formatMoney(a.amount)}₮</span></div>
+            ))}
+            <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
+              <span>Нийт цалин</span><span>{formatMoney(calc.grossPay)}₮</span>
+            </div>
+            <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажилтны хэсэг)</span><span className="text-customRed">-{formatMoney(calc.ndshAmount)}₮</span></div>
+            <div className="flex justify-between py-1"><span className="text-mutedtext">ХХОАТ</span><span className="text-customRed">-{formatMoney(calc.hhoatAmount)}₮</span></div>
+            <div className="flex justify-between py-2 font-bold text-[14px] border-t border-slate-200 dark:border-bordercol mt-1">
+              <span>ГАРТ ОЛГОХ ДүН</span><span>{formatMoney(calc.netPay)}₮</span>
+            </div>
 
-        <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил oлгогчийн нэмэлт зардал:</div>
-        <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажил oлгогчийн хэсэг)</span><span>{formatMoney(employerNdshShare)}₮</span></div>
-        <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
-          <span>Ажил oлгогчид ногдох зардал</span><span>{formatMoney(calc.employerCost)}₮</span>
-        </div>
+            <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил oлгогчийн нэмэлт зардал:</div>
+            <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажил oлгогчийн хэсэг)</span><span>{formatMoney(employerNdshShare)}₮</span></div>
+            <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
+              <span>Ажил oлгогчид ногдох зардал</span><span>{formatMoney(calc.employerCost)}₮</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 mt-4">
         <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
-        <button className="ds-btn-primary">Хэвлэх</button>
+        <button className="ds-btn-primary" disabled={notYetHired}>Хэвлэх</button>
       </div>
     </Modal>
   );

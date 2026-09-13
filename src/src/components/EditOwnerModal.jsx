@@ -41,7 +41,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   // слотын "code" (дэлгэцэнд харагдах текст) нь СОНГОСОН үеийн
   // snapshot тул слотыг хожим дахин нэрлэвэл ("A 333" -> "A 336")
   // Засах модал нээхэд хуучин нэр хэвээр харагддаг байв (холбоос
-  // үнэн хэрэгтээ id-аар зввв хэвээрээ, зөвхөн ТЕКСТ л сэргээгдэхгүй
+  // үнэн хэрэгтээ id-аар зөв хэвээрээ, зөвхөн ТЕКСТ л сэргээгдэхгүй
   // байсан). ҮҮнийг useGridSpots-ийн LIVE жагсаалттай тааруулж
   // шинэчилнэ (ачаалагдаж дуусмагц НЭГ удаа).
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
           <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
         </>
       }

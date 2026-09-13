@@ -752,7 +752,7 @@ export default function GridConstructorReact({ hoaId }) {
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddFloor(); if (e.key === 'Escape') setAddingFloor(false); }}
             />
             <button className="ds-btn-primary" onClick={handleAddFloor}>Нэмэх</button>
-            <button className="ds-btn-secondary" onClick={() => { setAddingFloor(false); setNewFloorName(''); }}>Болих</button>
+            <button className="ds-btn-secondary" onClick={() => { setAddingFloor(false); setNewFloorName(''); }}>Хаах</button>
           </div>
         ) : (
           <button className="ds-btn-secondary" onClick={() => setAddingFloor(true)}>+ Шинэ давхарга</button>

@@ -118,7 +118,7 @@ export default function EditFixedAssetModal({ open, onClose, asset, onSave, hoaI
   return (
     <Modal open={open} onClose={onClose} title={asset ? 'Хөрөнгийн бүртгэл засах' : 'Хөрөнгийн бүртгэл нэмэх'} size="lg" footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={handleSubmit}>Хадгалах</button>
       </>
     }>

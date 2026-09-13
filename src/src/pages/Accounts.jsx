@@ -84,7 +84,7 @@ function AddUserModal({ open, onClose, onSave, editing, hoaId }) {
   return (
     <Modal open={open} onClose={onClose} title={editing ? 'Хэрэглэгч засах' : 'Хэрэглэгч нэмэх'} size="sm" footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={submit} disabled={saving}>{saving ? 'Хадгалж байна...' : (editing ? 'Хадгалах' : 'Үүсгэх')}</button>
       </>
     }>

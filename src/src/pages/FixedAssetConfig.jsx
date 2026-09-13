@@ -170,7 +170,7 @@ function CategoryModal({ open, onClose, category, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title={category ? 'Ангилал засах' : 'Шинэ ангилал нэмэх'} footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
       </>
     }>
@@ -303,7 +303,7 @@ function TypeModal({ open, onClose, type, categories, defaultCategoryId, onSaved
   return (
     <Modal open={open} onClose={onClose} title={type ? 'Төрөл засах' : 'Шинэ төрөл нэмэх'} footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
       </>
     }>
@@ -362,8 +362,8 @@ function LocationsTab({ hoaId, locations, loading, reload }) {
       {adding && (
         <div className="ds-card p-3 flex gap-2">
           <input className="ds-input flex-1" placeholder="Байршлын нэр" value={name} onChange={(e) => setName(e.target.value)} />
+          <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Хаах</button>
           <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
-          <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Болих</button>
         </div>
       )}
 

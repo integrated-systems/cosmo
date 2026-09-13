@@ -50,7 +50,7 @@ export default function EditProviderModal({ open, onClose, provider, onSave }) {
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
           <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
         </>
       }

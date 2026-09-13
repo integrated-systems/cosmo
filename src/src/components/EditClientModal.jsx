@@ -68,7 +68,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
   // хэмжээгээр АВТОМАТААР бүглэнэ (талбай ховор л өөрчлвгддвг тул
   // ЯГ НЭГ л газар - Конструктор дээр - засвар хийгдэж, үлдсэн бүх
   // модаль/хүснэгэл автоматаар шинэчлэгдэнэ - төлбөр тооцоход ч
-  // тохиромжтой, зврчилдввнгүй болно).
+  // тохиромжтой, зөрчилдөөнгүй болно).
   useEffect(() => {
     setForm((f) => {
       const next = sumLinkedSqm(f.gridLandPlots, gridLandPlots) ?? '';
@@ -91,7 +91,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
           <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
         </>
       }
@@ -108,7 +108,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
       </div>
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²) - Конструктороос автоматаар</label>
-        <input type="number" step="0.01" readOnly className="ds-input w-full opacity-70 cursor-not-allowed" value={form.sqm} title="Энэ талбарыг зөвхөн Конструктор дээр вврчилнэ" />
+        <input type="number" step="0.01" readOnly className="ds-input w-full opacity-70 cursor-not-allowed" value={form.sqm} title="Энэ талбарыг зөвхөн Конструктор дээр өөрчилнэ" />
       </div>
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>

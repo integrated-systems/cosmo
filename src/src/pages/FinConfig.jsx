@@ -195,8 +195,8 @@ function TariffCatalog({ hoaId, category, title }) {
             <input type="number" className="ds-input" placeholder="Хэмжих нэгж (₮)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
           </div>
           <div className="flex gap-2">
+            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Хаах</button>
             <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
-            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Болих</button>
           </div>
         </div>
       ) : (
@@ -653,8 +653,8 @@ function JobPositionsList({ hoaId }) {
       {adding ? (
         <div className="flex gap-2">
           <input className="ds-input flex-1" placeholder="Албан тушаалын нэр" value={name} onChange={(e) => setName(e.target.value)} />
+          <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Хаах</button>
           <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
-          <button className="ds-btn-secondary" onClick={() => { setAdding(false); setEditingId(null); }}>Болих</button>
         </div>
       ) : (
         <button className="ds-btn-primary" onClick={startAdd}>+ Албан тушаал нэмэх</button>
@@ -851,7 +851,7 @@ function TaxSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
               <textarea className="ds-input w-full" rows={2} placeholder="жиш: онцлог үнэлгээ, эсвэл баталгаажуулах шаардлагатай зүйл" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
             <div className="flex justify-end gap-2 mt-1">
-              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Болих</button>
+              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Хаах</button>
               <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
             </div>
           </div>
@@ -1024,7 +1024,7 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
               <textarea className="ds-input w-full" rows={2} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
             </div>
             <div className="flex justify-end gap-2 mt-1">
-              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Болих</button>
+              <button className="ds-btn-secondary" onClick={() => { setEditing(null); setForm(null); }}>Хаах</button>
               <button className="ds-btn-primary" onClick={save}>Хадгалах</button>
             </div>
           </div>

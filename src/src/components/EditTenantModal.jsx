@@ -80,7 +80,7 @@ export default function EditTenantModal({ tenant, adminEmail, onClose, onSave, o
       size="md"
       footer={
         <>
-          <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+          <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
           <button className="ds-btn-primary" onClick={handleSubmit} disabled={saving}>Хадгалах</button>
         </>
       }

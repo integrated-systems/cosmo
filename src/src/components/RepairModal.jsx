@@ -49,7 +49,7 @@ export default function RepairModal({ open, onClose, assets, onSave }) {
   return (
     <Modal open={open} onClose={onClose} title="Хөрөнгийг засварт шилжүүлэх" footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-primary" onClick={handleSave}>Хадгалах</button>
       </>
     }>

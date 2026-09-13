@@ -20,7 +20,7 @@ export default function WriteOffAssetModal({ open, onClose, asset, onConfirm }) 
   return (
     <Modal open={open} onClose={onClose} title="Хөрөнгө актлах" footer={
       <>
-        <button className="ds-btn-secondary" onClick={onClose}>Болих</button>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="bg-customRed hover:opacity-90 text-white text-xs px-3 py-1.5 rounded font-medium transition-opacity" onClick={handleConfirm}>Актлах</button>
       </>
     }>
