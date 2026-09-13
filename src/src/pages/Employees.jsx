@@ -17,8 +17,8 @@ import Modal from '../components/Modal';
 const INSURER_TYPES = [
   { value: 'social_health', label: 'Нийгмийн болон эрүүл мэндийн даатгалд хамрагдагч' },
   { value: 'health_only', label: 'Зөвхөн эрүүл мэндийн даатгалд хамрагдагч' },
-  { value: 'caregiver_or_contractor', label: 'Хүүхдээ асарч буй чөлөөтэй эх/эцэг асран хамгаалагч/гэрээт судлагч' },
-  { value: 'pensioner', label: 'Тэтгэвэр тогтоолгосон ажиллагч' },
+  { value: 'caregiver_or_contractor', label: 'Хүүхдээ асарч буй чөлөөтэй эх/дайчлагдагч/гэрээт судлаач' },
+  { value: 'pensioner', label: 'Тэтгэвэр тогтоолгосон ажилтан' },
   { value: 'other', label: 'Бусад' },
 ];
 const EMPLOYEE_STATUSES = [
@@ -544,8 +544,10 @@ export default function Employees() {
       window.alert('Ургийн овог, өөрийн нэр, регистрийн дугаарыг бөглөнө уу.');
       return;
     }
+    // eslint-disable-next-line no-unused-vars
+    const { use_ndsh_custom_rate, use_hhoat_custom_rate, ...formForDb } = form;
     const payload = {
-      ...form,
+      ...formForDb,
       base_salary: Number(form.base_salary) || 0,
       position_id: form.position_id || null,
       ndsh_custom_employee_rate: form.deduct_ndsh && form.use_ndsh_custom_rate && form.ndsh_custom_employee_rate !== '' ? Number(form.ndsh_custom_employee_rate) : null,
