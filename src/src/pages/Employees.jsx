@@ -372,10 +372,9 @@ async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCod
   return entry;
 }
 
-function PayrollPreview({ rows, totals, currentPeriod }) {
+function PayrollPreview({ rows, totals }) {
   return (
     <div>
-      <div className="text-[12px] text-mutedtext mb-3">{currentPeriod} — доор харагдах дүн бол одоогийн тохиргоогоор тооцоолсон урьдчилсан үзүүлэлт.</div>
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
@@ -815,7 +814,7 @@ export default function Employees() {
         />
       )}
       {tab === 'payroll' && (
-        <PayrollPreview rows={payrollRows} totals={payrollTotals} currentPeriod={currentPeriod} />
+        <PayrollPreview rows={payrollRows} totals={payrollTotals} />
       )}
 
       <EmployeeModal
