@@ -259,7 +259,7 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
   );
 }
 
-function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onDelete }) {
+function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onDelete, onRowClick }) {
   const [search, setSearch] = useState('');
   const positionName = (id) => positions.find((p) => p.id === id)?.name || '—';
   const filtered = employees.filter((e) => {
@@ -307,7 +307,7 @@ function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onD
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={13} className="py-6 text-center text-mutedtext">Ажилтан бүртгэгдээгүй байна</td></tr>
               ) : filtered.map((e, i) => (
-                <tr key={e.id}>
+                <tr key={e.id} className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.03]" onClick={() => onRowClick(e)}>
                   <td className="py-2.5 px-3 text-mutedtext">{i + 1}</td>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white whitespace-nowrap">{e.last_name} {e.first_name}</td>
                   <td className="py-2.5 px-3 text-mutedtext">{e.register_no}</td>
@@ -325,8 +325,8 @@ function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onD
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                    <button className="ds-icon-btn" onClick={() => onEdit(e)}><EditIcon /></button>
-                    <button className="ds-icon-btn danger" onClick={() => onDelete(e)}><DeleteIcon /></button>
+                    <button className="ds-icon-btn" onClick={(ev) => { ev.stopPropagation(); onEdit(e); }}><EditIcon /></button>
+                    <button className="ds-icon-btn danger" onClick={(ev) => { ev.stopPropagation(); onDelete(e); }}><DeleteIcon /></button>
                   </td>
                 </tr>
               ))}
@@ -489,6 +489,103 @@ function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode }
   );
 }
 
+const MONTH_NAMES = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
+
+// "Ажилтны бүртгэл" хүснэгэлийн мвр дээр дарахад нээгддэг товч
+// танилцуулга — хуучин "suh" системийн загварыг үндэслэв.
+function EmployeeInfoModal({ employee, positions, onClose, onEdit, onOpenSalary }) {
+  if (!employee) return null;
+  const positionName = positions.find((p) => p.id === employee.position_id)?.name || '—';
+  return (
+    <Modal open={!!employee} onClose={onClose} title={`${employee.last_name} ${employee.first_name}`}>
+      <div className="flex flex-col gap-2 text-[12.5px]">
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Албан тушаал</span><span className="font-semibold">{positionName}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Регистрийн дугаар</span><span className="font-semibold">{employee.register_no}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Үндсэн цалин</span><span className="font-semibold">{formatMoney(employee.base_salary)}₮</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Ажилд орсон огноо</span><span className="font-semibold">{employee.hire_date ? formatDate(employee.hire_date) : '—'}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Утас</span><span className="font-semibold">{employee.phone || '—'}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">И-мэйл</span><span className="font-semibold">{employee.email || '—'}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Дансны дугаар</span><span className="font-semibold">{employee.account_no || '—'}</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Төлөв</span><span className="font-semibold">{EMPLOYEE_STATUSES.find((s) => s.value === employee.status)?.label}</span></div>
+      </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
+        <button className="ds-btn-secondary" onClick={() => onEdit(employee)}>Засах</button>
+        <button className="ds-btn-primary" onClick={() => onOpenSalary(employee)}>Цалин</button>
+      </div>
+    </Modal>
+  );
+}
+
+// Тухайн ажилтны сонгосон (Он, Сар)-ын цалингийн дэлгэрэнгүй
+// задаргаа — computePayroll()-той ижил тооцооллын логикийг
+// ашиглана (Rule of two). Он/Сар нь одоохондоо зөвхөн харагдацад
+// зориулагдсан — тооцоолол одоогийн (сүүлд хадгалсан) тохиргоогоор
+// хийгдэнэ (түүхэн сар бүрийн ялгаатай дүн хадгалдаггүй тул).
+function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsByCode, onClose }) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  if (!employee) return null;
+  const positionName = positions.find((p) => p.id === employee.position_id)?.name || '—';
+  const calc = computePayroll(employee, ndshTax, hhoatTax, additionsByCode);
+  const checkedAdditions = (employee.addition_codes || []).map((c) => additionsByCode[c]).filter((a) => a && a.is_active);
+  const employerNdshShare = calc.employerCost - calc.grossPay;
+
+  const years = Array.from({ length: 4 }, (_, i) => now.getFullYear() - 2 + i);
+
+  return (
+    <Modal open={!!employee} onClose={onClose} title="Цалингийн дэлгэрэнгүй">
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1">
+          <div className="text-[11px] text-mutedtext mb-1">Он</div>
+          <select className="ds-select w-full" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+        <div className="flex-1">
+          <div className="text-[11px] text-mutedtext mb-1">Сар</div>
+          <select className="ds-select w-full" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+            {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="text-center mb-3">
+        <div className="font-semibold text-slate-900 dark:text-white">{employee.last_name} {employee.first_name}</div>
+        <div className="text-[11px] text-mutedtext">{positionName} · {year}-{String(month).padStart(2, '0')}</div>
+      </div>
+
+      <div className="flex flex-col gap-1 text-[12.5px]">
+        <div className="flex justify-between py-1"><span className="text-mutedtext">Үндсэн цалин</span><span>{formatMoney(employee.base_salary)}₮</span></div>
+        {checkedAdditions.map((a) => (
+          <div key={a.code} className="flex justify-between py-0.5 pl-4"><span className="text-mutedtext">{a.name}</span><span>{formatMoney(a.amount)}₮</span></div>
+        ))}
+        <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
+          <span>Нийт цалин</span><span>{formatMoney(calc.grossPay)}₮</span>
+        </div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажилтны хэсэг)</span><span className="text-customRed">-{formatMoney(calc.ndshAmount)}₮</span></div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">ХХОАТ</span><span className="text-customRed">-{formatMoney(calc.hhoatAmount)}₮</span></div>
+        <div className="flex justify-between py-2 font-bold text-[14px] border-t border-slate-200 dark:border-bordercol mt-1">
+          <span>ГАРТ ОЛГОХ ДүН</span><span>{formatMoney(calc.netPay)}₮</span>
+        </div>
+
+        <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил oлгогчийн нэмэлт зардал:</div>
+        <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажил oлгогчийн хэсэг)</span><span>{formatMoney(employerNdshShare)}₮</span></div>
+        <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
+          <span>Ажил oлгогчид ногдох зардал</span><span>{formatMoney(calc.employerCost)}₮</span>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 mt-4">
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
+        <button className="ds-btn-primary">Хэвлэх</button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function Employees() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('list');
@@ -500,6 +597,8 @@ export default function Employees() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
+  const [infoEmployee, setInfoEmployee] = useState(null);
+  const [salaryEmployee, setSalaryEmployee] = useState(null);
   const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
@@ -593,6 +692,7 @@ export default function Employees() {
           onAdd={startAdd}
           onEdit={startEdit}
           onDelete={handleDelete}
+          onRowClick={setInfoEmployee}
         />
       )}
       {tab === 'payroll' && (
@@ -610,6 +710,21 @@ export default function Employees() {
         ndshTax={ndshTax}
         hhoatTax={hhoatTax}
         onSave={handleSave}
+      />
+      <EmployeeInfoModal
+        employee={infoEmployee}
+        positions={positions}
+        onClose={() => setInfoEmployee(null)}
+        onEdit={(emp) => { setInfoEmployee(null); startEdit(emp); }}
+        onOpenSalary={(emp) => { setInfoEmployee(null); setSalaryEmployee(emp); }}
+      />
+      <SalaryDetailModal
+        employee={salaryEmployee}
+        positions={positions}
+        ndshTax={ndshTax}
+        hhoatTax={hhoatTax}
+        additionsByCode={additionsByCode}
+        onClose={() => setSalaryEmployee(null)}
       />
       <ConfirmDialog />
     </div>
