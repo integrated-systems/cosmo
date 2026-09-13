@@ -77,11 +77,11 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <div className="text-[11px] text-mutedtext mb-1">Үргийн овог</div>
+            <div className="text-[11px] text-mutedtext mb-1">Ургийн овог</div>
             <input className="ds-input w-full" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} />
           </div>
           <div>
-            <div className="text-[11px] text-mutedtext mb-1">eeрийн нэр</div>
+            <div className="text-[11px] text-mutedtext mb-1">Өөрийн нэр</div>
             <input className="ds-input w-full" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} />
           </div>
         </div>
@@ -91,7 +91,7 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
         </div>
         <div>
           <div className="text-[11px] text-mutedtext mb-1">Регистрийн дугаар</div>
-          <input className="ds-input w-full" placeholder="үБ12345678" value={form.register_no} onChange={(e) => setForm((f) => ({ ...f, register_no: e.target.value }))} />
+          <input className="ds-input w-full" placeholder="УБ12345678" value={form.register_no} onChange={(e) => setForm((f) => ({ ...f, register_no: e.target.value }))} />
         </div>
 
         <div className="ds-card p-3">
@@ -541,7 +541,7 @@ export default function Employees() {
   }
   async function handleSave() {
     if (!form.last_name.trim() || !form.first_name.trim() || !form.register_no.trim()) {
-      window.alert('Үргийн овог, өөрийн нэр, регистрийн дугаарыг бөглөнө уу.');
+      window.alert('Ургийн овог, өөрийн нэр, регистрийн дугаарыг бөглөнө уу.');
       return;
     }
     const payload = {
