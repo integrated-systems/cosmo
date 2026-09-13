@@ -289,28 +289,36 @@ function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onD
                 <th className="py-2.5 px-3">№</th>
                 <th className="py-2.5 px-3">НЭР</th>
                 <th className="py-2.5 px-3">РЕГИСТР</th>
+                <th className="py-2.5 px-3">ИРГЭНИЙ БүРТГЭЛИЙН ДУГААР</th>
                 <th className="py-2.5 px-3">АЛБАН ТУШААЛ</th>
                 <th className="py-2.5 px-3 text-right">ҮНДСЭН ЦАЛИН</th>
+                <th className="py-2.5 px-3">ДАНСНЫ ДУГААР</th>
                 <th className="py-2.5 px-3">АЖИЛД ОРСОН</th>
+                <th className="py-2.5 px-3">ГЭРИЙН ХАЯГ</th>
                 <th className="py-2.5 px-3">УТАС</th>
+                <th className="py-2.5 px-3">И-МЭЙЛ</th>
                 <th className="py-2.5 px-3">ТӨЛӨВ</th>
                 <th className="py-2.5 px-3 text-right">ҮЙЛДЭЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
               {loading ? (
-                <tr><td colSpan={9} className="py-6 text-center text-mutedtext">Ачаалж байна...</td></tr>
+                <tr><td colSpan={13} className="py-6 text-center text-mutedtext">Ачаалж байна...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="py-6 text-center text-mutedtext">Ажилтан бүртгэгдээгүй байна</td></tr>
+                <tr><td colSpan={13} className="py-6 text-center text-mutedtext">Ажилтан бүртгэгдээгүй байна</td></tr>
               ) : filtered.map((e, i) => (
                 <tr key={e.id}>
                   <td className="py-2.5 px-3 text-mutedtext">{i + 1}</td>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white whitespace-nowrap">{e.last_name} {e.first_name}</td>
                   <td className="py-2.5 px-3 text-mutedtext">{e.register_no}</td>
+                  <td className="py-2.5 px-3 text-mutedtext">{e.civil_reg_no || '—'}</td>
                   <td className="py-2.5 px-3">{positionName(e.position_id)}</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(e.base_salary)}₮</td>
+                  <td className="py-2.5 px-3 text-mutedtext">{e.account_no || '—'}</td>
                   <td className="py-2.5 px-3 text-mutedtext whitespace-nowrap">{e.hire_date ? formatDate(e.hire_date) : '—'}</td>
+                  <td className="py-2.5 px-3 text-mutedtext">{e.home_address || '—'}</td>
                   <td className="py-2.5 px-3 text-mutedtext">{e.phone || '—'}</td>
+                  <td className="py-2.5 px-3 text-mutedtext">{e.email || '—'}</td>
                   <td className="py-2.5 px-3">
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${e.status === 'active' ? 'bg-green-500/[0.15] text-customGreen' : e.status === 'leave' ? 'bg-amber-500/[0.15] text-customOrange' : 'bg-slate-300/40 dark:bg-white/10 text-mutedtext'}`}>
                       {EMPLOYEE_STATUSES.find((s) => s.value === e.status)?.label}
