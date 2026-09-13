@@ -40,8 +40,8 @@ function computePayroll(emp, ndshTax, hhoatTax, additionsByCode) {
   const ndshBase = Number(emp.base_salary) + checked.filter((a) => a.taxable_socialins).reduce((s, a) => s + Number(a.amount), 0);
   const hhoatBase = Number(emp.base_salary) + checked.filter((a) => a.taxable_incometax).reduce((s, a) => s + Number(a.amount), 0);
 
-  const ndshEmployeeRate = emp.deduct_ndsh ? Number(emp.ndsh_custom_rate ?? ndshTax?.employee_rate_pct ?? 0) : 0;
-  const ndshEmployerRate = Number(ndshTax?.employer_rate_pct ?? 0);
+  const ndshEmployeeRate = emp.deduct_ndsh ? Number(emp.ndsh_custom_employee_rate ?? ndshTax?.employee_rate_pct ?? 0) : 0;
+  const ndshEmployerRate = emp.deduct_ndsh ? Number(emp.ndsh_custom_employer_rate ?? ndshTax?.employer_rate_pct ?? 0) : 0;
   const hhoatRate = emp.deduct_hhoat ? Number(emp.hhoat_custom_rate ?? hhoatTax?.rate_pct ?? 0) : 0;
 
   const ndshAmount = ndshBase * ndshEmployeeRate / 100;
@@ -57,13 +57,14 @@ function emptyForm() {
     last_name: '', first_name: '', parent_name: '', register_no: '',
     citizenship: 'Монгол', occupation_code: '', insurer_type: 'social_health',
     civil_reg_no: '', home_address: '', position_id: '', base_salary: '',
-    addition_codes: [], deduct_ndsh: true, ndsh_custom_rate: '', deduct_hhoat: true, hhoat_custom_rate: '',
+    addition_codes: [], deduct_ndsh: true, use_ndsh_custom_rate: false, ndsh_custom_employee_rate: '', ndsh_custom_employer_rate: '', ndsh_reason: '',
+    deduct_hhoat: true, use_hhoat_custom_rate: false, hhoat_custom_rate: '', hhoat_reason: '',
     hire_date: new Date().toISOString().slice(0, 10), status: 'active',
     phone: '', email: '', bank: '', iban: '', account_no: '', notes: '',
   };
 }
 
-function EmployeeModal({ open, onClose, editing, form, setForm, positions, additions, onSave }) {
+function EmployeeModal({ open, onClose, editing, form, setForm, positions, additions, ndshTax, hhoatTax, onSave }) {
   if (!form) return null;
   function toggleAddition(code) {
     setForm((f) => ({
@@ -152,21 +153,58 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
 
         <div>
           <div className="text-[11px] text-mutedtext mb-1.5">Цалингаас суутгах татвар/шимтгэл</div>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 text-[12.5px]">
-              <input type="checkbox" checked={form.deduct_ndsh} onChange={(e) => setForm((f) => ({ ...f, deduct_ndsh: e.target.checked }))} />
-              Нийгмийн даатгалын шимтгэл (НДШ) суутгах
-            </label>
-            {form.deduct_ndsh && (
-              <input type="number" step="0.1" className="ds-input w-40 ml-6" placeholder="Тусгай хувь хэмжээ (%)" value={form.ndsh_custom_rate} onChange={(e) => setForm((f) => ({ ...f, ndsh_custom_rate: e.target.value }))} />
-            )}
-            <label className="flex items-center gap-2 text-[12.5px]">
-              <input type="checkbox" checked={form.deduct_hhoat} onChange={(e) => setForm((f) => ({ ...f, deduct_hhoat: e.target.checked }))} />
-              Хувь хүний орлогын албан татвар (ХХОАТ) суутгах
-            </label>
-            {form.deduct_hhoat && (
-              <input type="number" step="0.1" className="ds-input w-40 ml-6" placeholder="Тусгай хувь хэмжээ (%)" value={form.hhoat_custom_rate} onChange={(e) => setForm((f) => ({ ...f, hhoat_custom_rate: e.target.value }))} />
-            )}
+          <div className="flex flex-col gap-3">
+            <div className="ds-card p-3">
+              <label className="flex items-center gap-2 text-[12.5px]">
+                <input type="checkbox" checked={form.deduct_ndsh} onChange={(e) => setForm((f) => ({ ...f, deduct_ndsh: e.target.checked }))} />
+                Нийгмийн даатгалын шимтгэл (НДШ) суутгах
+              </label>
+              {!form.deduct_ndsh ? (
+                <input className="ds-input w-full mt-2" placeholder="Шалтгаан (жиш: Тэтгэврийн насны, НДШ дүүргэсэн)" value={form.ndsh_reason} onChange={(e) => setForm((f) => ({ ...f, ndsh_reason: e.target.value }))} />
+              ) : (
+                <>
+                  <label className="flex items-center gap-2 text-[12.5px] mt-2 ml-6">
+                    <input type="checkbox" checked={form.use_ndsh_custom_rate} onChange={(e) => setForm((f) => ({ ...f, use_ndsh_custom_rate: e.target.checked }))} />
+                    Тусгай хувь хэмжээ ашиглах
+                  </label>
+                  {form.use_ndsh_custom_rate && (
+                    <div className="flex gap-2 mt-2 ml-6">
+                      <div className="flex items-center gap-1.5">
+                        <input type="number" step="0.1" className="ds-input w-20" placeholder={String(ndshTax?.employee_rate_pct ?? '')} value={form.ndsh_custom_employee_rate} onChange={(e) => setForm((f) => ({ ...f, ndsh_custom_employee_rate: e.target.value }))} />
+                        <span className="text-[11px] text-mutedtext">% ажилтан</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input type="number" step="0.1" className="ds-input w-20" placeholder={String(ndshTax?.employer_rate_pct ?? '')} value={form.ndsh_custom_employer_rate} onChange={(e) => setForm((f) => ({ ...f, ndsh_custom_employer_rate: e.target.value }))} />
+                        <span className="text-[11px] text-mutedtext">% ажил олгогч</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="ds-card p-3">
+              <label className="flex items-center gap-2 text-[12.5px]">
+                <input type="checkbox" checked={form.deduct_hhoat} onChange={(e) => setForm((f) => ({ ...f, deduct_hhoat: e.target.checked }))} />
+                Хувь хүний орлогын албан татвар (ХХОАТ) суутгах
+              </label>
+              {!form.deduct_hhoat ? (
+                <input className="ds-input w-full mt-2" placeholder="Шалтгаан (жиш: Тэтгэврийн насны, НДШ дүүргэсэн)" value={form.hhoat_reason} onChange={(e) => setForm((f) => ({ ...f, hhoat_reason: e.target.value }))} />
+              ) : (
+                <>
+                  <label className="flex items-center gap-2 text-[12.5px] mt-2 ml-6">
+                    <input type="checkbox" checked={form.use_hhoat_custom_rate} onChange={(e) => setForm((f) => ({ ...f, use_hhoat_custom_rate: e.target.checked }))} />
+                    Тусгай хувь хэмжээ ашиглах
+                  </label>
+                  {form.use_hhoat_custom_rate && (
+                    <div className="flex items-center gap-1.5 mt-2 ml-6">
+                      <input type="number" step="0.1" className="ds-input w-20" placeholder={String(hhoatTax?.rate_pct ?? '')} value={form.hhoat_custom_rate} onChange={(e) => setForm((f) => ({ ...f, hhoat_custom_rate: e.target.value }))} />
+                      <span className="text-[11px] text-mutedtext">% (анхдагч: {hhoatTax?.rate_pct ?? '—'}%)</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -483,8 +521,13 @@ export default function Employees() {
       ...emptyForm(),
       ...row,
       base_salary: String(row.base_salary),
-      ndsh_custom_rate: row.ndsh_custom_rate != null ? String(row.ndsh_custom_rate) : '',
+      ndsh_custom_employee_rate: row.ndsh_custom_employee_rate != null ? String(row.ndsh_custom_employee_rate) : '',
+      ndsh_custom_employer_rate: row.ndsh_custom_employer_rate != null ? String(row.ndsh_custom_employer_rate) : '',
+      use_ndsh_custom_rate: row.ndsh_custom_employee_rate != null || row.ndsh_custom_employer_rate != null,
+      ndsh_reason: row.ndsh_reason || '',
       hhoat_custom_rate: row.hhoat_custom_rate != null ? String(row.hhoat_custom_rate) : '',
+      use_hhoat_custom_rate: row.hhoat_custom_rate != null,
+      hhoat_reason: row.hhoat_reason || '',
       position_id: row.position_id || '',
     });
     setEditing(row.id);
@@ -505,8 +548,11 @@ export default function Employees() {
       ...form,
       base_salary: Number(form.base_salary) || 0,
       position_id: form.position_id || null,
-      ndsh_custom_rate: form.deduct_ndsh && form.ndsh_custom_rate !== '' ? Number(form.ndsh_custom_rate) : null,
-      hhoat_custom_rate: form.deduct_hhoat && form.hhoat_custom_rate !== '' ? Number(form.hhoat_custom_rate) : null,
+      ndsh_custom_employee_rate: form.deduct_ndsh && form.use_ndsh_custom_rate && form.ndsh_custom_employee_rate !== '' ? Number(form.ndsh_custom_employee_rate) : null,
+      ndsh_custom_employer_rate: form.deduct_ndsh && form.use_ndsh_custom_rate && form.ndsh_custom_employer_rate !== '' ? Number(form.ndsh_custom_employer_rate) : null,
+      ndsh_reason: !form.deduct_ndsh ? (form.ndsh_reason.trim() || null) : null,
+      hhoat_custom_rate: form.deduct_hhoat && form.use_hhoat_custom_rate && form.hhoat_custom_rate !== '' ? Number(form.hhoat_custom_rate) : null,
+      hhoat_reason: !form.deduct_hhoat ? (form.hhoat_reason.trim() || null) : null,
       hire_date: form.hire_date || null,
     };
     if (editing) {
@@ -551,6 +597,8 @@ export default function Employees() {
         setForm={setForm}
         positions={positions}
         additions={additionSettings}
+        ndshTax={ndshTax}
+        hhoatTax={hhoatTax}
         onSave={handleSave}
       />
       <ConfirmDialog />
