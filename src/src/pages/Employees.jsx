@@ -395,7 +395,7 @@ function PayrollPreview({ rows, totals }) {
               ) : rows.map(({ e, calc }, i) => (
                 <tr key={e.id}>
                   <td className="py-2.5 px-3 text-mutedtext">{i + 1}</td>
-                  <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white whitespace-nowrap">{e.last_name} {e.first_name?.toUpperCase()}</td>
+                  <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white whitespace-nowrap">{e.first_name?.toUpperCase()} {e.parent_name}</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(calc.grossPay)}₮</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(calc.ndshAmount)}₮</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(calc.hhoatAmount)}₮</td>
