@@ -50,7 +50,15 @@ function SpotCombobox({ value, onSelect, spots, takenIds, loading }) {
 
   const selectedLabel = value?.code ? `${value.floorLevel} ${value.code}` : '';
   const q = query.trim().toLowerCase();
-  const pool = spots.filter((s) => !takenIds.has(s.id) || s.id === value?.id);
+  // 2026-09-09: Сул зогсоол/агуулахыг санал болгохдоо дэс дараалалгүй
+  // (spots массивын анхны, эрэмбэлэгдээгүй байдлаараа) харуулдаг
+  // байсныг олж, давхар (floorLevel) — дараа нь код (code)-оор
+  // "натурал" (тоон хэсгийг нь тоо гэж үзэн) эрэмбэлдэг болгов —
+  // жиш: B1 001, B1 002 ... B1 N, F1 001, F1 002 ...
+  const naturalCompare = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+  const pool = spots
+    .filter((s) => !takenIds.has(s.id) || s.id === value?.id)
+    .sort((a, b) => naturalCompare(a.floorLevel, b.floorLevel) || naturalCompare(a.code, b.code));
   const matches = (q ? pool.filter((s) => `${s.floorLevel} ${s.code}`.toLowerCase().includes(q)) : pool).slice(0, 50);
 
   return (
