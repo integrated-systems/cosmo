@@ -563,6 +563,7 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
         </div>
       </div>
 
+      <div className="print-area">
       <div className="text-center mb-3">
         <div className="font-semibold text-slate-900 dark:text-white">{employee.last_name} {employee.first_name}</div>
         <div className="text-[11px] text-mutedtext">{positionName} · {year}-{String(month).padStart(2, '0')}</div>
@@ -596,10 +597,11 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
           </>
         )}
       </div>
+      </div>
 
       <div className="flex justify-end gap-2 mt-4">
         <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
-        <button className="ds-btn-primary" disabled={notYetHired}>Хэвлэх</button>
+        <button className="ds-btn-primary" disabled={notYetHired} onClick={() => window.print()}>Хэвлэх</button>
       </div>
     </Modal>
   );

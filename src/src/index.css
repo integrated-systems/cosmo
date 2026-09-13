@@ -132,3 +132,25 @@ body {
     @apply mb-2 last:mb-0;
   }
 }
+
+/* 2026-09-13: "Хэвлэх" товч дарахад зөвхөн .print-area класстай
+   агуулгыг л (жиш SalaryDetailModal-ийн цалингийн задаргаа)
+   хэвлэдэг, Sidebar/Topbar/бусад бүх агуулгыг нуудаг стандарт
+   техник. Rule of two — цаашид eeр "Хэвлэх" товч бүхий modal-д ч
+   ижил .print-area классыг дахин ашиглана. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000 !important;
+    background: #fff !important;
+  }
+}
