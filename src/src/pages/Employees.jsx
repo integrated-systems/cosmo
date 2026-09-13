@@ -259,8 +259,7 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
   );
 }
 
-function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onDelete, onRowClick }) {
-  const [search, setSearch] = useState('');
+function EmployeeList({ employees, search, positions, loading, onEdit, onDelete, onRowClick }) {
   const positionName = (id) => positions.find((p) => p.id === id)?.name || '—';
   const filtered = employees.filter((e) => {
     const q = search.trim().toLowerCase();
@@ -272,15 +271,6 @@ function EmployeeList({ hoaId, employees, positions, loading, onAdd, onEdit, onD
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <input className="ds-input w-64" placeholder="Хайх..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <div className="flex gap-2 shrink-0">
-          <button className="ds-btn-secondary">Хэвлэх</button>
-          <button className="ds-btn-secondary">Экспорт</button>
-          <button className="ds-btn-primary" onClick={onAdd}>+ Ажилтан нэмэх</button>
-        </div>
-      </div>
-
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
@@ -382,74 +372,10 @@ async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCod
   return entry;
 }
 
-function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode, filterYear, filterMonth }) {
-  const [posting, setPosting] = useState(false);
-  const [alreadyPostedPeriod, setAlreadyPostedPeriod] = useState(undefined);
-  const currentPeriod = `${filterYear}-${String(filterMonth).padStart(2, '0')}`;
-  const selectedPeriodKey = filterYear * 12 + filterMonth;
-  // 2026-09-13: Түүлбарт сонгосон Он/Сар-аас oмнe ажилд ороогүй
-  // ажилтныг жагсаалтаас хасна (мөнгөтэй холбоотой тул зөвхөн
-  // тухайн үе шатанд бодитоор ажиллаж байсан хүнийг тооцно).
-  const activeEmployees = employees.filter((e) => {
-    if (e.status !== 'active') return false;
-    if (!e.hire_date) return true;
-    const hireDate = new Date(e.hire_date);
-    const hirePeriodKey = hireDate.getFullYear() * 12 + (hireDate.getMonth() + 1);
-    return selectedPeriodKey >= hirePeriodKey;
-  });
-  const rows = activeEmployees.map((e) => ({ e, calc: computePayroll(e, ndshTax, hhoatTax, additionsByCode) }));
-  const totals = rows.reduce((acc, r) => ({
-    gross: acc.gross + r.calc.grossPay,
-    ndsh: acc.ndsh + r.calc.ndshAmount,
-    hhoat: acc.hhoat + r.calc.hhoatAmount,
-    net: acc.net + r.calc.netPay,
-    employerCost: acc.employerCost + r.calc.employerCost,
-  }), { gross: 0, ndsh: 0, hhoat: 0, net: 0, employerCost: 0 });
-
-  useEffect(() => {
-    if (!hoaId) return;
-    supabase.from('journal_entries').select('id').eq('tenant_id', hoaId).eq('source_type', 'payroll').eq('period', currentPeriod).maybeSingle().then(({ data }) => {
-      setAlreadyPostedPeriod(!!data);
-    });
-  }, [hoaId, currentPeriod]);
-
-  async function handlePost() {
-    if (rows.length === 0 || alreadyPostedPeriod) return;
-    if (!window.confirm('Энэ сарын цалингийн журналын бичилтийг үүсгэх үү? Үүнийг буцаах боломжгүй (шинэ буцаах бичилт хийх шаардлагатай болно).')) return;
-    setPosting(true);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      await postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCode, userData?.user?.id, currentPeriod);
-      window.alert('Журналын бичилт амжилттай үүслээ. "Нягтлан бодох бүртгэл" хуудаснаас харна уу.');
-      setAlreadyPostedPeriod(true);
-    } catch (err) {
-      if (err.code === '23505') {
-        window.alert('Энэ сарын цалингийн журнал аль хэдийн үүссэн байна — дахин үүсгэх боломжгүй.');
-        setAlreadyPostedPeriod(true);
-      } else {
-        window.alert(err.message);
-      }
-    }
-    setPosting(false);
-  }
-
+function PayrollPreview({ rows, totals, currentPeriod }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[12px] text-mutedtext">{currentPeriod} — доор харагдах дүн бол одоогийн тохиргоогоор тооцоолсон урьдчилсан үзүүлэлт.</div>
-        <div className="flex gap-2 shrink-0">
-          <button className="ds-btn-secondary">Хэвлэх</button>
-          <button className="ds-btn-secondary">Экспорт</button>
-          <button
-            className="ds-btn-primary"
-            onClick={handlePost}
-            disabled={posting || rows.length === 0 || alreadyPostedPeriod || alreadyPostedPeriod === undefined}
-            title={alreadyPostedPeriod ? 'Энэ сард аль хэдийн журнал үүссэн байна' : ''}
-          >
-            {posting ? 'үүсгэж байна...' : alreadyPostedPeriod ? `${currentPeriod} сар төлөгдсөн` : 'Цалингийн тооцооллыг журналд бичих'}
-          </button>
-        </div>
-      </div>
+      <div className="text-[12px] text-mutedtext mb-3">{currentPeriod} — доор харагдах дүн бол одоогийн тохиргоогоор тооцоолсон урьдчилсан үзүүлэлт.</div>
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
@@ -459,7 +385,7 @@ function PayrollPreview({ hoaId, employees, ndshTax, hhoatTax, additionsByCode, 
                 <th className="py-2.5 px-3">НЭР</th>
                 <th className="py-2.5 px-3 text-right">НИЙТ ЦАЛИН</th>
                 <th className="py-2.5 px-3 text-right">НИЙГМИЙН ДААТГАЛЫН ШИМТГЭЛ (НДШ)</th>
-                <th className="py-2.5 px-3 text-right">ХУВЬ ХҮНИЙ ОРЛОГЫН АЛБАН ТАТВАР (ХХОАТ)</th>
+                <th className="py-2.5 px-3 text-right">ХУВЬ ХүНИЙ ОРЛОГЫН АЛБАН ТАТВАР (ХХОАТ)</th>
                 <th className="py-2.5 px-3 text-right">ГАРТ ОЛГОХ</th>
                 <th className="py-2.5 px-3 text-right">АЖ ОЛГОГЧИЙН НИЙТ ЗАРДАЛ</th>
               </tr>
@@ -702,6 +628,9 @@ export default function Employees() {
   const now = new Date();
   const [filterYear, setFilterYear] = useState(now.getFullYear());
   const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1);
+  const [search, setSearch] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [alreadyPostedPeriod, setAlreadyPostedPeriod] = useState(undefined);
   const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
@@ -781,40 +710,112 @@ export default function Employees() {
   }
 
   const toolbarYears = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
+  const currentPeriod = `${filterYear}-${String(filterMonth).padStart(2, '0')}`;
+  const selectedPeriodKey = filterYear * 12 + filterMonth;
+  // 2026-09-13: Түүлбарт сонгосон Он/Сар-аас oмнe ажилд ороогүй
+  // ажилтныг жагсаалтаас хасна (мөнгөтэй холбоотой тул зөвхөн
+  // тухайн үе шатанд бодитоор ажиллаж байсан хүнийг тооцно).
+  const activePayrollEmployees = employees.filter((e) => {
+    if (e.status !== 'active') return false;
+    if (!e.hire_date) return true;
+    const hireDate = new Date(e.hire_date);
+    const hirePeriodKey = hireDate.getFullYear() * 12 + (hireDate.getMonth() + 1);
+    return selectedPeriodKey >= hirePeriodKey;
+  });
+  const payrollRows = activePayrollEmployees.map((e) => ({ e, calc: computePayroll(e, ndshTax, hhoatTax, additionsByCode) }));
+  const payrollTotals = payrollRows.reduce((acc, r) => ({
+    gross: acc.gross + r.calc.grossPay,
+    ndsh: acc.ndsh + r.calc.ndshAmount,
+    hhoat: acc.hhoat + r.calc.hhoatAmount,
+    net: acc.net + r.calc.netPay,
+    employerCost: acc.employerCost + r.calc.employerCost,
+  }), { gross: 0, ndsh: 0, hhoat: 0, net: 0, employerCost: 0 });
+
+  useEffect(() => {
+    if (!hoaId) return;
+    supabase.from('journal_entries').select('id').eq('tenant_id', hoaId).eq('source_type', 'payroll').eq('period', currentPeriod).maybeSingle().then(({ data }) => {
+      setAlreadyPostedPeriod(!!data);
+    });
+  }, [hoaId, currentPeriod]);
+
+  async function handlePost() {
+    if (payrollRows.length === 0 || alreadyPostedPeriod) return;
+    if (!window.confirm('Энэ сарын цалингийн журналын бичилтийг үүсгэх vv? ҮҮнийг буцаах боломжгүй (шинэ буцаах бичилт хийх шаардлагатай болно).')) return;
+    setPosting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      await postPayrollJournal(hoaId, payrollRows, ndshTax, hhoatTax, additionsByCode, userData?.user?.id, currentPeriod);
+      window.alert('Журналын бичилт амжилттай үүслээ. "Нягтлан бодох бүртгэл" хуудаснаас харна уу.');
+      setAlreadyPostedPeriod(true);
+    } catch (err) {
+      if (err.code === '23505') {
+        window.alert('Энэ сарын цалингийн журнал аль хэдийн үүссэн байна — дахин үүсгэх боломжгүй.');
+        setAlreadyPostedPeriod(true);
+      } else {
+        window.alert(err.message);
+      }
+    }
+    setPosting(false);
+  }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <div className="flex gap-2">
-          <TabButton active={tab === 'list'} onClick={() => setTab('list')}>Ажилтнууд</TabButton>
-          <TabButton active={tab === 'payroll'} onClick={() => setTab('payroll')}>Цалингийн тооцоолол (урьдчилсан)</TabButton>
-        </div>
-        {tab === 'payroll' && (
-          <div className="flex items-center gap-2 shrink-0">
-            <select className="ds-select" value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}>
-              {toolbarYears.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <select className="ds-select" value={filterMonth} onChange={(e) => setFilterMonth(Number(e.target.value))}>
-              {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
-          </div>
+      <div className="ds-toolbar flex-wrap justify-between mb-3">
+        {tab === 'list' ? (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <input className="ds-input w-64" placeholder="Хайх..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="ds-btn-secondary">Хэвлэх</button>
+              <button className="ds-btn-secondary">Экспорт</button>
+              <button className="ds-btn-primary" onClick={startAdd}>+ Ажилтан нэмэх</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <select className="ds-select" value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}>
+                {toolbarYears.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select className="ds-select" value={filterMonth} onChange={(e) => setFilterMonth(Number(e.target.value))}>
+                {MONTH_NAMES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="ds-btn-secondary">Хэвлэх</button>
+              <button className="ds-btn-secondary">Экспорт</button>
+              <button
+                className="ds-btn-primary"
+                onClick={handlePost}
+                disabled={posting || payrollRows.length === 0 || alreadyPostedPeriod || alreadyPostedPeriod === undefined}
+                title={alreadyPostedPeriod ? 'Энэ сард аль хэдийн журнал үүссэн байна' : ''}
+              >
+                {posting ? 'үүсгэж байна...' : alreadyPostedPeriod ? `${currentPeriod} сар төлөгдсөн` : 'Цалингийн тооцооллыг журналд бичих'}
+              </button>
+            </div>
+          </>
         )}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <TabButton active={tab === 'list'} onClick={() => setTab('list')}>Ажилтнууд</TabButton>
+        <TabButton active={tab === 'payroll'} onClick={() => setTab('payroll')}>Цалингийн тооцоолол (урьдчилсан)</TabButton>
       </div>
 
       {tab === 'list' && (
         <EmployeeList
-          hoaId={hoaId}
           employees={employees}
+          search={search}
           positions={positions}
           loading={loading}
-          onAdd={startAdd}
           onEdit={startEdit}
           onDelete={handleDelete}
           onRowClick={setInfoEmployee}
         />
       )}
       {tab === 'payroll' && (
-        <PayrollPreview hoaId={hoaId} employees={employees} ndshTax={ndshTax} hhoatTax={hhoatTax} additionsByCode={additionsByCode} filterYear={filterYear} filterMonth={filterMonth} />
+        <PayrollPreview rows={payrollRows} totals={payrollTotals} currentPeriod={currentPeriod} />
       )}
 
       <EmployeeModal
