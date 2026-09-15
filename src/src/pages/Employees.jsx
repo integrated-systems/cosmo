@@ -497,7 +497,6 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
   const pastMonthsInYear = month === 0
     ? Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => !isNotYetHired(year, m) && (year * 12 + m) <= todayPeriodKey).length
     : 0;
-  const futureMonthsInYear = employedMonthsInYear - pastMonthsInYear;
 
   return (
     <Modal open={!!employee} onClose={onClose} title="Цалингийн дэлгэрэнгүй" size="md">
@@ -529,59 +528,47 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
               {fullName} нь {year} онд хараахан ажилд ороогүй байсан. Цалингийн тооцоолол харуулах боломжгүй.
             </div>
           ) : (
-            <div className="ds-table-wrap">
-              <div className="flex-1 overflow-auto overscroll-contain">
-                <table className="ds-table w-full text-[12px]">
-                  <thead>
-                    <tr>
-                      <th className="py-1.5 px-2">САР</th>
-                      <th className="py-1.5 px-2 text-right">НИЙТ ЦАЛИН</th>
-                      <th className="py-1.5 px-2 text-right">НДШ</th>
-                      <th className="py-1.5 px-2 text-right">ХХОАТ</th>
-                      <th className="py-1.5 px-2 text-right">ГАРТ ОЛГОХ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                    {MONTH_NAMES.map((name, i) => {
-                      const m = i + 1;
-                      const hired = !isNotYetHired(year, m);
-                      const isFuture = hired && (year * 12 + m) > (now.getFullYear() * 12 + (now.getMonth() + 1));
-                      return (
-                        <tr key={m} className={!hired ? 'opacity-40' : isFuture ? 'italic text-mutedtext' : ''}>
-                          <td className="py-1.5 px-2">{name}{isFuture && <span className="text-[10px] not-italic ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/[0.15] text-customOrange">Төсөв</span>}</td>
-                          <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.grossPay)}₮` : '—'}</td>
-                          <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.ndshAmount)}₮` : '—'}</td>
-                          <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.hhoatAmount)}₮` : '—'}</td>
-                          <td className="py-1.5 px-2 text-right font-semibold">{hired ? `${formatMoney(calc.netPay)}₮` : '—'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
-                      <td className="py-1.5 px-2">НИЙТ (болсон {pastMonthsInYear} сар)</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * pastMonthsInYear)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * pastMonthsInYear)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * pastMonthsInYear)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * pastMonthsInYear)}₮</td>
-                    </tr>
-                    {futureMonthsInYear > 0 && (
-                      <tr className="italic text-mutedtext text-[11px]">
-                        <td className="py-1.5 px-2">+ Төсөвлөсөн ({futureMonthsInYear} сар)</td>
-                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * futureMonthsInYear)}₮</td>
-                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * futureMonthsInYear)}₮</td>
-                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * futureMonthsInYear)}₮</td>
-                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * futureMonthsInYear)}₮</td>
+            <div className="overflow-x-auto">
+              <table className="ds-table w-full text-[12px]">
+                <thead>
+                  <tr>
+                    <th className="py-1.5 px-2">САР</th>
+                    <th className="py-1.5 px-2 text-right">НИЙТ ЦАЛИН</th>
+                    <th className="py-1.5 px-2 text-right">НДШ</th>
+                    <th className="py-1.5 px-2 text-right">ХХОАТ</th>
+                    <th className="py-1.5 px-2 text-right">ГАРТ ОЛГОХ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                  {MONTH_NAMES.map((name, i) => {
+                    const m = i + 1;
+                    // 2026-09-13: Хэрэглэгчийн хүсэлтээр хялбарчилав —
+                    // ирээдүйд бодогдох (хараахан ирээгүй) сарыг ажилд
+                    // ороогүй сартай АДИЛ "—" гэж үзүүлнэ (тусгай
+                    // тэмдэглэгээ, задалсан НИЙТ мөр шаардлагагүй).
+                    const isFuture = (year * 12 + m) > todayPeriodKey;
+                    const shown = !isNotYetHired(year, m) && !isFuture;
+                    return (
+                      <tr key={m} className={!shown ? 'opacity-40' : ''}>
+                        <td className="py-1.5 px-2">{name}</td>
+                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.grossPay)}₮` : '—'}</td>
+                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.ndshAmount)}₮` : '—'}</td>
+                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.hhoatAmount)}₮` : '—'}</td>
+                        <td className="py-1.5 px-2 text-right font-semibold">{shown ? `${formatMoney(calc.netPay)}₮` : '—'}</td>
                       </tr>
-                    )}
-                  </tfoot>
-                </table>
-              </div>
-              {futureMonthsInYear > 0 && (
-                <div className="text-[10.5px] text-mutedtext mt-2 px-1">
-                  ⚠ "Төсөв" тэмдэгтэй сарууд хараахан ирээгүй тул бодит төлбөр биш, зөвхөн одоогийн тохиргоогоор тооцоолсон таамаг үзүүлэлт.
-                </div>
-              )}
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
+                    <td className="py-1.5 px-2">НИЙТ ({pastMonthsInYear} сар)</td>
+                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * pastMonthsInYear)}₮</td>
+                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * pastMonthsInYear)}₮</td>
+                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * pastMonthsInYear)}₮</td>
+                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * pastMonthsInYear)}₮</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           )
         ) : (

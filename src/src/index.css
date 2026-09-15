@@ -153,4 +153,16 @@ body {
     color: #000 !important;
     background: #fff !important;
   }
+  /* 2026-09-13: БОДИТ АЛДАА ЗАСАВ — Modal.jsx-ийн эх карт
+     (max-h-[85vh] overflow-y-auto) .print-area-ийн эцэг элемент
+     байдаг тул, .print-area-г position:absolute болгосон ч тэр
+     эцгийн scroll хэмжээнээс давсан агуулга (дэлгэцэн дээрх
+     тухайн үеийн харагдац хүртэлх хэсэг л) хэвлэгддэг байсныг
+     олов. Зөвхөн хэвлэх үед л (дэлгэцэн дээрх ердийн харагдацад
+     нөлөөлэхгүй) БҮХ элементийн overflow/max-height-ийг чөлөөлнө.
+  */
+  * {
+    overflow: visible !important;
+    max-height: none !important;
+  }
 }
