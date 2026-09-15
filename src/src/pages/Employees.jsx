@@ -443,9 +443,9 @@ function EmployeeInfoModal({ employee, positions, onClose, onEdit, onOpenSalary 
         <div className="flex justify-between py-1"><span className="text-mutedtext">Төлөв</span><span className="font-semibold">{EMPLOYEE_STATUSES.find((s) => s.value === employee.status)?.label}</span></div>
       </div>
       <div className="flex justify-end gap-2 mt-4">
+        <button className="ds-btn-primary" onClick={() => onOpenSalary(employee)}>Цалин</button>
         <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         <button className="ds-btn-secondary" onClick={() => onEdit(employee)}>Засах</button>
-        <button className="ds-btn-primary" onClick={() => onOpenSalary(employee)}>Цалин</button>
       </div>
     </Modal>
   );
@@ -493,13 +493,11 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
   const employedMonthsInYear = month === 0
     ? Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => !isNotYetHired(year, m)).length
     : 0;
-  const yearlyTotals = {
-    gross: calc.grossPay * employedMonthsInYear,
-    ndsh: calc.ndshAmount * employedMonthsInYear,
-    hhoat: calc.hhoatAmount * employedMonthsInYear,
-    net: calc.netPay * employedMonthsInYear,
-    employerCost: calc.employerCost * employedMonthsInYear,
-  };
+  const todayPeriodKey = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const pastMonthsInYear = month === 0
+    ? Array.from({ length: 12 }, (_, i) => i + 1).filter((m) => !isNotYetHired(year, m) && (year * 12 + m) <= todayPeriodKey).length
+    : 0;
+  const futureMonthsInYear = employedMonthsInYear - pastMonthsInYear;
 
   return (
     <Modal open={!!employee} onClose={onClose} title="Цалингийн дэлгэрэнгүй" size="md">
@@ -547,9 +545,10 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
                     {MONTH_NAMES.map((name, i) => {
                       const m = i + 1;
                       const hired = !isNotYetHired(year, m);
+                      const isFuture = hired && (year * 12 + m) > (now.getFullYear() * 12 + (now.getMonth() + 1));
                       return (
-                        <tr key={m} className={!hired ? 'opacity-40' : ''}>
-                          <td className="py-1.5 px-2">{name}</td>
+                        <tr key={m} className={!hired ? 'opacity-40' : isFuture ? 'italic text-mutedtext' : ''}>
+                          <td className="py-1.5 px-2">{name}{isFuture && <span className="text-[10px] not-italic ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/[0.15] text-customOrange">Төсөв</span>}</td>
                           <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.grossPay)}₮` : '—'}</td>
                           <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.ndshAmount)}₮` : '—'}</td>
                           <td className="py-1.5 px-2 text-right">{hired ? `${formatMoney(calc.hhoatAmount)}₮` : '—'}</td>
@@ -560,15 +559,29 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
                   </tbody>
                   <tfoot>
                     <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
-                      <td className="py-1.5 px-2">НИЙТ ({employedMonthsInYear} сар)</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(yearlyTotals.gross)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(yearlyTotals.ndsh)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(yearlyTotals.hhoat)}₮</td>
-                      <td className="py-1.5 px-2 text-right">{formatMoney(yearlyTotals.net)}₮</td>
+                      <td className="py-1.5 px-2">НИЙТ (болсон {pastMonthsInYear} сар)</td>
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * pastMonthsInYear)}₮</td>
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * pastMonthsInYear)}₮</td>
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * pastMonthsInYear)}₮</td>
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * pastMonthsInYear)}₮</td>
                     </tr>
+                    {futureMonthsInYear > 0 && (
+                      <tr className="italic text-mutedtext text-[11px]">
+                        <td className="py-1.5 px-2">+ Төсөвлөсөн ({futureMonthsInYear} сар)</td>
+                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * futureMonthsInYear)}₮</td>
+                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * futureMonthsInYear)}₮</td>
+                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * futureMonthsInYear)}₮</td>
+                        <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * futureMonthsInYear)}₮</td>
+                      </tr>
+                    )}
                   </tfoot>
                 </table>
               </div>
+              {futureMonthsInYear > 0 && (
+                <div className="text-[10.5px] text-mutedtext mt-2 px-1">
+                  ⚠ "Төсөв" тэмдэгтэй сарууд хараахан ирээгүй тул бодит төлбөр биш, зөвхөн одоогийн тохиргоогоор тооцоолсон таамаг үзүүлэлт.
+                </div>
+              )}
             </div>
           )
         ) : (
@@ -589,7 +602,7 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
                 <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажилтны хэсэг)</span><span className="text-customRed">-{formatMoney(calc.ndshAmount)}₮</span></div>
                 <div className="flex justify-between py-1"><span className="text-mutedtext">ХХОАТ</span><span className="text-customRed">-{formatMoney(calc.hhoatAmount)}₮</span></div>
                 <div className="flex justify-between py-2 font-bold text-[14px] border-t border-slate-200 dark:border-bordercol mt-1">
-                  <span>ГАРТ ОЛГОХ ДүН</span><span>{formatMoney(calc.netPay)}₮</span>
+                  <span>ГАРТ ОЛГОХ ДҮН</span><span>{formatMoney(calc.netPay)}₮</span>
                 </div>
 
                 <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил oлгогчийн нэмэлт зардал:</div>
