@@ -17,6 +17,9 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // олсонтой ижил алдааг үүнд давтахгүйн тулд).
 export default function ClienteleTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId }) {
   const { gridParkingSpots, gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
+  // 2026-09-13: Хэрэглэгчийн хүсэлтээр — "Хуулийн этгээдийн нэр" (legal_entity_name)
+  // баганаар A-Z дараалалд оруулав.
+  const sortedRows = [...rows].sort((a, b) => (a.legal_entity_name || '').localeCompare(b.legal_entity_name || '', undefined, { numeric: true, sensitivity: 'base' }));
   return (
     <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto overscroll-contain">
@@ -54,7 +57,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
             {!loading && !loadError && rows.length === 0 && (
               <tr><td colSpan={19} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
-            {!loading && !loadError && rows.map((r, idx) => (
+            {!loading && !loadError && sortedRows.map((r, idx) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.legal_entity_name || '—'}</td>

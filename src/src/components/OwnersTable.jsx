@@ -22,6 +22,15 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
   // бодит утгыг харуулна).
   const headerStructure = unitLayouts[0]?.structure_type || 'floor';
   const structureLabel = headerStructure === 'entrance' ? 'ОРЦ' : 'ДАВХАР';
+  // 2026-09-13: Хэрэглэгчийн хүсэлтээр — Байр, дараа нь Давхар, дараа
+  // нь Тоот 3 баганыг угсруулан A-Z дараалалд оруулав.
+  const sortedRows = [...rows].sort((a, b) => {
+    const byBuilding = String(a.building_no ?? '').localeCompare(String(b.building_no ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+    if (byBuilding !== 0) return byBuilding;
+    const byFloor = String(a.floor ?? '').localeCompare(String(b.floor ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+    if (byFloor !== 0) return byFloor;
+    return String(a.door_no ?? '').localeCompare(String(b.door_no ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   return (
     <div className="ds-table-wrap">
@@ -61,7 +70,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
             {!loading && !loadError && rows.length === 0 && (
               <tr><td colSpan={20} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
-            {!loading && !loadError && rows.map((r, idx) => {
+            {!loading && !loadError && sortedRows.map((r, idx) => {
               const layoutRow = findLayoutRow(unitLayouts, r);
               const structureVal = layoutRow?.structure_type === 'entrance'
                 ? layoutRow.entrance_no
