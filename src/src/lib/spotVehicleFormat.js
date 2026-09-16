@@ -34,6 +34,15 @@ export function summarizeVehicles(items) {
   return items.map((it) => `${it.digits} ${it.letters}`).join(', ');
 }
 
+// 2026-09-13: Зогсоол/Агуулах мвр бүр eeрийн ганц ӨУБД (property_no)-
+// той байдаг тул, хүснэгэлийн ганц баганад бүгдийг нь (,-аар зааглан)
+// харуулна.
+export function summarizePropertyNos(items) {
+  if (!items || items.length === 0) return '—';
+  const nos = items.map((it) => it.propertyNo).filter(Boolean);
+  return nos.length > 0 ? nos.join(', ') : '—';
+}
+
 // 2026-09-13: Грид (Конструктор)-ийн слот/талбайн "id" нь үргэлж
 // "floorLevel:uuid" (жиш "F1:f69a41e3-...") гэсэн нийлмэл формат
 // ашигладаг — цэвэр UUID БИШ. invoices.target_id (uuid багана) шиг

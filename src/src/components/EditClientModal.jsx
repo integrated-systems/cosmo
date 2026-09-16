@@ -46,8 +46,6 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     regNo: client?.reg_no || '',
     sqm: client?.sqm ?? '',
     propertyNo: client?.property_no || '',
-    propertyNoParking: client?.property_no_parking || '',
-    propertyNoStorage: client?.property_no_storage || '',
     ceoName: client?.ceo_first_name_last_name || '',
     mobile: client?.mobile || '',
     phone: client?.phone || '',
@@ -157,17 +155,17 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
           Зогсоол/Агуулах-ыг л зөвшөөрнэ). */}
       <SpotSelectField
         label="Зогсоол" checked={form.hasGridParking}
-        onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '', propertyNo: '' }] : f.gridParkings }))}
         items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
         spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
-        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Зогсоол" value={form.propertyNoParking} onChange={(e) => set('propertyNoParking', e.target.value)} />}
+        propertyLabel="ӨУБД Зогсоол"
       />
       <SpotSelectField
         label="Агуулах" checked={form.hasGridStorage}
-        onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
+        onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '', propertyNo: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
-        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Агуулах" value={form.propertyNoStorage} onChange={(e) => set('propertyNoStorage', e.target.value)} />}
+        propertyLabel="ӨУБД Агуулах"
       />
       <SpotSelectField
         label="Талбай" checked={form.hasGridLand}

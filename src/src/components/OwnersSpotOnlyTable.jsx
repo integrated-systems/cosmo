@@ -1,4 +1,4 @@
-import { summarizeGridSpots, summarizeVehicles, extractGridItemUuid } from '../lib/spotVehicleFormat';
+import { summarizeGridSpots, summarizeVehicles, summarizePropertyNos, extractGridItemUuid } from '../lib/spotVehicleFormat';
 import PaymentBadges from './PaymentBadges';
 import { useGridSpots } from '../hooks/useGridSpots';
 import { EditIcon, DeleteIcon } from './icons/Icons';
@@ -59,9 +59,9 @@ export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowCli
                 <td className="py-2.5 px-3">{r.emails?.[0] || '—'}</td>
                 <td className="py-2.5 px-3">{r.regno || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_parkings, gridParkingSpots)}</td>
-                <td className="py-2.5 px-3">{r.property_no_parking || '—'}</td>
+                <td className="py-2.5 px-3">{summarizePropertyNos(r.grid_parkings)}</td>
                 <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_storages, gridStorageSpots)}</td>
-                <td className="py-2.5 px-3">{r.property_no_storage || '—'}</td>
+                <td className="py-2.5 px-3">{summarizePropertyNos(r.grid_storages)}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
                 <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(stableTargetId(r), year)} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>

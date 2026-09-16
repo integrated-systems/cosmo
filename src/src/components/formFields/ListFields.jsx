@@ -91,17 +91,28 @@ function SpotCombobox({ value, onSelect, spots, takenIds, loading }) {
   );
 }
 
-export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading, extraField }) {
+export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading, propertyLabel }) {
   function updateItem(i, spot) {
     const next = [...items];
-    next[i] = spot ? { id: spot.id, floorLevel: spot.floorLevel, code: spot.code } : { id: '', floorLevel: '', code: '' };
+    next[i] = spot ? { ...next[i], id: spot.id, floorLevel: spot.floorLevel, code: spot.code } : { ...next[i], id: '', floorLevel: '', code: '' };
+    onChange(next);
+  }
+  // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — ӨУБД талбарыг зөвхөн ЭХНИЙ мөрөнд
+  // (extraField проп) харуулдаг байсныг, 1-ээс олон зогсоол/агуулах
+  // нэмэхэд бүгд ХАРАГДАХГүЙ болдог дутуу зохион байгуулалт байсныг
+  // хэрэглэгч олов. Одоо ӨУБД-г мвр БүРТ нь тусад нь (items[i].
+  // propertyNo) хадгалж, харуулдаг болгов — тухайн ганц зогсоол/
+  // агуулах бүр eeрийн бүртгэлийн дугаартай байдагтай нийцүүлэв.
+  function updatePropertyNo(i, val) {
+    const next = [...items];
+    next[i] = { ...next[i], propertyNo: val };
     onChange(next);
   }
   function remove(i) {
     onChange(items.filter((_, idx) => idx !== i));
   }
   function add() {
-    onChange([...items, { id: '', floorLevel: '', code: '' }]);
+    onChange([...items, { id: '', floorLevel: '', code: '', propertyNo: '' }]);
   }
   return (
     <div className="mb-4">
@@ -114,7 +125,7 @@ export function SpotSelectField({ label, checked, onToggle, items, onChange, add
           {items.map((it, i) => (
             <div key={i} className="flex items-center gap-2 mb-1.5">
               <SpotCombobox value={it} onSelect={(s) => updateItem(i, s)} spots={spots} takenIds={takenIds} loading={loading} />
-              {i === 0 && extraField}
+              {propertyLabel && <input className="ds-input flex-1" placeholder={propertyLabel} value={it.propertyNo || ''} onChange={(e) => updatePropertyNo(i, e.target.value)} />}
               <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
             </div>
           ))}
