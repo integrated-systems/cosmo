@@ -118,9 +118,8 @@ export default function Owners() {
       regno: form.regno || null,
       own_date: form.ownDate || null,
       property_no: form.propertyNo || null,
-      phones: form.phones.filter(Boolean),
-      emails: form.emails.filter(Boolean),
-      people_count: form.people !== '' ? Number(form.people) : null,
+      property_no_parking: form.propertyNoParking || null,
+      property_no_storage: form.propertyNoStorage || null,
       child_0_5: form.child1 !== '' ? Number(form.child1) : 0,
       child_6_18: form.child2 !== '' ? Number(form.child2) : 0,
       has_grid_parking: form.hasGridParking,
@@ -161,9 +160,8 @@ export default function Owners() {
       regno: form.regno || null,
       own_date: null,
       property_no: null,
-      phones: form.phones.filter(Boolean),
-      emails: form.emails.filter(Boolean),
-      people_count: null,
+      property_no_parking: form.propertyNoParking || null,
+      property_no_storage: form.propertyNoStorage || null,
       child_0_5: 0,
       child_6_18: 0,
       has_grid_parking: form.hasGridParking,
@@ -215,7 +213,7 @@ export default function Owners() {
         />
       )}
 
-      <div className="flex gap-2 mt-2.5 mb-2.5">
+      <div className="flex gap-2">
         <TabButton active={tab === 'unit'} onClick={() => setTab('unit')}>Сууц өмчлөгч</TabButton>
         <TabButton active={tab === 'spot_only'} onClick={() => setTab('spot_only')}>Зогсоол, агуулах дангаар өмчлөгч</TabButton>
       </div>

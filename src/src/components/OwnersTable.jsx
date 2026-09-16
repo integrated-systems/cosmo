@@ -43,12 +43,13 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
               <th className="py-2.5 px-3 w-[80px]">{structureLabel}</th>
               <th className="py-2.5 px-3 w-[70px]">ТООТ</th>
               <th className="py-2.5 px-3 w-[80px]">м²</th>
-              <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БҮРТГЭЛИЙН ДУГААР</th>
+              <th className="py-2.5 px-3 w-[140px]">ӨУБД СУУЦ</th>
+              <th className="py-2.5 px-3 w-[100px]">ӨМЧИЛСӨН</th>
               <th className="py-2.5 px-3 w-[100px]">НЭР</th>
               <th className="py-2.5 px-3 w-[100px]">ОВОГ</th>
               <th className="py-2.5 px-3 w-[100px]">УТАС</th>
               <th className="py-2.5 px-3 w-[140px]">ИМЭЙЛ</th>
-              <th className="py-2.5 px-3 w-[100px]">ӨМЧИЛСӨН</th>
+              <th className="py-2.5 px-3 w-[110px]">РЕГИСТР</th>
               <th className="py-2.5 px-3 w-[70px]">АМ БҮЛ</th>
               <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
               <th className="py-2.5 px-3 w-[70px]">6-18 НАС</th>
@@ -56,19 +57,19 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
               <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
               <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
               <th className="py-2.5 px-3 w-[280px]">ТӨЛӨЛТ (САРААР)</th>
-              <th className="py-2.5 px-3 w-[180px]">Тайлбар</th>
+              <th className="py-2.5 px-3 w-[180px]">ТЭМДЭГЛЭЛ</th>
               <th className="py-2.5 px-3 w-[80px] text-right">ҮЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={20} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={21} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={20} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={21} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={20} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={21} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && sortedRows.map((r, idx) => {
               const layoutRow = findLayoutRow(unitLayouts, r);
@@ -85,11 +86,12 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
                 <td className="py-2.5 px-3">{formatDoorNo(r.door_no, layoutRow?.structure_type)}</td>
                 <td className="py-2.5 px-3">{r.sqm ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.property_no || '—'}</td>
+                <td className="py-2.5 px-3">{r.own_date ? formatDate(r.own_date) : '—'}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>
                 <td className="py-2.5 px-3">{r.lastname}</td>
                 <td className="py-2.5 px-3">{r.phones?.[0] || '—'}</td>
                 <td className="py-2.5 px-3">{r.emails?.[0] || '—'}</td>
-                <td className="py-2.5 px-3">{r.own_date ? formatDate(r.own_date) : '—'}</td>
+                <td className="py-2.5 px-3">{r.regno || '—'}</td>
                 <td className="py-2.5 px-3">{r.people_count ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.child_0_5 ?? 0}</td>
                 <td className="py-2.5 px-3">{r.child_6_18 ?? 0}</td>

@@ -46,6 +46,8 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     regNo: client?.reg_no || '',
     sqm: client?.sqm ?? '',
     propertyNo: client?.property_no || '',
+    propertyNoParking: client?.property_no_parking || '',
+    propertyNoStorage: client?.property_no_storage || '',
     ceoName: client?.ceo_first_name_last_name || '',
     mobile: client?.mobile || '',
     phone: client?.phone || '',
@@ -65,7 +67,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
 
   // 2026-09-04: Хэрэглэгчийн хүсэлт - "Талбай (м2)" талбарыг гараар
   // засварлахгүй, харин Конструктор дээр холбогдсон полигоны бодит
-  // хэмжээгээр АВТОМАТААР бүглэнэ (талбай ховор л өөрчлвгддвг тул
+  // хэмжээгээр АВТОМАТААР бүглэнэ (талбай ховор л өөрчлөгддөг тул
   // ЯГ НЭГ л газар - Конструктор дээр - засвар хийгдэж, үлдсэн бүх
   // модаль/хүснэгэл автоматаар шинэчлэгдэнэ - төлбөр тооцоход ч
   // тохиромжтой, зөрчилдөөнгүй болно).
@@ -111,7 +113,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
         <input type="number" step="0.01" readOnly className="ds-input w-full opacity-70 cursor-not-allowed" value={form.sqm} title="Энэ талбарыг зөвхөн Конструктор дээр өөрчилнэ" />
       </div>
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар (ӨУБД Талбай)</label>
         <input className="ds-input w-full" value={form.propertyNo} onChange={(e) => set('propertyNo', e.target.value)} />
       </div>
       <div className="mb-4">
@@ -158,12 +160,14 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
         onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
         items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
         spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Зогсоол" value={form.propertyNoParking} onChange={(e) => set('propertyNoParking', e.target.value)} />}
       />
       <SpotSelectField
         label="Агуулах" checked={form.hasGridStorage}
         onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Агуулах" value={form.propertyNoStorage} onChange={(e) => set('propertyNoStorage', e.target.value)} />}
       />
       <SpotSelectField
         label="Талбай" checked={form.hasGridLand}
@@ -178,7 +182,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
       />
 
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тэмдэглэл</label>
         <textarea
           className="ds-input w-full resize-none"
           style={{ height: '52px' }}

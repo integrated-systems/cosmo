@@ -91,7 +91,7 @@ function SpotCombobox({ value, onSelect, spots, takenIds, loading }) {
   );
 }
 
-export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading }) {
+export function SpotSelectField({ label, checked, onToggle, items, onChange, addLabel, spots, takenIds, loading, extraField }) {
   function updateItem(i, spot) {
     const next = [...items];
     next[i] = spot ? { id: spot.id, floorLevel: spot.floorLevel, code: spot.code } : { id: '', floorLevel: '', code: '' };
@@ -114,6 +114,7 @@ export function SpotSelectField({ label, checked, onToggle, items, onChange, add
           {items.map((it, i) => (
             <div key={i} className="flex items-center gap-2 mb-1.5">
               <SpotCombobox value={it} onSelect={(s) => updateItem(i, s)} spots={spots} takenIds={takenIds} loading={loading} />
+              {i === 0 && extraField}
               <button type="button" onClick={() => remove(i)} className="text-customRed text-sm px-1">✕</button>
             </div>
           ))}

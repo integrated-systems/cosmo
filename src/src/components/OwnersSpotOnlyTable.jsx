@@ -30,35 +30,41 @@ export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowCli
               <th className="py-2.5 px-3">№</th>
               <th className="py-2.5 px-3">НЭР</th>
               <th className="py-2.5 px-3">ОВОГ</th>
-              <th className="py-2.5 px-3">РЕГИСТР</th>
-              <th className="py-2.5 px-3">ЗОГСООЛ</th>
-              <th className="py-2.5 px-3">АГУУЛАХ</th>
               <th className="py-2.5 px-3">УТАС</th>
               <th className="py-2.5 px-3">И-МЭЙЛ</th>
+              <th className="py-2.5 px-3">РЕГИСТР</th>
+              <th className="py-2.5 px-3">ЗОГСООЛ</th>
+              <th className="py-2.5 px-3">ӨУБД ЗОГСООЛ</th>
+              <th className="py-2.5 px-3">АГУУЛАХ</th>
+              <th className="py-2.5 px-3">ӨУБД АГУУЛАХ</th>
               <th className="py-2.5 px-3">МАШИН</th>
-              <th className="py-2.5 px-3">ТӨЛӨЛТ</th>
+              <th className="py-2.5 px-3">ТӨЛӨЛТ (САРААР)</th>
+              <th className="py-2.5 px-3">ТЭМДЭГЛЭЛ</th>
               <th className="py-2.5 px-3 text-right">ҮЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading ? (
-              <tr><td colSpan={11} className="py-6 text-center text-mutedtext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={14} className="py-6 text-center text-mutedtext">Ачаалж байна...</td></tr>
             ) : loadError ? (
-              <tr><td colSpan={11} className="py-6 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={14} className="py-6 text-center text-customRed">{loadError}</td></tr>
             ) : sortedRows.length === 0 ? (
-              <tr><td colSpan={11} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={14} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             ) : sortedRows.map((r, idx) => (
               <tr key={r.id} onClick={() => onRowClick(r)} className="cursor-pointer">
                 <td className="py-2.5 px-3 text-center text-slate-500 dark:text-mutedtext">{idx + 1}</td>
                 <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white">{r.firstname}</td>
                 <td className="py-2.5 px-3">{r.lastname}</td>
-                <td className="py-2.5 px-3">{r.regno || '—'}</td>
-                <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_parkings, gridParkingSpots)}</td>
-                <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_storages, gridStorageSpots)}</td>
                 <td className="py-2.5 px-3">{r.phones?.[0] || '—'}</td>
                 <td className="py-2.5 px-3">{r.emails?.[0] || '—'}</td>
+                <td className="py-2.5 px-3">{r.regno || '—'}</td>
+                <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_parkings, gridParkingSpots)}</td>
+                <td className="py-2.5 px-3">{r.property_no_parking || '—'}</td>
+                <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_storages, gridStorageSpots)}</td>
+                <td className="py-2.5 px-3">{r.property_no_storage || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
                 <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(stableTargetId(r), year)} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
+                <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && <button className="ds-icon-btn" onClick={(ev) => { ev.stopPropagation(); onEdit(r); }}><EditIcon /></button>}
                   {canDelete && <button className="ds-icon-btn danger" onClick={(ev) => { ev.stopPropagation(); onDelete(r); }}><DeleteIcon /></button>}

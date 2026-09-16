@@ -30,7 +30,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
               <th className="py-2.5 px-3 w-[160px]">ХУУЛИЙН ЭТГЭЭД</th>
               <th className="py-2.5 px-3 w-[100px]">РЕГИСТР</th>
               <th className="py-2.5 px-3 w-[70px]">М²</th>
-              <th className="py-2.5 px-3 w-[140px]">ӨМЧИЙН УЛСЫН БүРТГЭЛИЙН ДУГААР</th>
+              <th className="py-2.5 px-3 w-[140px]">ӨУБД ТАЛБАЙ</th>
               <th className="py-2.5 px-3 w-[140px]">ГүЙЦЭТГЭХ УДИРДЛАГА</th>
               <th className="py-2.5 px-3 w-[100px]">ГАР УТАС</th>
               <th className="py-2.5 px-3 w-[100px]">УТАС</th>
@@ -43,7 +43,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
               <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
               <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
               <th className="py-2.5 px-3 w-[280px]">ТөЛөЛТ (САРААР)</th>
-              <th className="py-2.5 px-3 w-[180px]">ТАЙЛБАР</th>
+              <th className="py-2.5 px-3 w-[180px]">ТЭМДЭГЛЭЛ</th>
               <th className="py-2.5 px-3 w-[80px] text-right">үЙЛДЭЛ</th>
             </tr>
           </thead>

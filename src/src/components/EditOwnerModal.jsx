@@ -71,6 +71,8 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     doorNo: owner?.door_no ?? initialUnit?.doorNo ?? '',
     sqm: owner?.sqm ?? initialUnit?.sqm ?? '',
     propertyNo: owner?.property_no || '',
+    propertyNoParking: owner?.property_no_parking || '',
+    propertyNoStorage: owner?.property_no_storage || '',
     firstname: owner?.firstname || '',
     lastname: owner?.lastname || '',
     regno: owner?.regno || '',
@@ -176,7 +178,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         />
       </div>
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар</label>
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Өмчийн Улсын бүртгэлийн дугаар (ӨУБД Сууц)</label>
         <input className="ds-input w-full" value={form.propertyNo} onChange={(e) => set('propertyNo', e.target.value)} />
       </div>
 
@@ -231,12 +233,14 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
         items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
         spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Зогсоол" value={form.propertyNoParking} onChange={(e) => set('propertyNoParking', e.target.value)} />}
       />
       <SpotSelectField
         label="Агуулах" checked={form.hasGridStorage}
         onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Агуулах" value={form.propertyNoStorage} onChange={(e) => set('propertyNoStorage', e.target.value)} />}
       />
       <VehicleListField
         checked={form.hasVehicle}
@@ -244,7 +248,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         items={form.vehicles} onChange={(v) => set('vehicles', v)}
       />
       <div className="mb-4">
-        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
+        <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тэмдэглэл</label>
         <textarea
           className="ds-input w-full resize-none"
           style={{ height: '52px' }}

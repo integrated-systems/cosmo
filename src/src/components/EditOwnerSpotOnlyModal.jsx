@@ -27,6 +27,8 @@ export default function EditOwnerSpotOnlyModal({ open, onClose, owner, onSave, h
     firstname: owner?.firstname || '',
     lastname: owner?.lastname || '',
     regno: owner?.regno || '',
+    propertyNoParking: owner?.property_no_parking || '',
+    propertyNoStorage: owner?.property_no_storage || '',
     phones: owner?.phones?.length ? owner.phones : [''],
     emails: owner?.emails?.length ? owner.emails : [''],
     hasGridParking: owner?.has_grid_parking || false,
@@ -93,12 +95,14 @@ export default function EditOwnerSpotOnlyModal({ open, onClose, owner, onSave, h
         onToggle={(v) => setForm((f) => ({ ...f, hasGridParking: v, gridParkings: v && f.gridParkings.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridParkings }))}
         items={form.gridParkings} onChange={(v) => set('gridParkings', v)} addLabel="+ Грид зогсоол нэмэх"
         spots={gridParkingSpots} takenIds={takenGridParkingIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Зогсоол" value={form.propertyNoParking} onChange={(e) => set('propertyNoParking', e.target.value)} />}
       />
       <SpotSelectField
         label="Агуулах" checked={form.hasGridStorage}
         onToggle={(v) => setForm((f) => ({ ...f, hasGridStorage: v, gridStorages: v && f.gridStorages.length === 0 ? [{ id: '', floorLevel: '', code: '' }] : f.gridStorages }))}
         items={form.gridStorages} onChange={(v) => set('gridStorages', v)} addLabel="+ Грид агуулах нэмэх"
         spots={gridStorageSpots} takenIds={takenGridStorageIds} loading={gridSpotsLoading}
+        extraField={<input className="ds-input flex-1" placeholder="ӨУБД Агуулах" value={form.propertyNoStorage} onChange={(e) => set('propertyNoStorage', e.target.value)} />}
       />
       <VehicleListField
         checked={form.hasVehicle}
