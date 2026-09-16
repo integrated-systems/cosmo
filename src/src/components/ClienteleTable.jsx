@@ -1,5 +1,5 @@
 import { formatDate } from '../lib/format';
-import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
+import { summarizeSpots, summarizeVehicles, summarizeGridSpots, extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import PaymentBadges from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
@@ -75,7 +75,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3">{[summarizeSpots(r.parkings), summarizeGridSpots(r.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{[summarizeSpots(r.storages), summarizeGridSpots(r.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(r.id, year)} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
+                <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary((r.has_grid_land && Array.isArray(r.grid_land_plots) && r.grid_land_plots.length > 0 && extractGridItemUuid(r.grid_land_plots[0]?.id)) || r.id, year)} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   {canEdit && (

@@ -33,3 +33,17 @@ export function summarizeVehicles(items) {
   if (!items || items.length === 0) return '—';
   return items.map((it) => `${it.digits} ${it.letters}`).join(', ');
 }
+
+// 2026-09-13: Грид (Конструктор)-ийн слот/талбайн "id" нь үргэлж
+// "floorLevel:uuid" (жиш "F1:f69a41e3-...") гэсэн нийлмэл формат
+// ашигладаг — цэвэр UUID БИШ. invoices.target_id (uuid багана) шиг
+// цэвэр UUID шаардсан газарт шууд ашиглаж болохгүй тул, доторх бодит
+// UUID хэсгийг задлан авна. Формат буруу бол null буцаана (дуудагч
+// тал fallback ашиглана).
+export function extractGridItemUuid(gridId) {
+  if (!gridId || typeof gridId !== 'string') return null;
+  const parts = gridId.split(':');
+  const uuid = parts.length > 1 ? parts[1] : parts[0];
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidPattern.test(uuid) ? uuid : null;
+}

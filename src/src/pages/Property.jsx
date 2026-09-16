@@ -217,7 +217,7 @@ export default function Property() {
       position: row.position,
       code: formatUnitCode(row.building_no, row.structure_type, row.floor, row.entrance_no, row.door_no),
       area: row.sqm,
-      paymentStatus: owner ? getMonthStatus(owner.id, year, month) : 'none',
+      paymentStatus: owner ? getMonthStatus(row.id, year, month) : 'none',
       vacant: !owner,
       onClick: () => {
         if (owner) setSelectedOwner(owner);

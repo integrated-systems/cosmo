@@ -6,6 +6,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import { formatUnitCode } from '../lib/ownersFormat';
+import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useAlert } from '../hooks/useAlert';
 
 // "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-07 (17): Хэрэглэгчийн
@@ -152,13 +153,33 @@ export default function Invoice() {
     if (invoices.length === 0) return;
     (async () => {
       const map = {};
+      // 2026-09-13: target_id одоо eмчлэгчийн ID биш, ТОГТВОРТОЙ нэгжийн
+      // (unit_layouts / grid_land_plot) ID тул, тухайн нэгжийг ОДОО
+      // эзэмшиж буй eмчлэгчийг эргүүлж хайх шаардлагатай болов.
       if (committedIds.ownerIds.length) {
-        const { data } = await supabase.from('owners').select('id, firstname, lastname, building_no, floor, door_no').in('id', committedIds.ownerIds);
-        (data || []).forEach((o) => { map[`owner-${o.id}`] = { name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) }; });
+        const { data: units } = await supabase.from('unit_layouts').select('id, building_no, floor, door_no').in('id', committedIds.ownerIds);
+        const { data: ownersData } = await fetchAllRows(() => supabase.from('owners').select('firstname, lastname, building_no, floor, door_no').eq('tenant_id', hoaId));
+        (units || []).forEach((u) => {
+          const owner = (ownersData || []).find((o) => o.building_no === u.building_no && o.floor === u.floor && o.door_no === u.door_no);
+          map[`owner-${u.id}`] = {
+            name: owner ? `${owner.firstname || ''} ${owner.lastname || ''}`.trim() : 'Эзэнгүй',
+            sub: formatUnitCode(u.building_no, structureTypeByBuilding[String(u.building_no || '').trim()], u.floor, null, u.door_no),
+          };
+        });
       }
       if (committedIds.clientIds.length) {
-        const { data } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
-        (data || []).forEach((c) => { map[`client-${c.id}`] = { name: c.legal_entity_name, sub: 'Талбай өмчлөгч' }; });
+        // Эхлээд шууд clientele.id таарч байгааг шалгана (grid
+        // талбайгүй, хуучин fallback тохиолдол).
+        const { data: directClients } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
+        (directClients || []).forEach((c) => { map[`client-${c.id}`] = { name: c.legal_entity_name, sub: 'Талбай өмчлөгч' }; });
+        // Дараа нь v тухайн ID grid_land_plots дотор агуулагдаж буй
+        // ОДООГИЙН client-ийг хайна.
+        const { data: allClients } = await fetchAllRows(() => supabase.from('clientele').select('id, legal_entity_name, grid_land_plots').eq('tenant_id', hoaId).eq('has_grid_land', true));
+        committedIds.clientIds.forEach((tid) => {
+          if (map[`client-${tid}`]) return;
+          const client = (allClients || []).find((c) => Array.isArray(c.grid_land_plots) && c.grid_land_plots.some((p) => extractGridItemUuid(p?.id) === tid));
+          map[`client-${tid}`] = client ? { name: client.legal_entity_name, sub: 'Талбай өмчлөгч' } : { name: 'Эзэнгүй', sub: 'Талбай өмчлөгч' };
+        });
       }
       setNames(map);
     })();
@@ -175,13 +196,26 @@ export default function Invoice() {
       const clientTariffs = (tariffItems || []).filter((t) => t.category === 'client');
       const { data: owners } = await fetchAllRows(() => supabase.from('owners').select('*').eq('tenant_id', hoaId));
       const { data: clientele } = await fetchAllRows(() => supabase.from('clientele').select('*').eq('tenant_id', hoaId));
+      // 2026-09-13 БОДИТ АРХИТЕКТУРЫН ЗАСВАР — хэрэглэгчийн ажигласны
+      // дагуу: өмчлөгч (owners/clientele) бол СОЛИГДДОГ (байраа зарвал
+      // өөр хүн орж ирдэг) дата, харин тоот/зогсоол/агуулах/талбай бол
+      // СӨХ-д ТОГТМОЛ, огт хөдлөдөггүй дата. Тиймээс нэхэмжлэхийг
+      // (target_id) өмчлөгчийн ID рүү биш, ТОГТВОРТОЙ нэгжийн ID рүү
+      // холбож, өмчлөгч солигдоход төлбөрийн түүх бүтэн хэвээр үлдэхийг
+      // баталгаажуулав.
+      const { data: unitLayoutsFull } = await fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId));
 
       const rows = [];
       (owners || []).forEach((o) => {
         const lineItems = calcOwnerItems(o, ownerTariffs, gridStorageSpots);
         if (lineItems.length === 0) return;
+        // Сууц өмчлэгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
+        // (байр+давхар+тоотоор тохирно) — олдохгүй бол (ховор тохиолдол)
+        // хамгийн сүүлд owner.id рүү буцаж холбоно (төлөв алдагдахаас
+        // дээр).
+        const matchedUnit = (unitLayoutsFull || []).find((u) => u.building_no === o.building_no && u.floor === o.floor && u.door_no === o.door_no);
         rows.push({
-          target_type: 'owner', target_id: o.id,
+          target_type: 'owner', target_id: matchedUnit?.id || o.id,
           name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no),
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
@@ -189,8 +223,15 @@ export default function Invoice() {
       (clientele || []).forEach((c) => {
         const lineItems = calcClientItems(c, clientTariffs, gridStorageSpots);
         if (lineItems.length === 0) return;
+        // Талбай эмчлэгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
+        // (unit_layouts-той адил хүснэгэл) байхгүй тул, холбогдсон
+        // grid талбайн (grid_land_plots) 1-р ID-г ТОГТВОРТОЙ нэгж
+        // болгож ашиглана — байхгүй бол c.id рүү буцна (одоогийн зан
+        // үйлтэй ижил, зөвхөн grid талбайгүй тохиолдолд).
+        const gridUuid = (c.has_grid_land && Array.isArray(c.grid_land_plots) && c.grid_land_plots.length > 0) ? extractGridItemUuid(c.grid_land_plots[0]?.id) : null;
+        const stableId = gridUuid || c.id;
         rows.push({
-          target_type: 'client', target_id: c.id,
+          target_type: 'client', target_id: stableId,
           name: c.legal_entity_name, sub: 'Талбай өмчлөгч',
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
