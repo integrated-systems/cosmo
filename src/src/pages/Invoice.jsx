@@ -185,12 +185,20 @@ export default function Invoice() {
         // талбайгүй, хуучин fallback тохиолдол).
         const { data: directClients } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
         (directClients || []).forEach((c) => { map[`client-${c.id}`] = { name: c.legal_entity_name, sub: 'Талбай өмчлөгч' }; });
-        // Дараа нь тухайн ID grid_land_plots дотор агуулагдаж буй
-        // ОДООГИЙН client-ийг хайна.
-        const { data: allClients } = await fetchAllRows(() => supabase.from('clientele').select('id, legal_entity_name, grid_land_plots').eq('tenant_id', hoaId).eq('has_grid_land', true));
+        // Дараа нь тухайн ID grid_land_plots/grid_parkings/
+        // grid_storages дотор агуулагдаж буй ОДООГИЙН client-ийг
+        // хайна. 2026-09-13 БОДИТ АЛДАА ЗАСАВ — эхлээд зөвхөн
+        // grid_land_plots-ыг л шалгаж байсан тул, зөвхөн зогсоол/
+        // агуулах эзэмшдэг ААН-ий нэр олдохгүй байсныг олж, 3
+        // талбарыг бүгдийг шалгадаг болгов.
+        const { data: allClients } = await fetchAllRows(() => supabase.from('clientele').select('id, legal_entity_name, grid_land_plots, grid_parkings, grid_storages').eq('tenant_id', hoaId));
         committedIds.clientIds.forEach((tid) => {
           if (map[`client-${tid}`]) return;
-          const client = (allClients || []).find((c) => Array.isArray(c.grid_land_plots) && c.grid_land_plots.some((p) => extractGridItemUuid(p?.id) === tid));
+          const client = (allClients || []).find((c) =>
+            (Array.isArray(c.grid_land_plots) && c.grid_land_plots.some((p) => extractGridItemUuid(p?.id) === tid)) ||
+            (Array.isArray(c.grid_parkings) && c.grid_parkings.some((p) => extractGridItemUuid(p?.id) === tid)) ||
+            (Array.isArray(c.grid_storages) && c.grid_storages.some((p) => extractGridItemUuid(p?.id) === tid))
+          );
           map[`client-${tid}`] = client ? { name: client.legal_entity_name, sub: 'Талбай өмчлөгч' } : { name: 'Эзэнгүй', sub: 'Талбай өмчлөгч' };
         });
       }
@@ -244,10 +252,17 @@ export default function Invoice() {
         // Талбай өмчлөгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
         // (unit_layouts-той адил хүснэгэл) байхгүй тул, холбогдсон
         // grid талбайн (grid_land_plots) 1-р ID-г ТОГТВОРТОЙ нэгж
-        // болгож ашиглана — байхгүй бол c.id рүү буцна (одоогийн зан
-        // үйлтэй ижил, зөвхөн grid талбайгүй тохиолдолд).
-        const gridUuid = (c.has_grid_land && Array.isArray(c.grid_land_plots) && c.grid_land_plots.length > 0) ? extractGridItemUuid(c.grid_land_plots[0]?.id) : null;
-        const stableId = gridUuid || c.id;
+        // болгож ашиглана. 2026-09-13 БОДИТ АЛДАА ЗАСАВ (сая цогцоор
+        // тестэлж байхад олов) — эхлээд зөвхөн grid_land_plots-ыг л
+        // шалгаж байсан тул, ЗӨВХӨН зогсоол/агуулах эзэмшдэг
+        // (has_grid_land=false) ААН-ий invoice дахин c.id (солигддог)
+        // рүү буцаж, Owners.jsx-д олж засах гэж байсан яг тэр цоорхой
+        // энд ДАХИН үүсэж байсныг олов. Одоо Owners.jsx-тэй ижил 3
+        // үеийн fallback: талбай -> зогсоол -> агуулах -> c.id.
+        const gridLandUuid = (c.has_grid_land && Array.isArray(c.grid_land_plots) && c.grid_land_plots.length > 0) ? extractGridItemUuid(c.grid_land_plots[0]?.id) : null;
+        const clientParkingUuid = !gridLandUuid && c.has_grid_parking && Array.isArray(c.grid_parkings) && c.grid_parkings.length > 0 ? extractGridItemUuid(c.grid_parkings[0]?.id) : null;
+        const clientStorageUuid = !gridLandUuid && !clientParkingUuid && c.has_grid_storage && Array.isArray(c.grid_storages) && c.grid_storages.length > 0 ? extractGridItemUuid(c.grid_storages[0]?.id) : null;
+        const stableId = gridLandUuid || clientParkingUuid || clientStorageUuid || c.id;
         rows.push({
           target_type: 'client', target_id: stableId,
           name: c.legal_entity_name, sub: 'Талбай өмчлөгч',
