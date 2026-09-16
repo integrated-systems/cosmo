@@ -40,9 +40,12 @@ export default function Property() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
   const monthOptions = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
-  const { getMonthStatus } = useInvoicePayments(hoaId, 'owner');
+  const { getMonthStatus, earliestYear } = useInvoicePayments(hoaId, 'owner');
+  // 2026-09-13: Хэрэглэгчийн хүсэлтээр — dropdown нь хатуу кодолсон
+  // (data-тай холбоогүй) 2022-2027 хүрээ биш, эхний нэхэмжлэх үүссэн
+  // жилээс эхлэн одоогийн он хүртэл л үзүүлдэг болов.
+  const yearOptions = Array.from({ length: Math.max(1, now.getFullYear() - earliestYear + 1) }, (_, i) => earliestYear + i);
   const [search, setSearch] = useState('');
   const [owners, setOwners] = useState([]);
   const [clientele, setClientele] = useState([]);

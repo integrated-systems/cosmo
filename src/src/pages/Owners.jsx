@@ -31,8 +31,11 @@ export default function Owners() {
   const [buildingFilter, setBuildingFilter] = useState('');
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
-  const { getYearSummary } = useInvoicePayments(hoaId, 'owner');
+  const { getYearSummary, earliestYear } = useInvoicePayments(hoaId, 'owner');
+  // 2026-09-13: Хэрэглэгчийн хүсэлтээр — dropdown нь хатуу кодолсон
+  // (data-тай холбоогүй) 2022-2027 хүрээ биш, эхний нэхэмжлэх үүссэн
+  // жилээс эхлэн одоогийн он хүртэл л үзүүлдэг болов.
+  const yearOptions = Array.from({ length: Math.max(1, now.getFullYear() - earliestYear + 1) }, (_, i) => earliestYear + i);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selected, setSelected] = useState(null);

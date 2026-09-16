@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
-// 2026-09-13: Сууц өмчлөгч (Owners.jsx), Талбай өмчлөгч (Clientele.jsx),
+
 // 2026-09-13: Сууц өмчлөгч (Owners.jsx), Талбай өмчлөгч (Clientele.jsx),
 // Тоот, Зогсоол, Агуулах (Property.jsx)-ийн "Тоот" таб — 3 хуудас
+// ХОЁРДОГЧ (Rule of two) энэ НЭГ hook-ыг ашиглаж, invoices хүснэгэлээс
 // бодит төлбөрийн түүхийг уншина. PaymentBadges.jsx/UnitGridCard.jsx
 // өөрсдөө backend/schema-г мэдэхгүй, зөвхөн эндээс тооцоолсон энгийн
-// утгыг (firstInvoiceMonth/paidThroughMonth эсвэл нэг төлөв) хүлээж авна.
 // утгыг (firstInvoiceMonth/paidThroughMonth эсвэл нэг төлөв) хүлээж авна.
 export function useInvoicePayments(hoaId, targetType) {
   const [invoices, setInvoices] = useState([]);
@@ -24,8 +24,15 @@ export function useInvoicePayments(hoaId, targetType) {
     return () => { cancelled = true; };
   }, [hoaId, targetType]);
 
+  // 2026-09-13: Он шүүх dropdown-д зориулав — тухайн tenant-ийн энэ
+  // targetType-ийн хамгийн эртний нэхэмжлэхийн он. Invoice огт байхгүй
+  // бол одоогийн оноос эхэлнэ гэж үзнэ (хатуу кодолсон 2022-2027 гэсэн
+  // dataтай холбоогүй хүрээг арилгав).
+  const now = new Date();
+  const earliestYear = invoices.length > 0 ? Math.min(...invoices.map((i) => i.period_year)) : now.getFullYear();
+
   // PaymentBadges.jsx-д зориулав — сонгосон YEAR-ийн хүрээнд тухайн
-  // Хэрэв эхний нэхэмжлэх өмнөх жилүүдээс эхэлсэн бол тухайн жилийн
+  // target (owner/client)-ийн {firstInvoiceMonth, paidThroughMonth}.
   // Хэрэв эхний нэхэмжлэх өмнөх жилүүдээс эхэлсэн бол тухайн жилийн
   // 1-р сараас эхлэн хянагдана гэж үзнэ.
   function getYearSummary(targetId, year) {
@@ -51,7 +58,7 @@ export function useInvoicePayments(hoaId, targetType) {
     return { firstInvoiceMonth, paidThroughMonth };
   }
 
-  // үеийн ганц төлөв: 'paid' | 'overdue' | 'none' (эхний нэхэмжлэхээс
+  // UnitGridCard.jsx (Тоот таб)-д зориулав — тодорхой нэг (year, month)
   // үеийн ганц төлөв: 'paid' | 'overdue' | 'none' (эхний нэхэмжлэхээс
   // eмнe буюу нэхэмжлэгдэж үзээгүй).
   function getMonthStatus(targetId, year, month) {
@@ -64,5 +71,5 @@ export function useInvoicePayments(hoaId, targetType) {
     return inv.status === 'paid' ? 'paid' : 'overdue';
   }
 
-  return { loading, getYearSummary, getMonthStatus };
+  return { loading, earliestYear, getYearSummary, getMonthStatus };
 }
