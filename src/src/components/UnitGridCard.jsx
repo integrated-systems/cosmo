@@ -10,7 +10,11 @@
 // (эзэнгүй эсвэл анхны төлбөр хийгдээгүй үе — САААРАЛ, тодруулгагүй).
 // TODO: бодит payments backend байхгүй тул төлөвийг screenshot-той
 // тохирсон ЖИШЭЭ хэвээр (индексээр эргэлдэнэ) харуулна.
-const EXAMPLE_PAYMENT_STATUS = ['none', 'paid', 'overdue', 'none', 'paid', 'overdue', 'none', 'overdue', 'paid', 'none', 'overdue', 'paid'];
+// 2026-09-13: Хэрэглэгчийн шаардсанаар — тухайн tenant СӨХ өмчлөгчдийн
+// бүртгэлээ бүрэн оруулж, программ ашиглаж эхлээгүй тул санамсаргүй
+// жишээ (төлсөн/төлөөгүй) dataг хоослов. Бодит payments backend
+// холбогдох хүртэл бүх тоот "анхдагч" (none) байдлаар харагдана.
+const EXAMPLE_PAYMENT_STATUS = ['none'];
 
 export default function UnitGridCard({ cells, hint }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));

@@ -14,11 +14,13 @@
 const MONTHS_SHORT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 // {firstPaymentMonth, paidThroughMonth} — firstPaymentMonth=null үед тухайн
 // өмчлөгч хараахан анхны төлбөрөө хийгээгүй тул БҮХ сар анхдагч өнгөтэй.
+// 2026-09-13: Хэрэглэгчийн шаардсанаар — тухайн tenant СӨХ өмчлөгчдийн
+// бүртгэлээ бүрэн оруулж, программ ашиглаж эхлээгүй тул санамсаргүй
+// жишээ (төлсөн/төлөөгүй) dataг хоослов. firstPaymentMonth: null үед
+// бүх сар "анхдагч" (тодруулгагүй, хүснэгэлийн текстийн өнгөтэй)
+// байдлаар харагдана — бодит payments backend холбогдох хүртэл.
 export const EXAMPLE_PAYMENT_ROWS = [
-  { firstPaymentMonth: 1, paidThroughMonth: 8 },
-  { firstPaymentMonth: 3, paidThroughMonth: 6 },
-  { firstPaymentMonth: 1, paidThroughMonth: 7 },
-  { firstPaymentMonth: 5, paidThroughMonth: 3 },
+  { firstPaymentMonth: null, paidThroughMonth: 0 },
 ];
 
 export default function PaymentBadges({ firstPaymentMonth, paidThroughMonth, currentMonth }) {
