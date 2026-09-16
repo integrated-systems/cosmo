@@ -9,6 +9,7 @@ import EditClientModal from '../components/EditClientModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { useAccessRules } from '../hooks/useAccessRules';
+import { useInvoicePayments } from '../hooks/useInvoicePayments';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудас — Owners.jsx-ийн бүтэц/
 // компонент задаргааны загварыг яг дахин ашигласан (Rule of two). Supabase
@@ -24,6 +25,10 @@ export default function Clientele() {
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
+  const { getYearSummary } = useInvoicePayments(hoaId, 'client');
 
   async function loadClientele() {
     setLoading(true);
@@ -100,7 +105,7 @@ export default function Clientele() {
 
   return (
     <>
-      <ClienteleToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} canAdd={can('clientele', 'add')} />
+      <ClienteleToolbar search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)} year={year} yearOptions={yearOptions} onYearChange={setYear} canAdd={can('clientele', 'add')} />
 
       <ClienteleTable
         rows={filteredRows}
@@ -112,6 +117,8 @@ export default function Clientele() {
         canEdit={can('clientele', 'edit')}
         canDelete={can('clientele', 'delete')}
         hoaId={hoaId}
+        year={year}
+        getYearSummary={getYearSummary}
       />
 
       <ClientInfoModal

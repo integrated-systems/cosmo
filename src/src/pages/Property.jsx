@@ -13,6 +13,7 @@ import GridSpotsViewer from '../components/GridSpotsViewer';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
+import { useInvoicePayments } from '../hooks/useInvoicePayments';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
 // зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
@@ -36,6 +37,12 @@ export default function Property() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { alert, AlertDialog } = useAlert();
   const [tab, setTab] = useState('household');
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
+  const monthOptions = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
+  const { getMonthStatus } = useInvoicePayments(hoaId, 'owner');
   const [search, setSearch] = useState('');
   const [owners, setOwners] = useState([]);
   const [clientele, setClientele] = useState([]);
@@ -207,7 +214,7 @@ export default function Property() {
       position: row.position,
       code: formatUnitCode(row.building_no, row.structure_type, row.floor, row.entrance_no, row.door_no),
       area: row.sqm,
-      exampleIdx: idx,
+      paymentStatus: owner ? getMonthStatus(owner.id, year, month) : 'none',
       vacant: !owner,
       onClick: () => {
         if (owner) setSelectedOwner(owner);
@@ -219,7 +226,12 @@ export default function Property() {
 
   return (
     <>
-      <PropertyToolbar search={search} onSearchChange={setSearch} />
+      <PropertyToolbar
+        search={search} onSearchChange={setSearch}
+        showPaymentFilters={tab === 'household'}
+        year={year} yearOptions={yearOptions} onYearChange={setYear}
+        month={month} monthOptions={monthOptions} onMonthChange={setMonth}
+      />
 
       <div className="flex gap-2">
         {TABS.map((t) => (

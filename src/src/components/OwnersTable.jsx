@@ -1,7 +1,7 @@
 import { formatDate } from '../lib/format';
 import { summarizeSpots, summarizeVehicles, summarizeGridSpots, formatDoorNo, formatStructureValue } from '../lib/ownersFormat';
 import { useGridSpots } from '../hooks/useGridSpots';
-import PaymentBadges, { EXAMPLE_PAYMENT_ROWS } from './PaymentBadges';
+import PaymentBadges from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
 // Owners.jsx-ийн хүснэгэл (thead+tbody, sticky толгойтой) — 2026-08-15
@@ -15,7 +15,7 @@ function findLayoutRow(unitLayouts, r) {
   );
 }
 
-export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId }) {
+export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId, year, getYearSummary }) {
   const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
   // Ихэнх тохиолдолд tenant бүхэлдээ НЭГ дугаарлалтын бүтэц ашиглана
   // (анхны байрны утгаар баганын гарчгийг тодорхойлно, мөр бүр өөрийн
@@ -96,7 +96,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
                 <td className="py-2.5 px-3">{[summarizeSpots(r.parkings), summarizeGridSpots(r.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{[summarizeSpots(r.storages), summarizeGridSpots(r.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                <td className="py-2.5 px-3"><PaymentBadges {...EXAMPLE_PAYMENT_ROWS[idx % EXAMPLE_PAYMENT_ROWS.length]} /></td>
+                <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(r.id, year)} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   {canEdit && (

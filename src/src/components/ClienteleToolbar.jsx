@@ -13,10 +13,13 @@ const PAYMENT_FILTER_OPTIONS = [
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 
-export default function ClienteleToolbar({ search, onSearchChange, onAddClick, canAdd = true }) {
+export default function ClienteleToolbar({ search, onSearchChange, onAddClick, year, yearOptions, onYearChange, canAdd = true }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
+        <select className="ds-select" value={year} onChange={(e) => onYearChange(Number(e.target.value))} title="Он (төлбөр төлөлтийн индикаторт хамаарна)">
+          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
         <select className="ds-select" defaultValue="all" title="Төлбөрийн хугацааны шүүлтүүр (одоогоор placeholder)">
           {PAYMENT_FILTER_OPTIONS.map((o) => (
             <option key={o.key} value={o.key}>{o.label}</option>

@@ -8,17 +8,13 @@
 // 2026-09-13 хэрэглэгчийн заасны дагуу 3 төлөвт болгов: ТӨЛСӨН (цэнхэр,
 // хугацаандаа бүрэн төлсөн), ТӨЛӨӨГҮЙ/хугацаа хэтэрсэн (улаан), АНХДАГЧ
 // (эзэнгүй эсвэл эхний нэхэмжлэх хараахан илгээгдээгүй үе — САААРАЛ,
-// тодруулгагүй). 2026-09-13 (2-р шинэчлэл): өнгөний динамик өөрчлөлт
-// "эхний төлбөр төлснөөр" биш, "эхний НЭХЭМЖЛЭХ илгээгдснээр" эхэлдэг
-// (PaymentBadges.jsx-той ижил зарчим — үүнийг үзнэ үү).
-// TODO: бодит invoices/payments backend байхгүй тул төлөвийг screenshot-той
-// тохирсон ЖИШЭЭ хэвээр (индексээр эргэлдэнэ) харуулна.
-// 2026-09-13: Хэрэглэгчийн шаардсанаар — тухайн tenant СӨХ өмчлөгчдийн
-// бүртгэлээ бүрэн оруулж, программ ашиглаж эхлээгүй тул санамсаргүй
-// жишээ (төлсөн/төлөөгүй) dataг хоослов. Бодит invoices/payments
-// backend холбогдох хүртэл бүх тоот "анхдагч" (none, эхний нэхэмжлэх
-// илгээгдээгүй) байдлаар харагдана.
-const EXAMPLE_PAYMENT_STATUS = ['none'];
+// тодруулгагүй). Өнгөний динамик өөрчлөлт "эхний төлбөр төлснөөр" биш,
+// "эхний НЭХЭМЖЛЭХ илгээгдснээр" эхэлдэг (PaymentBadges.jsx-той ижил
+// зарчим).
+// 2026-09-13 (2-р шинэчлэл): Property.jsx бодит invoices хүснэгэлээс
+// (useInvoicePayments hook) төлөвийг тооцоолж, `cells`-ийн `paymentStatus`
+// талбараар шууд дамжуулдаг болов — энэ компонент өөрөө backend/schema-г
+// мэдэхгүй, зөвхөн ирсэн 'paid'|'overdue'|'none' үнэ цэнийг л зурна.
 
 export default function UnitGridCard({ cells, hint }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
@@ -48,7 +44,7 @@ export default function UnitGridCard({ cells, hint }) {
                       <div className="w-7 shrink-0 text-[11px] text-mutedtext pt-1.5">{f}F</div>
                       <div className="flex flex-wrap gap-1">
                         {items.map((it, idx) => {
-                          const status = it.vacant ? 'none' : EXAMPLE_PAYMENT_STATUS[(it.exampleIdx ?? idx) % EXAMPLE_PAYMENT_STATUS.length];
+                          const status = it.vacant ? 'none' : (it.paymentStatus || 'none');
                           const colorClass = status === 'paid'
                             ? 'bg-blue-500/[0.12] border-blue-500/40 text-customBlue hover:border-customBlue'
                             : status === 'overdue'

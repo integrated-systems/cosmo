@@ -10,6 +10,7 @@ import OwnerInfoModal from '../components/OwnerInfoModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { useAccessRules } from '../hooks/useAccessRules';
+import { useInvoicePayments } from '../hooks/useInvoicePayments';
 
 // 2026-08-15: Supabase-тай холбогдов — EXAMPLE_OWNERS mock массив
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
@@ -28,6 +29,10 @@ export default function Owners() {
   const [unitLayouts, setUnitLayouts] = useState([]);
   const [search, setSearch] = useState('');
   const [buildingFilter, setBuildingFilter] = useState('');
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
+  const { getYearSummary } = useInvoicePayments(hoaId, 'owner');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [selected, setSelected] = useState(null);
@@ -125,6 +130,7 @@ export default function Owners() {
       <OwnersToolbar
         search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)}
         buildingOptions={buildingOptions} buildingFilter={buildingFilter} onBuildingFilterChange={setBuildingFilter}
+        year={year} yearOptions={yearOptions} onYearChange={setYear}
         canAdd={can('owners', 'add')}
       />
 
@@ -139,6 +145,8 @@ export default function Owners() {
         canEdit={can('owners', 'edit')}
         canDelete={can('owners', 'delete')}
         hoaId={hoaId}
+        year={year}
+        getYearSummary={getYearSummary}
       />
 
       <OwnerInfoModal

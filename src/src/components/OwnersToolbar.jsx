@@ -18,10 +18,13 @@ const PAYMENT_FILTER_OPTIONS = [
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 
-export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, canAdd = true }) {
+export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, year, yearOptions, onYearChange, canAdd = true }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
+        <select className="ds-select" value={year} onChange={(e) => onYearChange(Number(e.target.value))} title="Он (төлбөр төлөлтийн индикаторт хамаарна)">
+          {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+        </select>
         <select className="ds-select" value={buildingFilter} onChange={(e) => onBuildingFilterChange(e.target.value)}>
           <option value="">Бүх байр</option>
           {buildingOptions.map((b) => (
