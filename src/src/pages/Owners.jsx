@@ -197,60 +197,58 @@ export default function Owners() {
 
   return (
     <>
-      <div className="flex gap-2 mb-4">
+      {tab === 'unit' ? (
+        <OwnersToolbar
+          search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)}
+          buildingOptions={buildingOptions} buildingFilter={buildingFilter} onBuildingFilterChange={setBuildingFilter}
+          year={year} yearOptions={yearOptions} onYearChange={setYear}
+          canAdd={can('owners', 'add')}
+        />
+      ) : (
+        <OwnersToolbar
+          search={spotSearch} onSearchChange={setSpotSearch} onAddClick={() => setAddingSpotOnly(true)}
+          year={year} yearOptions={yearOptions} onYearChange={setYear}
+          showBuildingFilter={false}
+          addLabel="+ Зогсоол, агуулах дангаар өмчлөгч нэмэх"
+          searchPlaceholder="Хайх (нэр, регистр, утас, имэйл)..."
+          canAdd={can('owners', 'add')}
+        />
+      )}
+
+      <div className="flex gap-2 mb-4 mt-3">
         <TabButton active={tab === 'unit'} onClick={() => setTab('unit')}>Сууц өмчлөгч</TabButton>
         <TabButton active={tab === 'spot_only'} onClick={() => setTab('spot_only')}>Зогсоол, агуулах дангаар өмчлөгч</TabButton>
       </div>
 
       {tab === 'unit' ? (
-        <>
-          <OwnersToolbar
-            search={search} onSearchChange={setSearch} onAddClick={() => setAdding(true)}
-            buildingOptions={buildingOptions} buildingFilter={buildingFilter} onBuildingFilterChange={setBuildingFilter}
-            year={year} yearOptions={yearOptions} onYearChange={setYear}
-            canAdd={can('owners', 'add')}
-          />
-
-          <OwnersTable
-            rows={filteredRows}
-            unitLayouts={unitLayouts}
-            loading={loading}
-            loadError={loadError}
-            onRowClick={setSelected}
-            onEdit={setEditing}
-            onDelete={handleDelete}
-            canEdit={can('owners', 'edit')}
-            canDelete={can('owners', 'delete')}
-            hoaId={hoaId}
-            year={year}
-            getYearSummary={getYearSummary}
-          />
-        </>
+        <OwnersTable
+          rows={filteredRows}
+          unitLayouts={unitLayouts}
+          loading={loading}
+          loadError={loadError}
+          onRowClick={setSelected}
+          onEdit={setEditing}
+          onDelete={handleDelete}
+          canEdit={can('owners', 'edit')}
+          canDelete={can('owners', 'delete')}
+          hoaId={hoaId}
+          year={year}
+          getYearSummary={getYearSummary}
+        />
       ) : (
-        <>
-          <OwnersToolbar
-            search={spotSearch} onSearchChange={setSpotSearch} onAddClick={() => setAddingSpotOnly(true)}
-            year={year} yearOptions={yearOptions} onYearChange={setYear}
-            showBuildingFilter={false}
-            addLabel="+ Зогсоол, агуулах дангаар өмчлөгч нэмэх"
-            searchPlaceholder="Хайх (нэр, регистр, утас, имэйл)..."
-            canAdd={can('owners', 'add')}
-          />
-
-          <OwnersSpotOnlyTable
-            rows={filteredSpotOnlyRows}
-            loading={loading}
-            loadError={loadError}
-            onRowClick={setEditingSpotOnly}
-            onEdit={setEditingSpotOnly}
-            onDelete={handleDelete}
-            canEdit={can('owners', 'edit')}
-            canDelete={can('owners', 'delete')}
-            hoaId={hoaId}
-            year={year}
-            getYearSummary={getYearSummary}
-          />
-        </>
+        <OwnersSpotOnlyTable
+          rows={filteredSpotOnlyRows}
+          loading={loading}
+          loadError={loadError}
+          onRowClick={setEditingSpotOnly}
+          onEdit={setEditingSpotOnly}
+          onDelete={handleDelete}
+          canEdit={can('owners', 'edit')}
+          canDelete={can('owners', 'delete')}
+          hoaId={hoaId}
+          year={year}
+          getYearSummary={getYearSummary}
+        />
       )}
 
       <OwnerInfoModal
