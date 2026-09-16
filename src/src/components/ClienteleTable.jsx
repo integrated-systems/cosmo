@@ -1,7 +1,7 @@
 import { formatDate } from '../lib/format';
 import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
-import PaymentBadges, { EXAMPLE_PAID_THROUGH } from './PaymentBadges';
+import PaymentBadges, { EXAMPLE_PAYMENT_ROWS } from './PaymentBadges';
 import { EditIcon, DeleteIcon } from './icons/Icons';
 
 // Clientele.jsx-ийн хүснэгэл — 2026-08-16 хэрэглэгчийн тодорхой заасан
@@ -72,7 +72,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
                 <td className="py-2.5 px-3">{[summarizeSpots(r.parkings), summarizeGridSpots(r.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{[summarizeSpots(r.storages), summarizeGridSpots(r.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                <td className="py-2.5 px-3"><PaymentBadges paidThroughMonth={EXAMPLE_PAID_THROUGH[idx % EXAMPLE_PAID_THROUGH.length]} /></td>
+                <td className="py-2.5 px-3"><PaymentBadges {...EXAMPLE_PAYMENT_ROWS[idx % EXAMPLE_PAYMENT_ROWS.length]} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                   {canEdit && (

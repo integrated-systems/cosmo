@@ -5,11 +5,12 @@
 //   зэрэгцүүлэн (баруун тийш цувуулж, дэлгэцний өргөнөөс хэтэрвэл шинэ
 //   мөр эхэлдэг flex-wrap) харуулна. Байрууд 1-р давхараараа (доод
 //   талаараа) НЭГ шугаманд байрлана (`items-end`).
-// - өнгө: төлбөрийн үлдэгдэлгүй (өмчлөгчгүй ч хамаарна) — САААРАЛ,
-//   үлдэгдэлтэй бол УЛААН. Цэнхэр өнгө бүрмөсүн арилав.
-// TODO: бодит payments backend байхгүй тул "үлдэгдэлтэй эсэх"-ийг
-// screenshot-той тохирсон ЖИШЭЭ хэвээр (индексээр эргэлдэнэ) харуулна.
-const EXAMPLE_HAS_BALANCE = [false, false, true, false, false, true, false, true, false, false, true, false];
+// 2026-09-13 хэрэглэгчийн заасны дагуу 3 төлөвт болгов: ТӨЛСӨН (цэнхэр,
+// хугацаандаа бүрэн төлсөн), ТӨЛӨӨГҮЙ/хугацаа хэтэрсэн (улаан), АНХДАГЧ
+// (эзэнгүй эсвэл анхны төлбөр хийгдээгүй үе — САААРАЛ, тодруулгагүй).
+// TODO: бодит payments backend байхгүй тул төлөвийг screenshot-той
+// тохирсон ЖИШЭЭ хэвээр (индексээр эргэлдэнэ) харуулна.
+const EXAMPLE_PAYMENT_STATUS = ['none', 'paid', 'overdue', 'none', 'paid', 'overdue', 'none', 'overdue', 'paid', 'none', 'overdue', 'paid'];
 
 export default function UnitGridCard({ cells, hint }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
@@ -39,10 +40,12 @@ export default function UnitGridCard({ cells, hint }) {
                       <div className="w-7 shrink-0 text-[11px] text-mutedtext pt-1.5">{f}F</div>
                       <div className="flex flex-wrap gap-1">
                         {items.map((it, idx) => {
-                          const hasBalance = EXAMPLE_HAS_BALANCE[(it.exampleIdx ?? idx) % EXAMPLE_HAS_BALANCE.length];
-                          const colorClass = (it.vacant || !hasBalance)
-                            ? 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400'
-                            : 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed';
+                          const status = it.vacant ? 'none' : EXAMPLE_PAYMENT_STATUS[(it.exampleIdx ?? idx) % EXAMPLE_PAYMENT_STATUS.length];
+                          const colorClass = status === 'paid'
+                            ? 'bg-blue-500/[0.12] border-blue-500/40 text-customBlue hover:border-customBlue'
+                            : status === 'overdue'
+                            ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
+                            : 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400';
                           return (
                             <button
                               key={it.id}
