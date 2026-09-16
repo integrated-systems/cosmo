@@ -215,7 +215,7 @@ export default function Owners() {
         />
       )}
 
-      <div className="flex gap-2 mb-4 mt-3">
+      <div className="flex gap-2 mt-2.5 mb-2.5">
         <TabButton active={tab === 'unit'} onClick={() => setTab('unit')}>Сууц өмчлөгч</TabButton>
         <TabButton active={tab === 'spot_only'} onClick={() => setTab('spot_only')}>Зогсоол, агуулах дангаар өмчлөгч</TabButton>
       </div>
