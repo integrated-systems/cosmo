@@ -18,19 +18,21 @@ const PAYMENT_FILTER_OPTIONS = [
   { key: 'at_risk', label: 'Эрсдэлтэй' },
 ];
 
-export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, year, yearOptions, onYearChange, canAdd = true }) {
+export default function OwnersToolbar({ search, onSearchChange, onAddClick, buildingOptions, buildingFilter, onBuildingFilterChange, year, yearOptions, onYearChange, canAdd = true, showBuildingFilter = true, addLabel = '+ Сууц өмчлөгч нэмэх', searchPlaceholder = 'Хайх (тоот, нэр, утас, имэйл)...' }) {
   return (
     <div className="ds-toolbar">
       <div className="flex flex-wrap items-center gap-2">
         <select className="ds-select" value={year} onChange={(e) => onYearChange(Number(e.target.value))} title="Он (төлбөр төлөлтийн индикаторт хамаарна)">
           {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <select className="ds-select" value={buildingFilter} onChange={(e) => onBuildingFilterChange(e.target.value)}>
-          <option value="">Бүх байр</option>
-          {buildingOptions.map((b) => (
-            <option key={b} value={b}>{b}-р байр</option>
-          ))}
-        </select>
+        {showBuildingFilter && (
+          <select className="ds-select" value={buildingFilter} onChange={(e) => onBuildingFilterChange(e.target.value)}>
+            <option value="">Бүх байр</option>
+            {buildingOptions.map((b) => (
+              <option key={b} value={b}>{b}-р байр</option>
+            ))}
+          </select>
+        )}
         <select className="ds-select" defaultValue="all" title="Төлбөрийн хугацааны шүүлтүүр (одоогоор placeholder)">
           {PAYMENT_FILTER_OPTIONS.map((o) => (
             <option key={o.key} value={o.key}>{o.label}</option>
@@ -39,7 +41,7 @@ export default function OwnersToolbar({ search, onSearchChange, onAddClick, buil
         <div className="relative min-w-[200px]">
           <input
             type="text"
-            placeholder="Хайх (тоот, нэр, утас, имэйл)..."
+            placeholder={searchPlaceholder}
             className="ds-input w-full pl-8"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -50,7 +52,7 @@ export default function OwnersToolbar({ search, onSearchChange, onAddClick, buil
       <div className="flex items-center gap-2">
         <button className="ds-btn-secondary">Хэвлэх</button>
         <button className="ds-btn-secondary">Экспортлох</button>
-        {canAdd && <button className="ds-btn-primary" onClick={onAddClick}>+ Сууц өмчлөгч нэмэх</button>}
+        {canAdd && <button className="ds-btn-primary" onClick={onAddClick}>{addLabel}</button>}
       </div>
     </div>
   );

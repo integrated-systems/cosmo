@@ -158,7 +158,7 @@ export default function Invoice() {
       // эзэмшиж буй eмчлэгчийг эргүүлж хайх шаардлагатай болов.
       if (committedIds.ownerIds.length) {
         const { data: units } = await supabase.from('unit_layouts').select('id, building_no, floor, door_no').in('id', committedIds.ownerIds);
-        const { data: ownersData } = await fetchAllRows(() => supabase.from('owners').select('firstname, lastname, building_no, floor, door_no').eq('tenant_id', hoaId));
+        const { data: ownersData } = await fetchAllRows(() => supabase.from('owners').select('firstname, lastname, building_no, floor, door_no, has_grid_parking, grid_parkings, has_grid_storage, grid_storages').eq('tenant_id', hoaId));
         (units || []).forEach((u) => {
           const owner = (ownersData || []).find((o) => o.building_no === u.building_no && o.floor === u.floor && o.door_no === u.door_no);
           map[`owner-${u.id}`] = {
@@ -166,13 +166,26 @@ export default function Invoice() {
             sub: formatUnitCode(u.building_no, structureTypeByBuilding[String(u.building_no || '').trim()], u.floor, null, u.door_no),
           };
         });
+        // 2026-09-13: unit_layouts-с олдоогүй target_id-г ("Дан
+        // зогсоол, агуулах өмчлөгч"-ийн grid_parkings/grid_storages)
+        // эргүүлж хайна.
+        committedIds.ownerIds.forEach((tid) => {
+          if (map[`owner-${tid}`]) return;
+          const owner = (ownersData || []).find((o) =>
+            (Array.isArray(o.grid_parkings) && o.grid_parkings.some((p) => extractGridItemUuid(p?.id) === tid)) ||
+            (Array.isArray(o.grid_storages) && o.grid_storages.some((p) => extractGridItemUuid(p?.id) === tid))
+          );
+          map[`owner-${tid}`] = owner
+            ? { name: `${owner.firstname || ''} ${owner.lastname || ''}`.trim(), sub: 'Зогсоол, агуулах дангаар өмчлөгч' }
+            : { name: 'Эзэнгүй', sub: '—' };
+        });
       }
       if (committedIds.clientIds.length) {
         // Эхлээд шууд clientele.id таарч байгааг шалгана (grid
         // талбайгүй, хуучин fallback тохиолдол).
         const { data: directClients } = await supabase.from('clientele').select('id, legal_entity_name').in('id', committedIds.clientIds);
         (directClients || []).forEach((c) => { map[`client-${c.id}`] = { name: c.legal_entity_name, sub: 'Талбай өмчлөгч' }; });
-        // Дараа нь v тухайн ID grid_land_plots дотор агуулагдаж буй
+        // Дараа нь тухайн ID grid_land_plots дотор агуулагдаж буй
         // ОДООГИЙН client-ийг хайна.
         const { data: allClients } = await fetchAllRows(() => supabase.from('clientele').select('id, legal_entity_name, grid_land_plots').eq('tenant_id', hoaId).eq('has_grid_land', true));
         committedIds.clientIds.forEach((tid) => {
@@ -209,21 +222,26 @@ export default function Invoice() {
       (owners || []).forEach((o) => {
         const lineItems = calcOwnerItems(o, ownerTariffs, gridStorageSpots);
         if (lineItems.length === 0) return;
-        // Сууц өмчлэгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
-        // (байр+давхар+тоотоор тохирно) — олдохгүй бол (ховор тохиолдол)
-        // хамгийн сүүлд owner.id рүү буцаж холбоно (төлөв алдагдахаас
-        // дээр).
+        // Сууц өмчлөгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
+        // (байр+давхар+тоотоор тохирно). 2026-09-13: "Дан зогсоол,
+        // агуулах өмчлөгч" (сууцгүй) үед unit_layouts тохирохгүй тул,
+        // тэдний grid_parkings/grid_storages-ийн 1-р задалсан UUID-г
+        // ТОГТВОРТОЙ нэгж болгож ашиглана. Юу ч олдохгүй бол (ховор
+        // тохиолдол) хамгийн сүүлд owner.id рүү буцаж холбоно (төлөв
+        // алдагдахаас дээр).
         const matchedUnit = (unitLayoutsFull || []).find((u) => u.building_no === o.building_no && u.floor === o.floor && u.door_no === o.door_no);
+        const ownerParkingUuid = !matchedUnit && o.has_grid_parking && Array.isArray(o.grid_parkings) && o.grid_parkings.length > 0 ? extractGridItemUuid(o.grid_parkings[0]?.id) : null;
+        const ownerStorageUuid = !matchedUnit && !ownerParkingUuid && o.has_grid_storage && Array.isArray(o.grid_storages) && o.grid_storages.length > 0 ? extractGridItemUuid(o.grid_storages[0]?.id) : null;
         rows.push({
-          target_type: 'owner', target_id: matchedUnit?.id || o.id,
-          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no),
+          target_type: 'owner', target_id: matchedUnit?.id || ownerParkingUuid || ownerStorageUuid || o.id,
+          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: o.building_no ? formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) : 'Зогсоол, агуулах дангаар өмчлөгч',
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
       });
       (clientele || []).forEach((c) => {
         const lineItems = calcClientItems(c, clientTariffs, gridStorageSpots);
         if (lineItems.length === 0) return;
-        // Талбай эмчлэгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
+        // Талбай өмчлөгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
         // (unit_layouts-той адил хүснэгэл) байхгүй тул, холбогдсон
         // grid талбайн (grid_land_plots) 1-р ID-г ТОГТВОРТОЙ нэгж
         // болгож ашиглана — байхгүй бол c.id рүү буцна (одоогийн зан
