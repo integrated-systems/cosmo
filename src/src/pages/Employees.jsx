@@ -32,24 +32,46 @@ const BANKS = ['Хаан банк', 'Голомт банк', 'Худалдаа �
 // Цалингийн тооцоолол (урьдчилсан) хоёр таб ХОЁУЛАА ашиглана
 // (Rule of two — тоот НИЙТ ЦАЛИН/ГАРТ ОЛГОХ дүнг 2 газарт
 // давхардуулж бичихгүй).
-function computePayroll(emp, ndshTax, hhoatTax, additionsByCode) {
+// 2026-09-13: БОДИТ АЛДАА ЗАСАВ — өмнө нь зөвхөн НДШ/ХХОАТ гэсэн
+// 2 татварыг хатуу кодолсон (hardcoded) байсан тул, SUPERSYSADMIN
+// шинэ татвар нэмэхэд тооцоолол огт хамрахгүй байв. Одоо
+// payroll_tax_settings-ийн БҮХ идэвхтэй мврийг динамикаар (ямар ч
+// тооны татвар байж болно) тооцоолдог болгов. emp.tax_overrides
+// (JSONB, {код: {deduct, custom_..., reason}}), addition.
+// taxable_flags (JSONB, {код: true/false}) — 2 ч тал шинэ уян
+// хатан бүтэцтэй.
+function computePayroll(emp, taxSettings, additionsByCode) {
   const checked = (emp.addition_codes || []).map((c) => additionsByCode[c]).filter((a) => a && a.is_active);
   const additionsTotal = checked.reduce((s, a) => s + Number(a.amount), 0);
   const grossPay = Number(emp.base_salary) + additionsTotal;
+  const overrides = emp.tax_overrides || {};
 
-  const ndshBase = Number(emp.base_salary) + checked.filter((a) => a.taxable_socialins).reduce((s, a) => s + Number(a.amount), 0);
-  const hhoatBase = Number(emp.base_salary) + checked.filter((a) => a.taxable_incometax).reduce((s, a) => s + Number(a.amount), 0);
+  const taxBreakdown = (taxSettings || []).filter((t) => t.is_active).map((tax) => {
+    const override = overrides[tax.code] || {};
+    const deduct = override.deduct !== false;
+    const base = Number(emp.base_salary) + checked.filter((a) => (a.taxable_flags || {})[tax.code]).reduce((s, a) => s + Number(a.amount), 0);
+    let employeeAmount = 0;
+    let employerAmount = 0;
+    if (deduct) {
+      if (tax.calc_type === 'two_party') {
+        const empRate = Number(override.custom_employee_rate ?? tax.employee_rate_pct ?? 0);
+        const erRate = Number(override.custom_employer_rate ?? tax.employer_rate_pct ?? 0);
+        employeeAmount = base * empRate / 100;
+        employerAmount = base * erRate / 100;
+      } else {
+        const rate = Number(override.custom_rate ?? tax.rate_pct ?? 0);
+        employeeAmount = base * rate / 100;
+      }
+    }
+    return { code: tax.code, name: tax.name, calc_type: tax.calc_type, base, deduct, employeeAmount, employerAmount, liability_account: tax.liability_account };
+  });
 
-  const ndshEmployeeRate = emp.deduct_ndsh ? Number(emp.ndsh_custom_employee_rate ?? ndshTax?.employee_rate_pct ?? 0) : 0;
-  const ndshEmployerRate = emp.deduct_ndsh ? Number(emp.ndsh_custom_employer_rate ?? ndshTax?.employer_rate_pct ?? 0) : 0;
-  const hhoatRate = emp.deduct_hhoat ? Number(emp.hhoat_custom_rate ?? hhoatTax?.rate_pct ?? 0) : 0;
+  const totalEmployeeDeductions = taxBreakdown.reduce((s, t) => s + t.employeeAmount, 0);
+  const totalEmployerAdditional = taxBreakdown.reduce((s, t) => s + t.employerAmount, 0);
+  const netPay = grossPay - totalEmployeeDeductions;
+  const employerCost = grossPay + totalEmployerAdditional;
 
-  const ndshAmount = ndshBase * ndshEmployeeRate / 100;
-  const hhoatAmount = hhoatBase * hhoatRate / 100;
-  const netPay = grossPay - ndshAmount - hhoatAmount;
-  const employerCost = grossPay + (ndshBase * ndshEmployerRate / 100);
-
-  return { grossPay, ndshAmount, hhoatAmount, netPay, employerCost };
+  return { grossPay, netPay, employerCost, taxBreakdown, totalEmployeeDeductions, totalEmployerAdditional, checkedAdditions: checked };
 }
 
 function emptyForm() {
@@ -57,19 +79,24 @@ function emptyForm() {
     last_name: '', first_name: '', parent_name: '', register_no: '',
     citizenship: 'Монгол', occupation_code: '', insurer_type: 'social_health',
     civil_reg_no: '', home_address: '', position_id: '', base_salary: '',
-    addition_codes: [], deduct_ndsh: true, use_ndsh_custom_rate: false, ndsh_custom_employee_rate: '', ndsh_custom_employer_rate: '', ndsh_reason: '',
-    deduct_hhoat: true, use_hhoat_custom_rate: false, hhoat_custom_rate: '', hhoat_reason: '',
+    addition_codes: [], tax_overrides: {},
     hire_date: new Date().toISOString().slice(0, 10), status: 'active',
     phone: '', email: '', bank: '', iban: '', account_no: '', notes: '',
   };
 }
 
-function EmployeeModal({ open, onClose, editing, form, setForm, positions, additions, ndshTax, hhoatTax, onSave }) {
+function EmployeeModal({ open, onClose, editing, form, setForm, positions, additions, taxSettings, onSave }) {
   if (!form) return null;
   function toggleAddition(code) {
     setForm((f) => ({
       ...f,
       addition_codes: f.addition_codes.includes(code) ? f.addition_codes.filter((c) => c !== code) : [...f.addition_codes, code],
+    }));
+  }
+  function updateTaxOverride(code, patch) {
+    setForm((f) => ({
+      ...f,
+      tax_overrides: { ...f.tax_overrides, [code]: { ...(f.tax_overrides[code] || {}), ...patch } },
     }));
   }
   return (
@@ -154,57 +181,47 @@ function EmployeeModal({ open, onClose, editing, form, setForm, positions, addit
         <div>
           <div className="text-[11px] text-mutedtext mb-1.5">Цалингаас суутгах татвар/шимтгэл</div>
           <div className="flex flex-col gap-3">
-            <div className="ds-card p-3">
-              <label className="flex items-center gap-2 text-[12.5px]">
-                <input type="checkbox" checked={form.deduct_ndsh} onChange={(e) => setForm((f) => ({ ...f, deduct_ndsh: e.target.checked }))} />
-                Нийгмийн даатгалын шимтгэл (НДШ) суутгах
-              </label>
-              {!form.deduct_ndsh ? (
-                <input className="ds-input w-full mt-2" placeholder="Шалтгаан (жиш: Тэтгэврийн насны, НДШ дүүргэсэн)" value={form.ndsh_reason} onChange={(e) => setForm((f) => ({ ...f, ndsh_reason: e.target.value }))} />
-              ) : (
-                <>
-                  <label className="flex items-center gap-2 text-[12.5px] mt-2 ml-6">
-                    <input type="checkbox" checked={form.use_ndsh_custom_rate} onChange={(e) => setForm((f) => ({ ...f, use_ndsh_custom_rate: e.target.checked }))} />
-                    Тусгай хувь хэмжээ ашиглах
+            {taxSettings.map((tax) => {
+              const ov = form.tax_overrides[tax.code] || {};
+              const deduct = ov.deduct !== false;
+              return (
+                <div key={tax.code} className="ds-card p-3">
+                  <label className="flex items-center gap-2 text-[12.5px]">
+                    <input type="checkbox" checked={deduct} onChange={(e) => updateTaxOverride(tax.code, { deduct: e.target.checked })} />
+                    {tax.name} суутгах
                   </label>
-                  {form.use_ndsh_custom_rate && (
-                    <div className="flex gap-2 mt-2 ml-6">
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" step="0.1" className="ds-input w-20" placeholder={String(ndshTax?.employee_rate_pct ?? '')} value={form.ndsh_custom_employee_rate} onChange={(e) => setForm((f) => ({ ...f, ndsh_custom_employee_rate: e.target.value }))} />
-                        <span className="text-[11px] text-mutedtext">% ажилтан</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" step="0.1" className="ds-input w-20" placeholder={String(ndshTax?.employer_rate_pct ?? '')} value={form.ndsh_custom_employer_rate} onChange={(e) => setForm((f) => ({ ...f, ndsh_custom_employer_rate: e.target.value }))} />
-                        <span className="text-[11px] text-mutedtext">% ажил олгогч</span>
-                      </div>
-                    </div>
+                  {!deduct ? (
+                    <input className="ds-input w-full mt-2" placeholder="Шалтгаан (жиш: Тэтгэврийн насны, НДШ дүүргэсэн)" value={ov.reason || ''} onChange={(e) => updateTaxOverride(tax.code, { reason: e.target.value })} />
+                  ) : (
+                    <>
+                      <label className="flex items-center gap-2 text-[12.5px] mt-2 ml-6">
+                        <input type="checkbox" checked={!!ov.use_custom} onChange={(e) => updateTaxOverride(tax.code, { use_custom: e.target.checked })} />
+                        Тусгай хувь хэмжээ ашиглах
+                      </label>
+                      {ov.use_custom && (
+                        tax.calc_type === 'two_party' ? (
+                          <div className="flex gap-2 mt-2 ml-6">
+                            <div className="flex items-center gap-1.5">
+                              <input type="number" step="0.1" className="ds-input w-20" placeholder={String(tax.employee_rate_pct ?? '')} value={ov.custom_employee_rate ?? ''} onChange={(e) => updateTaxOverride(tax.code, { custom_employee_rate: e.target.value })} />
+                              <span className="text-[11px] text-mutedtext">% ажилтан</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <input type="number" step="0.1" className="ds-input w-20" placeholder={String(tax.employer_rate_pct ?? '')} value={ov.custom_employer_rate ?? ''} onChange={(e) => updateTaxOverride(tax.code, { custom_employer_rate: e.target.value })} />
+                              <span className="text-[11px] text-mutedtext">% ажил олгогч</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 mt-2 ml-6">
+                            <input type="number" step="0.1" className="ds-input w-20" placeholder={String(tax.rate_pct ?? '')} value={ov.custom_rate ?? ''} onChange={(e) => updateTaxOverride(tax.code, { custom_rate: e.target.value })} />
+                            <span className="text-[11px] text-mutedtext">% (анхдагч: {tax.rate_pct ?? '—'}%)</span>
+                          </div>
+                        )
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
-
-            <div className="ds-card p-3">
-              <label className="flex items-center gap-2 text-[12.5px]">
-                <input type="checkbox" checked={form.deduct_hhoat} onChange={(e) => setForm((f) => ({ ...f, deduct_hhoat: e.target.checked }))} />
-                Хувь хүний орлогын албан татвар (ХХОАТ) суутгах
-              </label>
-              {!form.deduct_hhoat ? (
-                <input className="ds-input w-full mt-2" placeholder="Шалтгаан (жиш: Тэтгэврийн насны, НДШ дүүргэсэн)" value={form.hhoat_reason} onChange={(e) => setForm((f) => ({ ...f, hhoat_reason: e.target.value }))} />
-              ) : (
-                <>
-                  <label className="flex items-center gap-2 text-[12.5px] mt-2 ml-6">
-                    <input type="checkbox" checked={form.use_hhoat_custom_rate} onChange={(e) => setForm((f) => ({ ...f, use_hhoat_custom_rate: e.target.checked }))} />
-                    Тусгай хувь хэмжээ ашиглах
-                  </label>
-                  {form.use_hhoat_custom_rate && (
-                    <div className="flex items-center gap-1.5 mt-2 ml-6">
-                      <input type="number" step="0.1" className="ds-input w-20" placeholder={String(hhoatTax?.rate_pct ?? '')} value={form.hhoat_custom_rate} onChange={(e) => setForm((f) => ({ ...f, hhoat_custom_rate: e.target.value }))} />
-                      <span className="text-[11px] text-mutedtext">% (анхдагч: {hhoatTax?.rate_pct ?? '—'}%)</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -336,7 +353,7 @@ function EmployeeList({ employees, search, positions, loading, onEdit, onDelete,
 // зардал -> 7020, Цалингийн өглөг -> 3030 (стандарт seed дансад
 // үндэслэсэн тогтмол код), нэмэгдэл бүр өөрийн expense_account-
 // руугаа, НДШ/ХХОАТ бүр өөрийн liability_account-руугаа бичигдэнэ.
-async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCode, userId, period) {
+async function postPayrollJournal(hoaId, rows, additionsByCode, userId, period) {
   const lines = {};
   const addDebit = (code, amount) => { if (!code || !amount) return; lines[code] = lines[code] || { debit: 0, credit: 0 }; lines[code].debit += amount; };
   const addCredit = (code, amount) => { if (!code || !amount) return; lines[code] = lines[code] || { debit: 0, credit: 0 }; lines[code].credit += amount; };
@@ -347,10 +364,15 @@ async function postPayrollJournal(hoaId, rows, ndshTax, hhoatTax, additionsByCod
       const a = additionsByCode[code];
       if (a && a.is_active) addDebit(a.expense_account, Number(a.amount));
     });
-    const employerNdshShare = calc.employerCost - calc.grossPay;
-    addDebit('7020', employerNdshShare);
-    addCredit(ndshTax?.liability_account, calc.ndshAmount + employerNdshShare);
-    addCredit(hhoatTax?.liability_account, calc.hhoatAmount);
+    // 2026-09-13: Ямар ч тооны татвар (НДШ, ХХОАТ, шинээр нэмэгдсэн
+    // Хотын татвар г.м.) динамикаар давхардуулахгүй нэг дороос
+    // Дт/Кт үүсгэнэ (Rule of two — hardcoded 2 татварын логикийг
+    // дахин давтахгүй).
+    calc.taxBreakdown.forEach((t) => {
+      if (t.employerAmount) addDebit('7020', t.employerAmount);
+      const totalForTax = t.employeeAmount + t.employerAmount;
+      if (totalForTax) addCredit(t.liability_account, totalForTax);
+    });
     addCredit('3030', calc.netPay);
   });
 
@@ -383,22 +405,24 @@ function PayrollPreview({ rows, totals }) {
                 <th className="py-2.5 px-3">№</th>
                 <th className="py-2.5 px-3">НЭР</th>
                 <th className="py-2.5 px-3 text-right">НИЙТ ЦАЛИН</th>
-                <th className="py-2.5 px-3 text-right">НИЙГМИЙН ДААТГАЛЫН ШИМТГЭЛ (НДШ)</th>
-                <th className="py-2.5 px-3 text-right">ХУВЬ ХүНИЙ ОРЛОГЫН АЛБАН ТАТВАР (ХХОАТ)</th>
+                {totals.taxTotals.map((t) => (
+                  <th key={t.code} className="py-2.5 px-3 text-right">{t.name.toUpperCase()}</th>
+                ))}
                 <th className="py-2.5 px-3 text-right">ГАРТ ОЛГОХ</th>
                 <th className="py-2.5 px-3 text-right">АЖ ОЛГОГЧИЙН НИЙТ ЗАРДАЛ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
               {rows.length === 0 ? (
-                <tr><td colSpan={7} className="py-6 text-center text-mutedtext">Ажиллаж байгаа ажилтан алга</td></tr>
+                <tr><td colSpan={5 + totals.taxTotals.length} className="py-6 text-center text-mutedtext">Ажиллаж байгаа ажилтан алга</td></tr>
               ) : rows.map(({ e, calc }, i) => (
                 <tr key={e.id}>
                   <td className="py-2.5 px-3 text-mutedtext">{i + 1}</td>
                   <td className="py-2.5 px-3 font-medium text-slate-900 dark:text-white whitespace-nowrap">{e.first_name?.toUpperCase()} {e.parent_name}</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(calc.grossPay)}₮</td>
-                  <td className="py-2.5 px-3 text-right">{formatMoney(calc.ndshAmount)}₮</td>
-                  <td className="py-2.5 px-3 text-right">{formatMoney(calc.hhoatAmount)}₮</td>
+                  {calc.taxBreakdown.map((t) => (
+                    <td key={t.code} className="py-2.5 px-3 text-right">{formatMoney(t.employeeAmount)}₮</td>
+                  ))}
                   <td className="py-2.5 px-3 text-right font-semibold">{formatMoney(calc.netPay)}₮</td>
                   <td className="py-2.5 px-3 text-right text-mutedtext">{formatMoney(calc.employerCost)}₮</td>
                 </tr>
@@ -409,8 +433,9 @@ function PayrollPreview({ rows, totals }) {
                 <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
                   <td className="py-2.5 px-3" colSpan={2}>НИЙТ</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(totals.gross)}₮</td>
-                  <td className="py-2.5 px-3 text-right">{formatMoney(totals.ndsh)}₮</td>
-                  <td className="py-2.5 px-3 text-right">{formatMoney(totals.hhoat)}₮</td>
+                  {totals.taxTotals.map((t) => (
+                    <td key={t.code} className="py-2.5 px-3 text-right">{formatMoney(t.amount)}₮</td>
+                  ))}
                   <td className="py-2.5 px-3 text-right">{formatMoney(totals.net)}₮</td>
                   <td className="py-2.5 px-3 text-right">{formatMoney(totals.employerCost)}₮</td>
                 </tr>
@@ -461,7 +486,7 @@ function EmployeeInfoModal({ employee, positions, onClose, onEdit, onOpenSalary 
 // одоогийн он ± тогтмол хүрээ үзүүлдэг байсан). "Сар" dropdown-д
 // "Бүгд (жилийн нийлбэр)" сонголт нэмж, сонгосон оны бүх сарын
 // (ажилд орсноос хойшхи) нийлбэрийг үзүүлдэг болгов.
-function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsByCode, onClose }) {
+function SalaryDetailModal({ employee, positions, taxSettings, additionsByCode, onClose }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1); // 0 = Бүгд (жилийн нийлбэр)
@@ -479,14 +504,16 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
   }
   const notYetHired = month !== 0 && isNotYetHired(year, month);
 
-  const calc = computePayroll(employee, ndshTax, hhoatTax, additionsByCode);
-  const checkedAdditions = (employee.addition_codes || []).map((c) => additionsByCode[c]).filter((a) => a && a.is_active);
-  const employerNdshShare = calc.employerCost - calc.grossPay;
+  // 2026-09-13: computePayroll() одоо ямар ч тооны идэвхтэй татварыг
+  // (taxSettings) динамикаар тооцоолж, calc.taxBreakdown массив
+  // болгож буцаана — hardcoded НДШ/ХХОАТ-с гадна SUPERSYSADMIN-ийн
+  // нэмсэн ямар ч шинэ татвар автоматаар энд харагдана.
+  const calc = computePayroll(employee, taxSettings, additionsByCode);
 
   // 2026-09-13: БОДИТ АЛДАА ЗАСАВ — Он/Сар сонгосон үед, тухайн
   // ажилтан ТЭР үед хараахан ажилд ороогүй байсан ч, одоогийн
   // тохиргоогоор тооцоолсон цалин үзүүлдэг байсан. Мөнгөтэй
-  // холбоотой тул сонгосон үе ажилд орсон огнооноос oмнe бол
+  // холбоотой тул сонгосон үе ажилд орсон огнооноос өмнө бол
   // тооцоолол үзүүлэхгүй, тодорхой анхааруулга харуулна.
   const years = Array.from({ length: Math.max(1, now.getFullYear() - hireYear + 1) }, (_, i) => hireYear + i);
 
@@ -499,7 +526,7 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
     : 0;
 
   return (
-    <Modal open={!!employee} onClose={onClose} title="Цалингийн дэлгэрэнгүй" size="md">
+    <Modal open={!!employee} onClose={onClose} title="Цалингийн дэлгэрэнгүй" size="lg">
       <div className="flex gap-2 mb-4">
         <div className="flex-1">
           <div className="text-[11px] text-mutedtext mb-1">Он</div>
@@ -528,48 +555,65 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
               {fullName} нь {year} онд хараахан ажилд ороогүй байсан. Цалингийн тооцоолол харуулах боломжгүй.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="ds-table w-full text-[12px]">
-                <thead>
-                  <tr>
-                    <th className="py-1.5 px-2">САР</th>
-                    <th className="py-1.5 px-2 text-right">НИЙТ ЦАЛИН</th>
-                    <th className="py-1.5 px-2 text-right">НДШ</th>
-                    <th className="py-1.5 px-2 text-right">ХХОАТ</th>
-                    <th className="py-1.5 px-2 text-right">ГАРТ ОЛГОХ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                  {MONTH_NAMES.map((name, i) => {
-                    const m = i + 1;
-                    // 2026-09-13: Хэрэглэгчийн хүсэлтээр хялбарчилав —
-                    // ирээдүйд бодогдох (хараахан ирээгүй) сарыг ажилд
-                    // ороогүй сартай АДИЛ "—" гэж үзүүлнэ (тусгай
-                    // тэмдэглэгээ, задалсан НИЙТ мөр шаардлагагүй).
-                    const isFuture = (year * 12 + m) > todayPeriodKey;
-                    const shown = !isNotYetHired(year, m) && !isFuture;
-                    return (
-                      <tr key={m} className={!shown ? 'opacity-40' : ''}>
-                        <td className="py-1.5 px-2">{name}</td>
-                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.grossPay)}₮` : '—'}</td>
-                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.ndshAmount)}₮` : '—'}</td>
-                        <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(calc.hhoatAmount)}₮` : '—'}</td>
-                        <td className="py-1.5 px-2 text-right font-semibold">{shown ? `${formatMoney(calc.netPay)}₮` : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
-                    <td className="py-1.5 px-2">НИЙТ ({pastMonthsInYear} сар)</td>
-                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * pastMonthsInYear)}₮</td>
-                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.ndshAmount * pastMonthsInYear)}₮</td>
-                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.hhoatAmount * pastMonthsInYear)}₮</td>
-                    <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * pastMonthsInYear)}₮</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <>
+              {/* 2026-09-13: Хэрэглэгчийн хүсэлтээрүэр — ажилтны зүгээс
+                  маргаан үүсэхгүй байхаар, жилийн нийлбэрт нэмэгдэл БОЛОН
+                  татвар бүр тус тусдаа баганаар (динамикаар, hardcoded
+                  НДШ/ХХОАТ биш) бүрэн харагдана. */}
+              <div className="overflow-x-auto">
+                <table className="ds-table w-full text-[11.5px]">
+                  <thead>
+                    <tr>
+                      <th className="py-1.5 px-2">САР</th>
+                      <th className="py-1.5 px-2 text-right">ҮНДСЭН ЦАЛИН</th>
+                      {calc.checkedAdditions.map((a) => (
+                        <th key={a.code} className="py-1.5 px-2 text-right">{a.name.toUpperCase()}</th>
+                      ))}
+                      <th className="py-1.5 px-2 text-right">НИЙТ ЦАЛИН</th>
+                      {calc.taxBreakdown.map((t) => (
+                        <th key={t.code} className="py-1.5 px-2 text-right">{t.name.toUpperCase()}</th>
+                      ))}
+                      <th className="py-1.5 px-2 text-right">ГАРТ ОЛГОХ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+                    {MONTH_NAMES.map((name, i) => {
+                      const m = i + 1;
+                      const isFuture = (year * 12 + m) > todayPeriodKey;
+                      const shown = !isNotYetHired(year, m) && !isFuture;
+                      return (
+                        <tr key={m} className={!shown ? 'opacity-40' : ''}>
+                          <td className="py-1.5 px-2">{name}</td>
+                          <td className="py-1.5 px-2 text-right">{shown ? `${formatMoney(employee.base_salary)}₮` : '—'}</td>
+                          {calc.checkedAdditions.map((a) => (
+                            <td key={a.code} className="py-1.5 px-2 text-right">{shown ? `${formatMoney(a.amount)}₮` : '—'}</td>
+                          ))}
+                          <td className="py-1.5 px-2 text-right font-semibold">{shown ? `${formatMoney(calc.grossPay)}₮` : '—'}</td>
+                          {calc.taxBreakdown.map((t) => (
+                            <td key={t.code} className="py-1.5 px-2 text-right">{shown ? `-${formatMoney(t.employeeAmount)}₮` : '—'}</td>
+                          ))}
+                          <td className="py-1.5 px-2 text-right font-semibold">{shown ? `${formatMoney(calc.netPay)}₮` : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
+                      <td className="py-1.5 px-2">НИЙТ ({pastMonthsInYear} сар)</td>
+                      <td className="py-1.5 px-2 text-right">{formatMoney(Number(employee.base_salary) * pastMonthsInYear)}₮</td>
+                      {calc.checkedAdditions.map((a) => (
+                        <td key={a.code} className="py-1.5 px-2 text-right">{formatMoney(Number(a.amount) * pastMonthsInYear)}₮</td>
+                      ))}
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.grossPay * pastMonthsInYear)}₮</td>
+                      {calc.taxBreakdown.map((t) => (
+                        <td key={t.code} className="py-1.5 px-2 text-right">-{formatMoney(t.employeeAmount * pastMonthsInYear)}₮</td>
+                      ))}
+                      <td className="py-1.5 px-2 text-right">{formatMoney(calc.netPay * pastMonthsInYear)}₮</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           )
         ) : (
           <div className="flex flex-col gap-1 text-[12.5px]">
@@ -580,22 +624,25 @@ function SalaryDetailModal({ employee, positions, ndshTax, hhoatTax, additionsBy
             ) : (
               <>
                 <div className="flex justify-between py-1"><span className="text-mutedtext">Үндсэн цалин</span><span>{formatMoney(employee.base_salary)}₮</span></div>
-                {checkedAdditions.map((a) => (
+                {calc.checkedAdditions.map((a) => (
                   <div key={a.code} className="flex justify-between py-0.5 pl-4"><span className="text-mutedtext">{a.name}</span><span>{formatMoney(a.amount)}₮</span></div>
                 ))}
                 <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
                   <span>Нийт цалин</span><span>{formatMoney(calc.grossPay)}₮</span>
                 </div>
-                <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажилтны хэсэг)</span><span className="text-customRed">-{formatMoney(calc.ndshAmount)}₮</span></div>
-                <div className="flex justify-between py-1"><span className="text-mutedtext">ХХОАТ</span><span className="text-customRed">-{formatMoney(calc.hhoatAmount)}₮</span></div>
+                {calc.taxBreakdown.map((t) => (
+                  <div key={t.code} className="flex justify-between py-1"><span className="text-mutedtext">{t.name}{!t.deduct ? ' (суутгаагүй)' : ''}</span><span className={t.employeeAmount ? 'text-customRed' : 'text-mutedtext'}>{t.employeeAmount ? `-${formatMoney(t.employeeAmount)}₮` : '—'}</span></div>
+                ))}
                 <div className="flex justify-between py-2 font-bold text-[14px] border-t border-slate-200 dark:border-bordercol mt-1">
                   <span>ГАРТ ОЛГОХ ДҮН</span><span>{formatMoney(calc.netPay)}₮</span>
                 </div>
 
-                <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил oлгогчийн нэмэлт зардал:</div>
-                <div className="flex justify-between py-1"><span className="text-mutedtext">НДШ (ажил oлгогчийн хэсэг)</span><span>{formatMoney(employerNdshShare)}₮</span></div>
+                <div className="text-[11px] text-mutedtext mt-3 mb-1">Ажил олгогчийн нэмэлт зардал:</div>
+                {calc.taxBreakdown.filter((t) => t.employerAmount).map((t) => (
+                  <div key={t.code} className="flex justify-between py-1"><span className="text-mutedtext">{t.name} (ажил олгогчийн хэсэг)</span><span>{formatMoney(t.employerAmount)}₮</span></div>
+                ))}
                 <div className="flex justify-between py-1.5 font-semibold border-t border-slate-200 dark:border-bordercol mt-1">
-                  <span>Ажил oлгогчид ногдох зардал</span><span>{formatMoney(calc.employerCost)}₮</span>
+                  <span>Ажил олгогчид ногдох зардал</span><span>{formatMoney(calc.employerCost)}₮</span>
                 </div>
               </>
             )}
@@ -648,24 +695,27 @@ export default function Employees() {
   }
   useEffect(() => { if (hoaId) load(); }, [hoaId]);
 
-  const ndshTax = taxSettings.find((t) => t.code === 'ndsh');
-  const hhoatTax = taxSettings.find((t) => t.code === 'hhoat');
   const additionsByCode = {};
   additionSettings.forEach((a) => { additionsByCode[a.code] = a; });
 
   function startAdd() { setForm(emptyForm()); setEditing(null); setModalOpen(true); }
   function startEdit(row) {
+    const formTaxOverrides = {};
+    Object.entries(row.tax_overrides || {}).forEach(([code, ov]) => {
+      formTaxOverrides[code] = {
+        deduct: ov.deduct !== false,
+        use_custom: ov.custom_employee_rate != null || ov.custom_employer_rate != null || ov.custom_rate != null,
+        custom_employee_rate: ov.custom_employee_rate != null ? String(ov.custom_employee_rate) : '',
+        custom_employer_rate: ov.custom_employer_rate != null ? String(ov.custom_employer_rate) : '',
+        custom_rate: ov.custom_rate != null ? String(ov.custom_rate) : '',
+        reason: ov.reason || '',
+      };
+    });
     setForm({
       ...emptyForm(),
       ...row,
       base_salary: String(row.base_salary),
-      ndsh_custom_employee_rate: row.ndsh_custom_employee_rate != null ? String(row.ndsh_custom_employee_rate) : '',
-      ndsh_custom_employer_rate: row.ndsh_custom_employer_rate != null ? String(row.ndsh_custom_employer_rate) : '',
-      use_ndsh_custom_rate: row.ndsh_custom_employee_rate != null || row.ndsh_custom_employer_rate != null,
-      ndsh_reason: row.ndsh_reason || '',
-      hhoat_custom_rate: row.hhoat_custom_rate != null ? String(row.hhoat_custom_rate) : '',
-      use_hhoat_custom_rate: row.hhoat_custom_rate != null,
-      hhoat_reason: row.hhoat_reason || '',
+      tax_overrides: formTaxOverrides,
       position_id: row.position_id || '',
     });
     setEditing(row.id);
@@ -683,17 +733,30 @@ export default function Employees() {
       return;
     }
     // eslint-disable-next-line no-unused-vars
-    const { use_ndsh_custom_rate, use_hhoat_custom_rate, ...formForDb } = form;
+    const { tax_overrides: formTaxOverrides, ...formForDb } = form;
+    const taxOverridesForDb = {};
+    Object.entries(formTaxOverrides || {}).forEach(([code, ov]) => {
+      const tax = taxSettings.find((t) => t.code === code);
+      const deduct = ov.deduct !== false;
+      const entry = { deduct };
+      if (!deduct) {
+        entry.reason = ov.reason?.trim() || null;
+      } else if (ov.use_custom) {
+        if (tax?.calc_type === 'two_party') {
+          entry.custom_employee_rate = ov.custom_employee_rate !== '' ? Number(ov.custom_employee_rate) : null;
+          entry.custom_employer_rate = ov.custom_employer_rate !== '' ? Number(ov.custom_employer_rate) : null;
+        } else {
+          entry.custom_rate = ov.custom_rate !== '' ? Number(ov.custom_rate) : null;
+        }
+      }
+      taxOverridesForDb[code] = entry;
+    });
     const payload = {
       ...formForDb,
       first_name: form.first_name.trim().toUpperCase(),
       base_salary: Number(form.base_salary) || 0,
       position_id: form.position_id || null,
-      ndsh_custom_employee_rate: form.deduct_ndsh && form.use_ndsh_custom_rate && form.ndsh_custom_employee_rate !== '' ? Number(form.ndsh_custom_employee_rate) : null,
-      ndsh_custom_employer_rate: form.deduct_ndsh && form.use_ndsh_custom_rate && form.ndsh_custom_employer_rate !== '' ? Number(form.ndsh_custom_employer_rate) : null,
-      ndsh_reason: !form.deduct_ndsh ? (form.ndsh_reason.trim() || null) : null,
-      hhoat_custom_rate: form.deduct_hhoat && form.use_hhoat_custom_rate && form.hhoat_custom_rate !== '' ? Number(form.hhoat_custom_rate) : null,
-      hhoat_reason: !form.deduct_hhoat ? (form.hhoat_reason.trim() || null) : null,
+      tax_overrides: taxOverridesForDb,
       hire_date: form.hire_date || null,
     };
     if (editing) {
@@ -721,14 +784,17 @@ export default function Employees() {
     const hirePeriodKey = hireDate.getFullYear() * 12 + (hireDate.getMonth() + 1);
     return selectedPeriodKey >= hirePeriodKey;
   });
-  const payrollRows = activePayrollEmployees.map((e) => ({ e, calc: computePayroll(e, ndshTax, hhoatTax, additionsByCode) }));
-  const payrollTotals = payrollRows.reduce((acc, r) => ({
-    gross: acc.gross + r.calc.grossPay,
-    ndsh: acc.ndsh + r.calc.ndshAmount,
-    hhoat: acc.hhoat + r.calc.hhoatAmount,
-    net: acc.net + r.calc.netPay,
-    employerCost: acc.employerCost + r.calc.employerCost,
-  }), { gross: 0, ndsh: 0, hhoat: 0, net: 0, employerCost: 0 });
+  const payrollRows = activePayrollEmployees.map((e) => ({ e, calc: computePayroll(e, taxSettings, additionsByCode) }));
+  const payrollTotals = {
+    gross: payrollRows.reduce((s, r) => s + r.calc.grossPay, 0),
+    net: payrollRows.reduce((s, r) => s + r.calc.netPay, 0),
+    employerCost: payrollRows.reduce((s, r) => s + r.calc.employerCost, 0),
+    taxTotals: taxSettings.filter((t) => t.is_active).map((tax) => ({
+      code: tax.code,
+      name: tax.name,
+      amount: payrollRows.reduce((s, r) => s + (r.calc.taxBreakdown.find((t2) => t2.code === tax.code)?.employeeAmount || 0), 0),
+    })),
+  };
 
   useEffect(() => {
     if (!hoaId) return;
@@ -743,7 +809,7 @@ export default function Employees() {
     setPosting(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
-      await postPayrollJournal(hoaId, payrollRows, ndshTax, hhoatTax, additionsByCode, userData?.user?.id, currentPeriod);
+      await postPayrollJournal(hoaId, payrollRows, additionsByCode, userData?.user?.id, currentPeriod);
       window.alert('Журналын бичилт амжилттай үүслээ. "Нягтлан бодох бүртгэл" хуудаснаас харна уу.');
       setAlreadyPostedPeriod(true);
     } catch (err) {
@@ -825,8 +891,7 @@ export default function Employees() {
         setForm={setForm}
         positions={positions}
         additions={additionSettings}
-        ndshTax={ndshTax}
-        hhoatTax={hhoatTax}
+        taxSettings={taxSettings}
         onSave={handleSave}
       />
       <EmployeeInfoModal
@@ -839,8 +904,7 @@ export default function Employees() {
       <SalaryDetailModal
         employee={salaryEmployee}
         positions={positions}
-        ndshTax={ndshTax}
-        hhoatTax={hhoatTax}
+        taxSettings={taxSettings}
         additionsByCode={additionsByCode}
         onClose={() => setSalaryEmployee(null)}
       />

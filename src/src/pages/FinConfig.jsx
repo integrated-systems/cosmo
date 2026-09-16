@@ -874,6 +874,7 @@ const ADDITION_FREQUENCIES = [
 // эсэхийг чекбоксоор сонгоно.
 function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels }) {
   const [rows, setRows] = useState([]);
+  const [taxSettings, setTaxSettings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(null);
@@ -881,17 +882,26 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
 
   async function load() {
     setLoading(true);
-    const { data } = await fetchAllRows(() => supabase.from('payroll_addition_settings').select('*').eq('tenant_id', hoaId).order('sort_order').order('created_at'));
+    const [{ data }, { data: taxRows }] = await Promise.all([
+      fetchAllRows(() => supabase.from('payroll_addition_settings').select('*').eq('tenant_id', hoaId).order('sort_order').order('created_at')),
+      fetchAllRows(() => supabase.from('payroll_tax_settings').select('*').eq('tenant_id', hoaId).eq('is_active', true).order('sort_order')),
+    ]);
     setRows(data || []);
+    setTaxSettings(taxRows || []);
     setLoading(false);
   }
   useEffect(() => { if (hoaId) load(); }, [hoaId]);
 
   function startAdd() {
-    setForm({ code: '', name: '', frequency: 'monthly', amount: 0, expense_account: '', taxable_incometax: true, taxable_socialins: true, is_active: true, notes: '' });
+    // 2026-09-13: Шинэ нэмэгдэл үүсгэхдээ, одоо идэвхтэй бүх татварт
+    // (hardcoded НДШ/ХХОАТ биш, динамикаар) анхдагчаар "тооцно" гэж
+    // үзнэ — хуучин meal/transport/phone-той ижил зан үйлтэй.
+    const defaultFlags = {};
+    taxSettings.forEach((t) => { defaultFlags[t.code] = true; });
+    setForm({ code: '', name: '', frequency: 'monthly', amount: 0, expense_account: '', taxable_flags: defaultFlags, is_active: true, notes: '' });
     setEditing('new');
   }
-  function startEdit(row) { setForm({ ...row, expense_account: row.expense_account || '', notes: row.notes || '' }); setEditing(row.id); }
+  function startEdit(row) { setForm({ ...row, expense_account: row.expense_account || '', notes: row.notes || '', taxable_flags: row.taxable_flags || {} }); setEditing(row.id); }
 
   async function save() {
     if (!form.code.trim() || !form.name.trim()) return;
@@ -901,8 +911,7 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
       frequency: form.frequency,
       amount: Number(form.amount) || 0,
       expense_account: form.expense_account.trim() || null,
-      taxable_incometax: form.taxable_incometax,
-      taxable_socialins: form.taxable_socialins,
+      taxable_flags: form.taxable_flags,
       is_active: form.is_active,
       notes: form.notes.trim() || null,
     };
@@ -963,8 +972,9 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
                 </div>
               </div>
               <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">Дүн ({ADDITION_FREQUENCIES.find((f) => f.value === r.frequency)?.label})</span><span className="font-semibold">{formatMoney(r.amount)}₮</span></div>
-              <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">ХХОАТ-д тооцох</span><span>{r.taxable_incometax ? 'Тийм' : 'Үгүй'}</span></div>
-              <div className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">НДШ-д тооцох</span><span>{r.taxable_socialins ? 'Тийм' : 'Үгүй'}</span></div>
+              {taxSettings.map((tax) => (
+                <div key={tax.code} className="flex justify-between text-[12.5px] py-0.5"><span className="text-mutedtext">{tax.name}-д тооцох</span><span>{(r.taxable_flags || {})[tax.code] ? 'Тийм' : 'Үгүй'}</span></div>
+              ))}
               {r.notes && <div className="text-[11px] text-mutedtext mt-1.5">⚠ {r.notes}</div>}
             </div>
           ))}
@@ -1007,14 +1017,12 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
                 })}
               </select>
             </div>
-            <label className="flex items-center gap-2 text-[12.5px]">
-              <input type="checkbox" checked={form.taxable_incometax} onChange={(e) => setForm((f) => ({ ...f, taxable_incometax: e.target.checked }))} />
-              ХХОАТ-д тооцох
-            </label>
-            <label className="flex items-center gap-2 text-[12.5px]">
-              <input type="checkbox" checked={form.taxable_socialins} onChange={(e) => setForm((f) => ({ ...f, taxable_socialins: e.target.checked }))} />
-              НДШ-д тооцох
-            </label>
+            {taxSettings.map((tax) => (
+              <label key={tax.code} className="flex items-center gap-2 text-[12.5px]">
+                <input type="checkbox" checked={!!form.taxable_flags[tax.code]} onChange={(e) => setForm((f) => ({ ...f, taxable_flags: { ...f.taxable_flags, [tax.code]: e.target.checked } }))} />
+                {tax.name}-д тооцох
+              </label>
+            ))}
             <label className="flex items-center gap-2 text-[12.5px]">
               <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
               Идэвхтэй
