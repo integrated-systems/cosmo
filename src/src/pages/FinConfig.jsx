@@ -49,7 +49,8 @@ function calcMethodLabel(v) {
 const FIXED_NAMES = ['СӨХ-ны төлбөр', 'Зогсоол', 'Агуулах'];
 
 // ---------------- Тарифын каталог (Сууц өмчлөгч / ААН) ----------------
-function TariffCatalog({ hoaId, category, title }) {
+function TariffCatalog({ hoaId, category, title, fixedNames }) {
+  const FIXED = fixedNames || FIXED_NAMES;
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -66,7 +67,7 @@ function TariffCatalog({ hoaId, category, title }) {
     // 2026-09-04 (8): 3 ФИКС категори үргүй байвал автоматаар үүсгэнэ
     // (staff санамсаргүй устгасан, эсвэл шинэ tenant үед).
     const existingNames = data.map((r) => r.name);
-    const missing = FIXED_NAMES.filter((n) => !existingNames.includes(n));
+    const missing = FIXED.filter((n) => !existingNames.includes(n));
     if (missing.length > 0) {
       await supabase.from('tariff_items').insert(
         missing.map((name, i) => ({ tenant_id: hoaId, category, name, calc_method: 'fixed', amount: 0, active: true, sort_order: -100 + i }))
@@ -78,10 +79,10 @@ function TariffCatalog({ hoaId, category, title }) {
     }
     // ФИКС категори эхэнд, дараа нь үүсгэсэн дараалалаараа
     data.sort((a, b) => {
-      const af = FIXED_NAMES.includes(a.name), bf = FIXED_NAMES.includes(b.name);
+      const af = FIXED.includes(a.name), bf = FIXED.includes(b.name);
       if (af && !bf) return -1;
       if (!af && bf) return 1;
-      if (af && bf) return FIXED_NAMES.indexOf(a.name) - FIXED_NAMES.indexOf(b.name);
+      if (af && bf) return FIXED.indexOf(a.name) - FIXED.indexOf(b.name);
       return 0;
     });
     setRows(data);
@@ -89,7 +90,7 @@ function TariffCatalog({ hoaId, category, title }) {
   }
   useEffect(() => { if (hoaId) load(); }, [hoaId, category]);
 
-  function isFixed(row) { return FIXED_NAMES.includes(row.name); }
+  function isFixed(row) { return FIXED.includes(row.name); }
 
   function startAdd() {
     setForm({ name: '', calc_method: 'count', amount: '' });
@@ -1046,6 +1047,7 @@ function AdditionSettingsCard({ hoaId, accounts, accountLabel, categoryLabels })
 const TARIFF_TABS = [
   { key: 'owner', label: 'Сууц өмчлөгчийн СӨХ-ны төлбөр' },
   { key: 'client', label: 'Талбай өмчлөгч (ААН)-ийн СӨХ-ны төлбөр' },
+  { key: 'spot_only', label: 'Зогсоол, агуулах өмчлөгчийн төлбөр' },
   { key: 'closure', label: 'Хотхоны хаалт' },
 ];
 // 2026-09-04 (2): Хэрэглэгчийн заасан дараалал: Орлогын дэд ангилал -
@@ -1094,6 +1096,7 @@ export default function FinConfig() {
           </div>
           {tariffTab === 'owner' && <TariffCatalog hoaId={hoaId} category="owner" title="Сууц өмчлөгч" />}
           {tariffTab === 'client' && <TariffCatalog hoaId={hoaId} category="client" title="Талбай өмчлөгч" />}
+          {tariffTab === 'spot_only' && <TariffCatalog hoaId={hoaId} category="spot_only" title="Зогсоол, агуулах дангаар өмчлөгч" fixedNames={['Зогсоол', 'Агуулах']} />}
           {tariffTab === 'closure' && <GateTariffCard hoaId={hoaId} />}
         </>
       )}

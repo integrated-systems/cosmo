@@ -215,6 +215,12 @@ export default function Invoice() {
       );
       const ownerTariffs = (tariffItems || []).filter((t) => t.category === 'owner');
       const clientTariffs = (tariffItems || []).filter((t) => t.category === 'client');
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — "Зогсоол, агуулах дангаар
+      // өмчлөгч" (сууцгүй) хүртэл одоог хүртэл Сууц өмчлөгчтэй ЯГ
+      // АДИЛ тариф (ownerTariffs) ашиглаж байсан тул (жиш "СөХ-ны
+      // төлбөр" зэрэг сууцтай хүнд л хамаарах мөр буруу тооцогдож
+      // болзошгүй), тусдаа "spot_only" категорийн тарифыг нэмэв.
+      const spotOnlyTariffs = (tariffItems || []).filter((t) => t.category === 'spot_only');
       const { data: owners } = await fetchAllRows(() => supabase.from('owners').select('*').eq('tenant_id', hoaId));
       const { data: clientele } = await fetchAllRows(() => supabase.from('clientele').select('*').eq('tenant_id', hoaId));
       // 2026-09-13 БОДИТ АРХИТЕКТУРЫН ЗАСВАР — хэрэглэгчийн ажигласны
@@ -228,7 +234,13 @@ export default function Invoice() {
 
       const rows = [];
       (owners || []).forEach((o) => {
-        const lineItems = calcOwnerItems(o, ownerTariffs, gridStorageSpots);
+        // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — сууцтай (building_no бий)
+        // болон Дан зогсоол/агуулах (сууцгүй) эмчлэгчийг ТУСДАА
+        // тарифаар тооцоолно. eмнe нь бүгд ownerTariffs ашигладаг
+        // байсан тул, "СөХ-ны төлбөр" зэрэг сууцад л хамаарах мөр
+        // сууцгүй хүнд буруу тооцогдож болзошгүй байв.
+        const applicableTariffs = o.building_no ? ownerTariffs : spotOnlyTariffs;
+        const lineItems = calcOwnerItems(o, applicableTariffs, gridStorageSpots);
         if (lineItems.length === 0) return;
         // Сууц өмчлөгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
         // (байр+давхар+тоотоор тохирно). 2026-09-13: "Дан зогсоол,
