@@ -62,8 +62,23 @@ export default function UserAppProfile({ user, theme, onToggleTheme, prefs, save
 
   const phones = Array.isArray(owner?.phones) ? owner.phones.filter(Boolean) : [];
   const emails = Array.isArray(owner?.emails) ? owner.emails.filter(Boolean) : [];
-  const parkings = Array.isArray(owner?.parkings) ? owner.parkings : [];
-  const storages = Array.isArray(owner?.storages) ? owner.storages : [];
+  // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Зогсоол/Агуулах мөрүүд зөвхөн
+  // owner.parkings/storages (хуучин, grid-гүй үеийн энгийн жагсаалт)
+  // ашигладаг байсан тул, одоо бүх шинэ бүртгэл grid_parkings/
+  // grid_storages (Конструктортой холбогдсон)-аар хийгддэг болсонтой
+  // үл нийцэж, үүргүй ("—") харагддаг байсныг хэрэглэгч олов. Хоёр
+  // эх үүсвэрийг (хуучин + шинэ grid) НИЙЛүүЛЖ тоолдог болгов —
+  // has_grid_parking/storage=false үед үлдсэн хоосон placeholder
+  // мөрийг (id хоосон) буруу тоолохоос сэргийлж, has_grid_* тэмдгээр
+  // хамгаалж, id-тай мөрийг л тоолдог болгов.
+  const parkings = [
+    ...(Array.isArray(owner?.parkings) ? owner.parkings : []),
+    ...(owner?.has_grid_parking && Array.isArray(owner?.grid_parkings) ? owner.grid_parkings.filter((p) => p?.id) : []),
+  ];
+  const storages = [
+    ...(Array.isArray(owner?.storages) ? owner.storages : []),
+    ...(owner?.has_grid_storage && Array.isArray(owner?.grid_storages) ? owner.grid_storages.filter((p) => p?.id) : []),
+  ];
   const fullName = `${owner?.firstname || ''} ${owner?.lastname || ''}`.trim() || user?.email || '—';
   const infoRows = [
     ['Тоот', unitLabel || '—'],
