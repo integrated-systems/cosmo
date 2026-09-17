@@ -9,6 +9,7 @@ import OwnersToolbar from '../components/OwnersToolbar';
 import OwnersTable from '../components/OwnersTable';
 import OwnersSpotOnlyTable from '../components/OwnersSpotOnlyTable';
 import OwnerInfoModal from '../components/OwnerInfoModal';
+import OwnerSpotOnlyInfoModal from '../components/OwnerSpotOnlyInfoModal';
 import TabButton from '../components/TabButton';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -53,6 +54,7 @@ export default function Owners() {
   const [adding, setAdding] = useState(false);
   const [editingSpotOnly, setEditingSpotOnly] = useState(null);
   const [addingSpotOnly, setAddingSpotOnly] = useState(false);
+  const [selectedSpotOnly, setSelectedSpotOnly] = useState(null);
 
   async function loadOwners() {
     setLoading(true);
@@ -234,7 +236,7 @@ export default function Owners() {
           rows={filteredSpotOnlyRows}
           loading={loading}
           loadError={loadError}
-          onRowClick={setEditingSpotOnly}
+          onRowClick={setSelectedSpotOnly}
           onEdit={setEditingSpotOnly}
           onDelete={handleDelete}
           canEdit={can('owners', 'edit')}
@@ -250,6 +252,12 @@ export default function Owners() {
         unitLayouts={unitLayouts}
         onClose={() => setSelected(null)}
         onEdit={(owner) => { setEditing(owner); setSelected(null); }}
+      />
+
+      <OwnerSpotOnlyInfoModal
+        owner={selectedSpotOnly}
+        onClose={() => setSelectedSpotOnly(null)}
+        onEdit={(owner) => { setEditingSpotOnly(owner); setSelectedSpotOnly(null); }}
       />
 
       <EditOwnerModal
