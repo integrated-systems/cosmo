@@ -39,6 +39,7 @@ import Billing from './pages/Billing';
 import RenewalRecords from './pages/RenewalRecords';
 import Usage from './pages/Usage';
 import Employees from './pages/Employees';
+import OfficialNotice from './pages/OfficialNotice';
 import Accounting from './pages/Accounting';
 import TenantSuspendedScreen from './components/TenantSuspendedScreen';
 import VotingEditPage from './pages/VotingEditPage';
@@ -244,6 +245,7 @@ function AppRoutes() {
         <Route path="addressing" element={<RequireFeature featureKey="addressing"><AddressConfig /></RequireFeature>} />
         <Route path="finconfig" element={<RequireFeature featureKey="finconfig"><FinConfig /></RequireFeature>} />
         <Route path="hrm" element={<RequireFeature featureKey="hrm"><Employees /></RequireFeature>} />
+        <Route path="anndunn" element={<OfficialNotice />} />
         <Route path="accounting" element={<RequireFeature featureKey="accounting"><Accounting /></RequireFeature>} />
         <Route path="invoice" element={<RequireFeature featureKey="invoice"><Invoice /></RequireFeature>} />
         <Route path="rolesrules" element={<RequireFeature featureKey="rolesrules"><AccessRules /></RequireFeature>} />

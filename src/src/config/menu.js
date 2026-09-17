@@ -17,7 +17,7 @@ export const MENU_SECTIONS = [
     items: [
       { key: 'dashboard', label: 'Хянах самбар', path: '/dashboard' },
       { key: 'news', label: 'Мэдээ, мэдээлэл', path: '/news' },
-      { key: 'anndunn', label: 'Мэдэгдэл', path: '/anndunn' },
+      { key: 'anndunn', label: 'Албан мэдэгдэл', path: '/anndunn' },
       { key: 'msgr', label: 'Мессенжер', path: '/msgr' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
       { key: 'classifieds', label: 'Зарын самбар', path: '/classifieds' },
