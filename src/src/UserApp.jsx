@@ -257,12 +257,17 @@ export default function UserApp({ theme, onToggleTheme }) {
   //     функц) тул routing-ийг ХЭВЭЭР үлдээнэ.
   //   - "owners" (Сууц өмчлөгч бүртгэл) — ЭНЭ бол цэвэр СӨХ-ны
   //     менежерийн ажлын хуудас, сууц өмчлөгч нэвтрэх ШААРДЛАГАГүй
-  //     гэдгийг хэрэглэгч тодруулав. Иймд OwnerApp-аас БүРЭН нуугдана
-  //     (invoice-той адил). "Зарын самбар" бол үүнтэй ОГТ ХОЛБООГүй,
-  //     ирээдүйд шинээр үүсэх ТУСДАА tile — доор synthetic tile
-  //     байдлаар нэмж, одоогоор "түн удахгүй" (coming soon) горимоор
-  //     ажиллана (бодит backend/хуудас үүсэх хүртэл).
-  //   - "invoice" (Нэхэмжлэх) -> owner-т ОГТ харагдахгүй
+  //     гэдгийг хэрэглэгч тодруулав. Иймд OwnerApp-аас БҮРЭН нуугдана.
+  //     "Зарын самбар" бол үүнтэй ОГТ ХОЛБООГүй, ирээдүйд шинээр үүсэх
+  //     ТУСДАА tile — доор synthetic tile байдлаар нэмж, одоогоор
+  //     "түн удахгүй" (coming soon) горимоор ажиллана (бодит backend/
+  //     хуудас үүсэх хүртэл).
+  //   - 2026-09-13: "invoice" key нь ALL_MENU_ITEMS (admin-ийн
+  //     "Нэхэмжлэх") дотор "/invoice" (admin-ийн үүсгэх/илгээх зам)
+  //     гэсэн БУРУУ замтай хэвээр байгаа тул, ЭНД хэвээр нь нуусан
+  //     хэвээр үлдээв — харин доор phonebook/about-той адил "Төлбөр"
+  //     (owner өөрийн invoices-ыг л ХАРАХ) гэсэн ЗӨВ замтай
+  //     (/userapp-payment) synthetic tile-ыг тусад нь нэмнэ.
   const OWNERAPP_LABEL_OVERRIDES = { parking: 'Зочин урих' };
   const OWNERAPP_HIDDEN_KEYS = ['invoice', 'owners', 'classifieds'];
   const allowedItems = ALL_MENU_ITEMS
@@ -274,6 +279,14 @@ export default function UserApp({ theme, onToggleTheme }) {
   // зар нийтэлж, реакц, коммент бичих боломжтой.
   if (userappEnabled.classifieds !== false) {
     allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
+  }
+  // 2026-09-13: "Төлбөр" — ALL_MENU_ITEMS-ийн "invoice" (admin-ийн
+  // /invoice, буруу зам) key-тэй давхцахгүйн тулд, phonebook/about-
+  // той адил ЗӨВ замтай (/userapp-payment) synthetic tile болгож
+  // тусад нь нэмэв. "Userapp тохиргоо"-ны "invoice" тохиргоог л
+  // дагана (userappEnabled) — admin үүнийг унтраавал ч хамаарна.
+  if (userappEnabled.invoice !== false) {
+    allowedItems.push({ key: 'invoice', label: 'Төлбөр', path: '/userapp-payment' });
   }
   // 2026-08-31: "Утасны жагсаалт" болон "СӨХ-ны тухай" — мөн
   // үндсэн программын ЯМАР Ч хуудастай (Sidebar-ийн)

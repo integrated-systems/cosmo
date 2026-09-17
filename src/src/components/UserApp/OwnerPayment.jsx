@@ -1,3 +1,8 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../lib/AuthContext';
+import { extractGridItemUuid } from '../../lib/spotVehicleFormat';
+
 // 2026-09-13: OwnerPaymentPlaceholder.jsx-ийг сольсон БОДИТ хувилбар —
 // хэрэглэгчийн хүсэлтээр "Төлбөр" хуудсыг бодит invoices/invoice_items
 // хүснэгэлтэй холбож динамик болгов (жишээ дата бүрмөсөн арилав).
