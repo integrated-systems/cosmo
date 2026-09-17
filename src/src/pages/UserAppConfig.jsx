@@ -22,19 +22,12 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 //      дахин ашигласан УТАСНЫ ФРЭЙМ дизайнтай Live Preview нэмэв —
 //      admin-ий toggle хийсэн үр дүнг бараг бодит OwnerApp шиг
 //      харна.
-//
-// 2026-09-13: "Төлбөр" (invoice) модуль нэмэв — UserApp.jsx-д
-// OwnerPayment.jsx (owner eeрийн бодит invoices-ыг ХАРАХ хуудас)
-// холбогдсон боловч, энэ MODULES массивт "Төлбөр" мөр огт байгаагүй
-// тул, "Модуль тохиргоо" табанд toggle харагдахгүй байсныг олж
-// нэмсэн.
 const MODULES = [
   { key: 'dashboard', label: 'Хянах самбар', built: true },
   { key: 'news', label: 'Мэдээ, мэдээлэл', built: true },
   { key: 'msgr', label: 'Мессенжер', built: true },
   { key: 'voting', label: 'Сонгууль, санал асуулга', built: true },
   { key: 'parking', label: 'Зочин урих', built: true },
-  { key: 'invoice', label: 'Төлбөр', built: true },
   { key: 'phonebook', label: 'Утасны жагсаалт', built: true },
   { key: 'about', label: 'СӨХ-ны тухай', built: true },
   { key: 'classifieds', label: 'Зарын самбар', built: true },

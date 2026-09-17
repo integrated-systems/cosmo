@@ -76,7 +76,7 @@ function hexToRgb(hex) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds', 'parking', 'invoice'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds', 'parking'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -280,18 +280,13 @@ export default function UserApp({ theme, onToggleTheme }) {
   if (userappEnabled.classifieds !== false) {
     allowedItems.push({ key: 'classifieds', label: 'Зарын самбар', path: '/userapp-classifieds' });
   }
-  // 2026-09-13: "Төлбөр" — ALL_MENU_ITEMS-ийн "invoice" (admin-ийн
-  // /invoice, буруу зам) key-тэй давхцахгүйн тулд, phonebook/about-
-  // той адил ЗӨВ замтай (/userapp-payment) synthetic tile болгож
-  // тусад нь нэмэв. "Userapp тохиргоо"-ны "invoice" тохиргоог л
-  // дагана (userappEnabled) — admin үүнийг унтраавал ч хамаарна.
-  // (2-р засвар: MODULES массивт (UserAppConfig.jsx) "Төлбөр" мөр
-  // үгүй байсан тул энэ toggle одоо хүртэл харагдахгүй байсныг олж
-  // нэмсэн; BUILT_PAGE_KEYS-д "invoice" үгүй байсан тул дарахад
-  // "түн удахгүй" мессеж гардаг байсныг ч засав.)
-  if (userappEnabled.invoice !== false) {
-    allowedItems.push({ key: 'invoice', label: 'Төлбөр', path: '/userapp-payment' });
-  }
+  // 2026-09-13 (3-р засвар): Хэрэглэгчийн тодорхой заасны дагуу —
+  // доод TabBar-ийн "Төлбөр" товч (bottomTab, handleTabChange)
+  // аль хэдийн зөв /userapp-payment руу шилждэг, тэгэхээр Home
+  // дэлгэцний Tile ч мөн адил "Төлбөр" гэж давхар харуулах
+  // шаардлагагүй (2 удаагийн зам илүүц). Иймд синтетик tile-ыг
+  // БҮРЭН арилгав — "invoice" key нь OWNERAPP_HIDDEN_KEYS-д хэвээр
+  // үлдэж, Home дэлгэцэнд огт харагдахгүй.
   // 2026-08-31: "Утасны жагсаалт" болон "СӨХ-ны тухай" — мөн
   // үндсэн программын ЯМАР Ч хуудастай (Sidebar-ийн)
   // холбоогүй, OwnerApp-д зориулсан БОДИТ (бүрэн ажилладаг) synthetic
