@@ -14,7 +14,7 @@ import TabBar from './components/UserApp/TabBar';
 import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
-import OwnerPaymentPlaceholder from './components/UserApp/OwnerPaymentPlaceholder';
+import OwnerPayment from './components/UserApp/OwnerPayment';
 import OwnerClassifieds from './components/UserApp/OwnerClassifieds';
 import OwnerParking from './components/UserApp/OwnerParking';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -364,7 +364,7 @@ export default function UserApp({ theme, onToggleTheme }) {
   } else if (pathAfterHoa.startsWith('/userapp-msgr')) {
     mainContent = <OwnerMsgrThread hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-payment')) {
-    mainContent = <OwnerPaymentPlaceholder />;
+    mainContent = <OwnerPayment hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-phonebook')) {
     mainContent = <OwnerPhonebook hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-about')) {
