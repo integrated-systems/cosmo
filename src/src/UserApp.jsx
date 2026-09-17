@@ -76,7 +76,7 @@ function hexToRgb(hex) {
 // hook-оор дамжуулан СЕРВЕР талд (userapp_prefs) хадгалагдаж,
 // төхөөрөмж хооронд синк хийгддэг (хуучин device-local зарчмаас илүү).
 const ALL_MENU_ITEMS = MENU_SECTIONS.flatMap((s) => s.items);
-const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds', 'parking'];
+const BUILT_PAGE_KEYS = ['news', 'voting', 'msgr', 'dashboard', 'phonebook', 'about', 'classifieds', 'parking', 'invoice'];
 
 const TABS = [
   { key: 'home', label: 'Home', icon: <HomeIcon /> },
@@ -285,6 +285,10 @@ export default function UserApp({ theme, onToggleTheme }) {
   // той адил ЗӨВ замтай (/userapp-payment) synthetic tile болгож
   // тусад нь нэмэв. "Userapp тохиргоо"-ны "invoice" тохиргоог л
   // дагана (userappEnabled) — admin үүнийг унтраавал ч хамаарна.
+  // (2-р засвар: MODULES массивт (UserAppConfig.jsx) "Төлбөр" мөр
+  // үгүй байсан тул энэ toggle одоо хүртэл харагдахгүй байсныг олж
+  // нэмсэн; BUILT_PAGE_KEYS-д "invoice" үгүй байсан тул дарахад
+  // "түн удахгүй" мессеж гардаг байсныг ч засав.)
   if (userappEnabled.invoice !== false) {
     allowedItems.push({ key: 'invoice', label: 'Төлбөр', path: '/userapp-payment' });
   }
