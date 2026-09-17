@@ -156,9 +156,88 @@ function SendTab() {
   );
 }
 
+// 2026-09-13: "Илгээсэн" таб-ын жишээ мөр (PLACEHOLDER) — бодит
+// backend (invoices илгээх үйлдэл ч мөн адил ЭНД бүртгэгддэг тул,
+// "Төрөл" баганад "Нэхэмжлэл" гэсэн мөрүүд ч орж ирдэг) холболт
+// дараагийн ажил болно.
+const EXAMPLE_SENT_ROWS = [
+  { sentAt: '2026-09-11 15:51:51', type: 'Мэдэгдэл', recipient: 'Бүх сууц өмчлөгч', sender: 'SuperAdmin', title: 'Нийт Сууц өмчлөгч Танааф', content: 'Ene 9 сар', count: 19, read: 0, channel: 'In-app' },
+  { sentAt: '2026-09-11 15:50:47', type: 'Мэдэгдэл', recipient: 'Сүхээ Ганбаатар', sender: 'SuperAdmin', title: 'Сүхээ Ганбаатар 1040405 Танаа', content: '2026 оны 9-р сарын СӨХ-ны төлбөр нэхэмжлэгдлээ:', count: 1, read: 0, channel: 'In-app' },
+  { sentAt: '2026-09-02 07:03:34', type: 'Нэхэмжлэл', recipient: '2026 оны 9-р сарын нэхэмжлэх (54)', sender: 'SuperAdmin', title: '2026 оны 9-р сарын нэхэмжлэх', content: '2026 оны 9-р сарын төлбөр/түрээсийн нэхэмжлэх', count: 54, read: 0, channel: 'In-app' },
+];
+
+const SENT_TYPE_FILTERS = ['Бүх төрөл', 'Мэдэгдэл', 'Анхаарулга', 'Сануулга', 'Зар мэдээлэл', 'Нэхэмжлэл'];
+
 function SentTab() {
-  // TODO: дараагийн зурган загварын дагуу хэрэгжүүлнэ.
-  return <div className="ds-card p-8 text-center text-mutedtext">Түн удахгүй...</div>;
+  const [year, setYear] = useState('all');
+  const [month, setMonth] = useState('all');
+  const [day, setDay] = useState('all');
+  const [type, setType] = useState('Бүх төрөл');
+  const [search, setSearch] = useState('');
+
+  return (
+    <>
+      <div className="ds-toolbar">
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="ds-select" value={year} onChange={(e) => setYear(e.target.value)}>
+            <option value="all">Бүх он</option>
+          </select>
+          <select className="ds-select" value={month} onChange={(e) => setMonth(e.target.value)}>
+            <option value="all">Бүх сар</option>
+          </select>
+          <select className="ds-select" value={day} onChange={(e) => setDay(e.target.value)}>
+            <option value="all">Бүх өдөр</option>
+          </select>
+          <select className="ds-select" value={type} onChange={(e) => setType(e.target.value)}>
+            {SENT_TYPE_FILTERS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <input
+            type="text"
+            className="ds-input min-w-[220px]"
+            placeholder="Хүлээн авагч, гарчгаар хайх..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <button className="ds-btn-secondary">Хэвлэх</button>
+      </div>
+
+      <div className="ds-table-wrap">
+        <div className="flex-1 overflow-auto overscroll-contain">
+          <table className="ds-table">
+            <thead>
+              <tr>
+                <th className="py-2.5 px-3">ХУГАЦАА</th>
+                <th className="py-2.5 px-3">ТӨРӨЛ</th>
+                <th className="py-2.5 px-3">ХҮЛЭЭН АВАГЧ</th>
+                <th className="py-2.5 px-3">ИЛГЭЭГЧ</th>
+                <th className="py-2.5 px-3">ГАРЧИГ</th>
+                <th className="py-2.5 px-3">АГУУЛГА</th>
+                <th className="py-2.5 px-3">ТОО</th>
+                <th className="py-2.5 px-3">УНШСАН</th>
+                <th className="py-2.5 px-3">СУВАГ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+              {EXAMPLE_SENT_ROWS.map((r, i) => (
+                <tr key={i}>
+                  <td className="py-2.5 px-3 whitespace-nowrap">{r.sentAt}</td>
+                  <td className="py-2.5 px-3">{r.type}</td>
+                  <td className="py-2.5 px-3">{r.recipient}</td>
+                  <td className="py-2.5 px-3">{r.sender}</td>
+                  <td className="py-2.5 px-3">{r.title}</td>
+                  <td className="py-2.5 px-3 max-w-[260px] truncate" title={r.content}>{r.content}</td>
+                  <td className="py-2.5 px-3 text-center">{r.count}</td>
+                  <td className="py-2.5 px-3 text-center">{r.read}/{r.count}</td>
+                  <td className="py-2.5 px-3">{r.channel}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default function OfficialNotice() {
