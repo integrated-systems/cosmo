@@ -295,16 +295,33 @@ export default function Invoice() {
   async function commitPreview() {
     setSaving(true);
     try {
-      let created = 0, skipped = 0;
+      let created = 0, skipped = 0, failed = 0;
       for (const row of previewRows) {
         const { data: inv, error } = await supabase.from('invoices')
           .insert({ tenant_id: hoaId, target_type: row.target_type, target_id: row.target_id, period_year: year, period_month: month, total_amount: row.total, status: 'sent', sent_at: new Date().toISOString() })
           .select().single();
         if (error) { skipped++; continue; }
-        await supabase.from('invoice_items').insert(row.items.map((li) => ({ ...li, invoice_id: inv.id })));
+        // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн асуултаас олдсон
+        // цоорхой: өмнө нь invoice_items-ийн бичилтийн ХАРИУГ ОГТ
+        // шалгадаггүй байсан тул, нэхэмжлэхийн ТОЛГОЙ амжилттай
+        // бичигдсэн ч, задаргааны мөрүүд (жишээ нь "СӨХ-ны төлбөр",
+        // "Зогсоол") бичигдэлгүй үлдэж болзошгүй байсан бөгөөд, ийм
+        // тохиолдолд ч "амжилттай үүсгэлээ" гэж буруу тоологддог байв.
+        // Одоо invoice_items-ийн алдааг шалгаж, амжилтгүй бол дутуу
+        // (задаргаагүй) нэхэмжлэхийн толгойг устгаж, тодорхой ялгаатай
+        // тоолуураар (failed) хэрэглэгчид мэдэгддэг болгов.
+        const { error: itemsError } = await supabase.from('invoice_items').insert(row.items.map((li) => ({ ...li, invoice_id: inv.id })));
+        if (itemsError) {
+          await supabase.from('invoices').delete().eq('id', inv.id);
+          failed++;
+          continue;
+        }
         created++;
       }
-      alert(`${created} нэхэмжлэл үүсгэж илгээлээ${skipped ? `, ${skipped} аль хэдийн байсан тул алгаслаа` : ''}.`);
+      const parts = [`${created} нэхэмжлэл үүсгэж илгээлээ`];
+      if (skipped) parts.push(`${skipped} аль хэдийн байсан тул алгаслаа`);
+      if (failed) parts.push(`${failed} задаргаа бичих үед алдаа гарсан тул үүсгэсэнгүй`);
+      alert(`${parts.join(', ')}.`);
       setPreviewRows(null);
       loadInvoices();
     } finally {
