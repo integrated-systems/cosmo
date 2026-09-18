@@ -53,7 +53,13 @@ export default function Billing() {
     const [{ data: priceRows }, { data: tenantRows }, { data: ownerRows }, { data: settingsRow }, { data: tosRow }, { data: retentionRows }] = await Promise.all([
       supabase.from('package_prices').select('*'),
       fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, status, billing_status, billing_next_date, billing_note')),
-      fetchAllRows(() => supabase.from('owners').select('tenant_id')),
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+      // "тоотын тоо" (төлбөрт шууд нөлeeлдөг) бүх owners мөрийг
+      // (Дан зогсоол/агуулах эмчлэгч, буюу building_no хоосон мөрүүдийг
+      // ч оролцуулан) тоолдог байсан тул, ЖИНХЭНЭ тоотгүй эмчлэгчийг ч
+      // "тоот" гэж буруу төлбөрт тооцож байв. Одоо зөвхөн бодит тоот
+      // (building_no бий) эмчлэгчийг л тоолно.
+      fetchAllRows(() => supabase.from('owners').select('tenant_id').not('building_no', 'is', null)),
       supabase.from('app_settings').select('value').eq('key', 'suspended_message').single(),
       supabase.from('app_settings').select('value').eq('key', 'terms_of_service').single(),
       supabase.from('app_settings').select('key, value').in('key', ['trial_retention_days', 'paid_retention_months']),

@@ -12,7 +12,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // label өөрчлөгдөхөд ХОЛБООС ТАСРАХ эрсдэлтэй байсан (жиш "G-001"-ийг
 // "G-01" болгож нэрлэвэл, түүнд холбогдсон owner "алга" болно) -
 // slot.id одоо GridConstructorReact.jsx-ийн crypto.randomUUID()-аар
-// үүсдэг ТОГТМОЛ түлхүүр тул label хэдийг ч вврчилсэн ч холбоос
+// үүсдэг ТОГТМОЛ түлхүүр тул label хэдийг ч өөрчилсэн ч холбоос
 // тасрахгүй. "code" (дэлгэцэнд харагдах текст) хэвээрээ label-ийг
 // л агуулна.
 function toParkingWarehouse(floors) {
@@ -26,7 +26,14 @@ function toParkingWarehouse(floors) {
       // гараар оруулсан м2-ыг код-т нь "(Nм2)" гэж нэмж үзүүлнэ
       // (Инфо/Засах модаль дотор аль хэдийн харагдана).
       const code = s.kind === 'warehouse' && s.sqm != null ? `${s.label} (${s.sqm}м2)` : s.label;
-      const item = { id: `${f.floor_key}:${s.id}`, floorLevel: f.floor_key, code };
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+      // энэ item үүсгэхдээ "sqm" талбарыг ОГТ ХАДГАЛДАГГүй байсан
+      // (зөвхөн toLandPlots() л sqm хадгалдаг байсан) тул, "Агуулах"
+      // тариф м2-ээр тооцогддог (calc_method='area') үед,
+      // sumLinkedSqm() үргэлж 0/null буцааж, зөвхөн агуулахтай
+      // эмчлэгч БүРЭН АЛГАСАГДДАГ байв. Одоо storage item-д ч мөн
+      // sqm-ыг хадгалдаг болгов.
+      const item = { id: `${f.floor_key}:${s.id}`, floorLevel: f.floor_key, code, sqm: s.kind === 'warehouse' ? (s.sqm ?? null) : undefined };
       if (s.kind === 'warehouse') storage.push(item);
       else parking.push(item);
     });
@@ -83,7 +90,7 @@ export function useGridSpots(hoaId) {
   // үүсгэдэг) - toParkingWarehouse/toLandPlots өмнө РЕНДЕР БүРД
   // ШИНЭ array reference буцаадаг байсан (useMemo-гүй). EditClientModal.jsx
   // шиг эдгээрийг useEffect-ийн dependency болгож ашигласан кодод
-  // ЭНЭ нь: reference өөрчлвгдсвн гэж үзэгдэж -> effect ажиллана ->
+  // ЭНЭ нь: reference өөрчлөгдсөн гэж үзэгдэж -> effect ажиллана ->
   // setForm дуудна -> re-render -> ШИНЭ reference дахин үүснэ ->
   // effect дахин ажиллана -> ХЯЗГААРГүй ДАВТАЛТ (browser гацна, CPU
   // 100%). Одоо useMemo-оор "floors" өөрчлвгдввгүй л бол ЯГ ТЭР

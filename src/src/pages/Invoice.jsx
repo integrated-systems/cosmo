@@ -25,12 +25,25 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
       const qty = (owner.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
     } else if (t.name === 'Агуулах') {
-      if (t.calc_method === 'area') {
-        const sqm = sumLinkedSqm(owner.grid_storages, gridStorageSpots) || 0;
-        if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
-      } else {
-        const qty = (owner.grid_storages || []).length;
-        if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+      // calc_method='area' үед sumLinkedSqm() 0/null буцаавал (жиш
+      // Конструктор дээр м2 оруулаагүй агуулах), эмчлэгч БүРЭН
+      // алгасагддаг байв (0 line items = invoice-оос бүр мxeн алга
+      // болно). Одоо агуулахтай (qty>0) л бол, м2 олдохгүй ч гэсэн
+      // ТООГООР нөөцлөн тооцож, эмчлэгчийг ХЭЗЭЭ Ч бүрэн алгасахгүй
+      // (гэхдээ admin-д "м2 дутуу" гэдгийг тодорхой мэдэгдэнэ).
+      const qty = (owner.grid_storages || []).length;
+      if (qty > 0) {
+        if (t.calc_method === 'area') {
+          const sqm = sumLinkedSqm(owner.grid_storages, gridStorageSpots);
+          if (sqm != null && sqm > 0) {
+            items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
+          } else {
+            items.push({ tariff_item_id: t.id, description: `${t.name} (м² бүртгэгдээгүй тул тоогоор тооцов)`, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+          }
+        } else {
+          items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+        }
       }
     } else if (t.name === 'СӨХ-ны төлбөр' && t.calc_method === 'area') {
       const sqm = owner.sqm || 0;
@@ -49,12 +62,19 @@ function calcClientItems(client, tariffItems, gridStorageSpots) {
       const qty = (client.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
     } else if (t.name === 'Агуулах') {
-      if (t.calc_method === 'area') {
-        const sqm = sumLinkedSqm(client.grid_storages, gridStorageSpots) || 0;
-        if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
-      } else {
-        const qty = (client.grid_storages || []).length;
-        if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — calcOwnerItems-тэй ЯГ ИЖИЛ засвар.
+      const qty = (client.grid_storages || []).length;
+      if (qty > 0) {
+        if (t.calc_method === 'area') {
+          const sqm = sumLinkedSqm(client.grid_storages, gridStorageSpots);
+          if (sqm != null && sqm > 0) {
+            items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
+          } else {
+            items.push({ tariff_item_id: t.id, description: `${t.name} (м² бүртгэгдээгүй тул тоогоор тооцов)`, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+          }
+        } else {
+          items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+        }
       }
     } else if (t.name === 'СӨХ-ны төлбөр' && t.calc_method === 'area') {
       const sqm = client.sqm || 0;
@@ -76,7 +96,7 @@ function sortBreakdown(totals) {
   return [...fixed, ...rest];
 }
 
-// Нэг нэхэмжлэлийн задаргааны мврүүдийг харуулах үед мвн 3 ФИКС нэрийг
+// Нэг нэхэмжлэлийн задаргааны мөрүүдийг харуулах үед мөн 3 ФИКС нэрийг
 // эхэнд, бусдыг үүсгэсэн (анхны) дарааллаар нь хэвээр үзүүлнэ.
 function sortItems(items) {
   return [...items].sort((a, b) => {
@@ -350,7 +370,15 @@ export default function Invoice() {
     : displayRows;
 
   const totalSum = displayRows.reduce((s, r) => s + Number(r.total), 0);
-  const ownerCount = displayRows.filter((r) => r.type === 'owner').length;
+  // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: ownerCount
+  // зөвхөн target_type==='owner'-ыг л шалгадаг байсан тул, "Дан
+  // зогсоол/агуулах эмчлэгч" (сууцгүй) ч мөн "Сууц эмчлэгч" гэж буруу
+  // тоологддог байв. sub талбарын ("Зогсоол, агуулах дангаар өмчлөгч"
+  // гэсэн тодорхой текст) ялгаагаар 2 тусдаа тоолуур болгов, мөн шинэ
+  // "Зогсоол, агуулах дангаар өмчлөгч" info карт нэмэв.
+  const SPOT_ONLY_SUB_LABEL = 'Зогсоол, агуулах дангаар өмчлөгч';
+  const unitOwnerCount = displayRows.filter((r) => r.type === 'owner' && r.sub !== SPOT_ONLY_SUB_LABEL).length;
+  const spotOnlyCount = displayRows.filter((r) => r.type === 'owner' && r.sub === SPOT_ONLY_SUB_LABEL).length;
   const clientCount = displayRows.filter((r) => r.type === 'client').length;
   const growthPct = prevTotal ? ((totalSum - prevTotal) / prevTotal) * 100 : null;
 
@@ -401,7 +429,7 @@ export default function Invoice() {
         )}
       </div>
 
-      <div className="grid grid-cols-4 gap-[10px]">
+      <div className="grid grid-cols-5 gap-[10px]">
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжлэхийн тоо</div>
           <div className="text-[19px] font-bold">{displayRows.length}</div>
@@ -419,7 +447,11 @@ export default function Invoice() {
         </div>
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Сууц өмчлөгч</div>
-          <div className="text-[19px] font-bold">{ownerCount}</div>
+          <div className="text-[19px] font-bold">{unitOwnerCount}</div>
+        </div>
+        <div className="ds-card p-3">
+          <div className="text-[11px] text-mutedtext mb-1.5">Зогсоол, агуулах дангаар өмчлөгч</div>
+          <div className="text-[19px] font-bold">{spotOnlyCount}</div>
         </div>
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Талбай өмчлөгч (ААН)</div>
