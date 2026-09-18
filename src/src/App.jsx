@@ -231,6 +231,7 @@ function AppRoutes() {
         <Route path="userapp-profile" element={null} />
         <Route path="userapp-dashboard" element={null} />
         <Route path="userapp-msgr" element={null} />
+        <Route path="userapp-notices" element={null} />
         <Route path="userapp-payment" element={null} />
         <Route path="userapp-phonebook" element={null} />
         <Route path="userapp-about" element={null} />

@@ -15,6 +15,7 @@ import UserAppProfile from './components/UserApp/UserAppProfile';
 import HeroQuorumCard from './components/UserApp/HeroQuorumCard';
 import OwnerMsgrThread from './components/UserApp/OwnerMsgrThread';
 import OwnerPayment from './components/UserApp/OwnerPayment';
+import OfficialNoticeInbox from './components/UserApp/OfficialNoticeInbox';
 import OwnerClassifieds from './components/UserApp/OwnerClassifieds';
 import OwnerParking from './components/UserApp/OwnerParking';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -198,6 +199,27 @@ export default function UserApp({ theme, onToggleTheme }) {
     return () => { supabase.removeChannel(channel); };
   }, [myOwnerId, hoaId]);
 
+  useEffect(() => {
+    // 2026-09-13: "Албан мэдэгдэл" inbox-ийн badge — Мессенжерийн
+    // badge-тэй ЯГ ИЖИЛ Realtime зарчим, гэхдээ official_notice_
+    // recipients (msgr_list-ээс тусгаарлагдсан) хүснэгэлийг дагана.
+    // ҮҮнд urьдчилан тооцоолсон unread_count багана байхгүй тул,
+    // өөрчлөлт бүрт л дахин тоолно (эзэлхүүн бага тул хүлээцтэй).
+    if (!myOwnerId || !hoaId) return;
+    async function refreshNoticesBadge() {
+      const { count } = await supabase.from('official_notice_recipients').select('id', { count: 'exact', head: true }).eq('owner_id', myOwnerId).eq('read', false);
+      setBadges((b) => ({ ...b, notices: count || 0 }));
+    }
+    refreshNoticesBadge();
+    const channel = supabase
+      .channel(`userapp-notices-badge-${myOwnerId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'official_notice_recipients', filter: `owner_id=eq.${myOwnerId}` }, () => {
+        refreshNoticesBadge();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myOwnerId, hoaId]);
+
   // 2026-08-27: зурган хүснэгэсээр баталгаажсан "5 леир, 5 слайдер"
   // систем — доод → дээш: Леир1(bg)→Леир2(хар,slider1)→Леир3(blur,
   // slider2)→[агуулга]→Леир4(картны өнгө,slider3)→Леир5(картны хар
@@ -375,6 +397,8 @@ export default function UserApp({ theme, onToggleTheme }) {
     mainContent = <OwnerDashboard hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-msgr')) {
     mainContent = <OwnerMsgrThread hoaId={hoaId} />;
+  } else if (pathAfterHoa.startsWith('/userapp-notices')) {
+    mainContent = <OfficialNoticeInbox hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-payment')) {
     mainContent = <OwnerPayment hoaId={hoaId} />;
   } else if (pathAfterHoa.startsWith('/userapp-phonebook')) {
@@ -424,7 +448,10 @@ export default function UserApp({ theme, onToggleTheme }) {
           <div className="user-greeting">{ownerUnit || `${user?.email} · Сууц өмчлөгч`}</div>
         </div>
         <div className="header-actions">
-          <button className="icon-btn" onClick={() => navigate(`/${hoaId}/userapp-msgr`)} aria-label="Мэдэгдэл"><BellIcon /></button>
+          <button className="icon-btn" onClick={() => navigate(`/${hoaId}/userapp-notices`)} aria-label="Албан мэдэгдэл">
+            <BellIcon />
+            {(badges.notices || 0) > 0 && <span className={`inbox-badge show`}>{badges.notices}</span>}
+          </button>
           {isHome && (
             <button className="icon-btn" onClick={() => setShowAddModal(true)} aria-label="Нуусан товч"><PlusIcon /></button>
           )}

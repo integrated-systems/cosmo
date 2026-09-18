@@ -14,12 +14,21 @@ import TabButton from '../components/TabButton';
 //
 // 2026-09-13 (3-р шинэчлэл): БҮРЭН АЖИЛЛАГААТАЙ БОЛГОВ — "Илгээх"
 // товч дарахад official_notices (migration 0129) хүснэгэлд бодит
-// мөр үүсгэж, Мессенжер сувгаар (group='owner'/'spot_only' л
-// дэмждэг, учир нь msgr_list зөвхөн owner_id-тэй) тохирох
-// хүлээн авагч бүрт msgr_list/msgr_messages бичдэг болов. "Илгээсэн"
-// таб одоо official_notices-ээс бодитоор уншиж, msgr_messages.read
-// талбараар "УНШСАН" тоог нэгтгэн харуулна. Мэйл/СМС сувгийн бодит
-// холболт ХАРААХАН ХИЙГДЭЭГүй (тусад нь дараагийн ажил).
+// мвр үүсгэж, In-app сувгаар (group='owner'/'spot_only'/'client'
+// бүгд дэмждэг) тохирох хүлээн авагч бүрт мэдэгдэл бичдэг болов.
+// "Илгээсэн" таб одоо official_notices-ээс бодитоор уншиж, "УНШСАН"
+// тоог нэгтгэн харуулна. Мэйл/СМС сувгийн бодит холболт ХАРААХАН
+// ХИЙГДЭЭГүй (тусад нь дараагийн ажил).
+//
+// 2026-09-13 (4-р шинэчлэл): "Мессенжер" гэж буруу нэрлэсэн In-app
+// сувгийг зөөр "In-app" болгож нэрлэж, msgr_list/msgr_messages
+// (2 талын chat систем)-ээс БүРЭН тусгаарлаж, тусдаа
+// official_notice_recipients (migration 0130) хүснэгэлд бичдэг
+// болгов — vvгээр Талбай эмчлэгч (client) ч мөн бодит In-app
+// мэдэгдэл хүлээн авах боломжтой болов (өмнө нь msgr_list зөвхөн
+// owner_id-тэй тул client-д огт илгээгддэггүй байсан цоорхойг ч
+// засав). UserApp талд шинэ тусдаа "Албан мэдэгдэл" inbox (badge +
+// push notification-той) тусад нь хэрэгжсэн.
 const GROUPS = [
   { key: 'owner', label: 'Сууц өмчлөгч' },
   { key: 'client', label: 'Талбай өмчлөгч' },
@@ -135,7 +144,7 @@ function SendTab({ hoaId }) {
   const [noticeType, setNoticeType] = useState(NOTICE_TYPES[0]);
   const [title, setTitle] = useState(RECIPIENTS_BY_GROUP.owner[0].title);
   const [content, setContent] = useState('');
-  const [channels, setChannels] = useState({ email: false, sms: false, messenger: true });
+  const [channels, setChannels] = useState({ email: false, sms: false, inApp: true });
   const [sending, setSending] = useState(false);
 
   const recipientOptions = RECIPIENTS_BY_GROUP[group];
@@ -211,27 +220,24 @@ function SendTab({ hoaId }) {
         tenant_id: hoaId, sender: 'SuperAdmin', group_key: group, recipient_key: recipientKey,
         recipient_label: recipient.label, recipient_id: recipient.singular ? recipientId : null,
         recipient_name: recipient.singular ? recipientName : null, notice_type: noticeType,
-        title, content, channel_email: channels.email, channel_sms: channels.sms, channel_messenger: channels.messenger,
+        title, content, channel_email: channels.email, channel_sms: channels.sms, channel_messenger: channels.inApp,
         recipient_count: recipients.length,
       }).select().single();
       if (error) { alert('Алдаа гарлаа: ' + error.message); return; }
 
-      if (channels.messenger && (group === 'owner' || group === 'spot_only')) {
-        const body = `${title}\n\n${content}`.trim();
-        const listIds = await Promise.all(recipients.map(async (r) => {
-          const { data: existing } = await supabase.from('msgr_list').select('id').eq('tenant_id', hoaId).eq('owner_id', r.id).maybeSingle();
-          if (existing) return existing.id;
-          const { data: created } = await supabase.from('msgr_list').insert({ tenant_id: hoaId, owner_id: r.id }).select('id').single();
-          return created?.id;
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — "In-app" (өмнө нь "Мессенжер"
+      // гэж буруу нэрлэсэн) суваг одоо msgr_list/msgr_messages-тэй
+      // ОГТ ХОЛБООГүй, тусдаа official_notice_recipients-руу бичдэг
+      // болов. үүгээр Талбай эмчлэгч (client) ч мөн бодит In-app
+      // мэдэгдэл хүлээн авах боломжтой болов (өмнө нь msgr_list
+      // зөвхөн owner_id-тэй тул client-д огт илгээгддэггүй байсан).
+      if (channels.inApp) {
+        const rows = recipients.map((r) => ({
+          notice_id: notice.id, tenant_id: hoaId,
+          owner_id: (group === 'owner' || group === 'spot_only') ? r.id : null,
+          client_id: group === 'client' ? r.id : null,
         }));
-        const messages = listIds.filter(Boolean).map((listId) => ({ list_id: listId, tenant_id: hoaId, dir: 'out', body, read: false, official_notice_id: notice.id }));
-        if (messages.length > 0) await supabase.from('msgr_messages').insert(messages);
-      } else if (channels.messenger && group === 'client') {
-        // 2026-09-13: msgr_list зөвхөн owner_id-тэй тул, Талбай
-        // эмчлэгчид зориулсан Мессенжер холболт хараахан байхгүй.
-        alert(`Мэдэгдэл бүртгэгдлээ (${recipients.length} хүлээн авагч), гэхдээ Талбай эмчлэгчид зориулсан Мессенжер холболт хараахан хийгдээгүй тул зурвас илгээгдсэнгүй.`);
-        setContent('');
-        return;
+        await supabase.from('official_notice_recipients').insert(rows);
       }
 
       alert(`${recipients.length} хүлээн авагчид амжилттай илгээлээ.`);
@@ -311,7 +317,7 @@ function SendTab({ hoaId }) {
         <div className="flex items-center gap-4 mb-4">
           <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" checked={channels.email} onChange={(e) => setChannels((c) => ({ ...c, email: e.target.checked }))} /> Мэйл</label>
           <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" checked={channels.sms} onChange={(e) => setChannels((c) => ({ ...c, sms: e.target.checked }))} /> СМС</label>
-          <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" checked={channels.messenger} onChange={(e) => setChannels((c) => ({ ...c, messenger: e.target.checked }))} /> Мессенжер</label>
+          <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" checked={channels.inApp} onChange={(e) => setChannels((c) => ({ ...c, inApp: e.target.checked }))} /> In-app</label>
         </div>
 
         <button className="ds-btn-primary w-full" onClick={handleSend} disabled={sending}>{sending ? 'Илгээж байна...' : 'Илгээх'}</button>
@@ -356,10 +362,10 @@ function SentTab({ hoaId }) {
       const noticeIds = list.map((n) => n.id);
       const readCountByNotice = {};
       if (noticeIds.length > 0) {
-        const { data: msgs } = await fetchAllRows(() => supabase.from('msgr_messages').select('official_notice_id, read').in('official_notice_id', noticeIds));
+        const { data: msgs } = await fetchAllRows(() => supabase.from('official_notice_recipients').select('notice_id, read').in('notice_id', noticeIds));
         (msgs || []).forEach((m) => {
-          if (!readCountByNotice[m.official_notice_id]) readCountByNotice[m.official_notice_id] = 0;
-          if (m.read) readCountByNotice[m.official_notice_id]++;
+          if (!readCountByNotice[m.notice_id]) readCountByNotice[m.notice_id] = 0;
+          if (m.read) readCountByNotice[m.notice_id]++;
         });
       }
       if (cancelled) return;
