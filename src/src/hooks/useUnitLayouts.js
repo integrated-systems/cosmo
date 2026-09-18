@@ -40,3 +40,21 @@ export function useUnitLayouts(hoaId) {
 
   return { buildings, loading };
 }
+
+// 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: "Тоот"
+// dropdown нь зөвхөн физик бүтцийг (аль тоот оршин байгааг) уншдаг
+// байсан бөгөөд, аль тоот АЛЬ ХЭДИЙН ЭЗЭМШИГДСЭН эсэхийг ОГТ шалгадаг
+// байгаагүй тул, НЭГ тоотод 2 eeр эмчлэгч давхар бүртгэгдэх боломжтой
+// байв. ҮҮнийг засахын тулд, `owners` хүснэгэлээс АЛЬ ХЭДИЙН
+// эзэмшигдсэн (Байр|Давхар|Тоот) хослолуудыг татаж, dropdown-оос хасна.
+export async function fetchTakenUnitKeys(hoaId, excludeOwnerId) {
+  const { data } = await fetchAllRows(() =>
+    supabase.from('owners').select('id, building_no, floor, door_no').eq('tenant_id', hoaId).not('building_no', 'is', null)
+  );
+  const taken = new Set();
+  (data || []).forEach((o) => {
+    if (o.id === excludeOwnerId) return;
+    taken.add(`${o.building_no}|${o.floor}|${o.door_no}`);
+  });
+  return taken;
+}

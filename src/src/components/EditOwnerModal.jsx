@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SimpleListField, SpotSelectField, VehicleListField } from './formFields/ListFields';
-import { useUnitLayouts } from '../hooks/useUnitLayouts';
+import { useUnitLayouts, fetchTakenUnitKeys } from '../hooks/useUnitLayouts';
 import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
@@ -27,6 +27,17 @@ function SectionTitle({ children }) {
 
 export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, initialUnit, initialGridSpot }) {
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
+  const [takenUnitKeys, setTakenUnitKeys] = useState(new Set());
+  const [takenLoading, setTakenLoading] = useState(true);
+
+  // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — доор "unitOptions"-ыг шүүж, автомат
+  // сонголтыг ч зөвхөн СУЛ тоот руу л чиглүүлэхэд ашиглана (аль хэдийн
+  // эзэмшигдсэн тоотыг dropdown-оос бүрэн хасна).
+  useEffect(() => {
+    if (!hoaId) return;
+    setTakenLoading(true);
+    fetchTakenUnitKeys(hoaId, owner?.id).then((s) => { setTakenUnitKeys(s); setTakenLoading(false); });
+  }, [hoaId, owner?.id]);
   const { gridParkingSpots, gridStorageSpots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
@@ -93,42 +104,55 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   // — гэхдээ `initialUnit`-аар аль хэдийн тодорхой тоот бүглэгдсэн бол
   // (form.buildingNo аль хэдийн хоосон биш) энэ автомат сонголт ажиллахгүй.
   useEffect(() => {
-    if (owner || layoutsLoading || buildings.length === 0 || form.buildingNo !== '') return;
-    const firstBuilding = buildings[0];
-    const firstUnit = firstBuilding.units[0];
+    if (owner || layoutsLoading || takenLoading || buildings.length === 0 || form.buildingNo !== '') return;
+    // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — эхний СУЛ (эзэмшигдээгүй) байр+тоотыг
+    // хайж сонгоно (eмнe нь unitOptions[0]-ыг үргүйгээр сонгодог байсан
+    // тул, эзэмшигдсэн тоот АНХДАГЧААР сонгогдож, шинэ эмчлэгч давхар
+    // бүртгэгдэх эрсдэлтэй байв).
+    let picked = null;
+    for (const b of buildings) {
+      const freeUnit = b.units.find((u) => !takenUnitKeys.has(`${b.buildingNo}|${u.floor}|${u.doorNo}`));
+      if (freeUnit) { picked = { buildingNo: b.buildingNo, unit: freeUnit }; break; }
+    }
+    if (!picked) { picked = { buildingNo: buildings[0].buildingNo, unit: buildings[0].units[0] }; }
     setForm((f) => ({
       ...f,
-      buildingNo: firstBuilding.buildingNo,
-      floor: firstUnit?.floor ?? '',
-      doorNo: firstUnit?.doorNo ?? '',
-      sqm: firstUnit?.sqm ?? f.sqm,
+      buildingNo: picked.buildingNo,
+      floor: picked.unit?.floor ?? '',
+      doorNo: picked.unit?.doorNo ?? '',
+      sqm: picked.unit?.sqm ?? f.sqm,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layoutsLoading, buildings]);
+  }, [layoutsLoading, takenLoading, buildings, takenUnitKeys]);
 
   function set(field, val) {
     setForm((f) => ({ ...f, [field]: val }));
   }
 
   const currentBuilding = buildings.find((b) => b.buildingNo === form.buildingNo);
-  const unitOptions = currentBuilding?.units || [];
+  const allUnitOptions = currentBuilding?.units || [];
   const selectedUnitKey = form.floor !== '' && form.doorNo !== '' ? `${form.floor}|${form.doorNo}` : '';
+  // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — эзэмшигдсэн тоотыг dropdown-оос
+  // хасна, гэхдээ ОДООГИЙН сонгогдсон (Засах үед eeрийнхee) тоотыг
+  // хэвээр үзүүлнэ.
+  const isUnitTaken = (buildingNo, floor, doorNo) => takenUnitKeys.has(`${buildingNo}|${floor}|${doorNo}`);
+  const unitOptions = allUnitOptions.filter((u) => !isUnitTaken(form.buildingNo, u.floor, u.doorNo) || (u.floor === form.floor && u.doorNo === form.doorNo));
 
   function handleBuildingChange(val) {
     const b = buildings.find((x) => x.buildingNo === val);
-    const firstUnit = b?.units[0];
+    const freeUnit = b?.units.find((u) => !isUnitTaken(val, u.floor, u.doorNo)) ?? b?.units[0];
     setForm((f) => ({
       ...f,
       buildingNo: val,
-      floor: firstUnit?.floor ?? '',
-      doorNo: firstUnit?.doorNo ?? '',
-      sqm: firstUnit?.sqm ?? f.sqm,
+      floor: freeUnit?.floor ?? '',
+      doorNo: freeUnit?.doorNo ?? '',
+      sqm: freeUnit?.sqm ?? f.sqm,
     }));
   }
   function handleUnitChange(val) {
     if (!val) return;
     const [floor, doorNo] = val.split('|').map(Number);
-    const unit = unitOptions.find((u) => u.floor === floor && u.doorNo === doorNo);
+    const unit = allUnitOptions.find((u) => u.floor === floor && u.doorNo === doorNo);
     setForm((f) => ({ ...f, floor, doorNo, sqm: unit?.sqm ?? f.sqm }));
   }
 
