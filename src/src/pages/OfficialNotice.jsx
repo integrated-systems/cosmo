@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { extractGridItemUuid } from '../lib/spotVehicleFormat';
+import { fetchAllRows } from '../lib/fetchAllRows';
 import TabButton from '../components/TabButton';
 
 // 2026-09-13: "Үндсэн" бүлэг цэсний "Мэдэгдэл" цэсийг "Албан
 // мэдэгдэл" болгож сольж, түүний "Илгээх" таб-ыг хэрэглэгчийн
-// зурсан зурган загварын дагуу PLACEHOLDER маягаар хийв —
-// Бүлэг->Хүлээн авагч->Гарчиг гэсэн 3 шатлалт хамаарлыг (статик
-// массиваар), Ганц тоотой хүлээн авагч сонгогдоход "Хүлээн авагчийн
-// нэр" талбар нэмж гарч ирэхийг UI түвшинд бүрэн хэрэгжүүлсэн.
+// зурсан зурган загварын дагуу хийв — Бүлэг->Хүлээн авагч->Гарчиг
+// гэсэн 3 шатлалт хамаарлыг (статик массиваар), Ганц тоотой хүлээн
+// авагч сонгогдоход "Хүлээн авагчийн нэр" талбар нэмж гарч ирэхийг
+// UI түвшинд бүрэн хэрэгжүүлсэн.
 //
-// 2026-09-13 (2-р шинэчлэл): "Хүлээн авагчийн нэр" талбарыг БОДИТ
-// backend-тэй холбов — Бүлэг="Сууц өмчлөгч" бол owners (building_no
-// IS NOT NULL), "Талбай өмчлөгч" бол clientele, "Зогсоол, агуулах
-// өмчлөгч" бол owners (building_no IS NULL) хүснэгэлээс нэрийг
-// ЭХНИЙ үсгээр нь хайж жагсаалтаар харуулна (Owners.jsx/Clientele.jsx-
-// ийн тухайн табуудтай ЯГ ИЖИЛ шүүлт). Мэдэгдэл ИЛГЭЭХ (backend save)
-// үйлдэл хараахан хийгдээгүй — зөвхөн нэр хайх функц.
+// 2026-09-13 (3-р шинэчлэл): БҮРЭН АЖИЛЛАГААТАЙ БОЛГОВ — "Илгээх"
+// товч дарахад official_notices (migration 0129) хүснэгэлд бодит
+// мөр үүсгэж, Мессенжер сувгаар (group='owner'/'spot_only' л
+// дэмждэг, учир нь msgr_list зөвхөн owner_id-тэй) тохирох
+// хүлээн авагч бүрт msgr_list/msgr_messages бичдэг болов. "Илгээсэн"
+// таб одоо official_notices-ээс бодитоор уншиж, msgr_messages.read
+// талбараар "УНШСАН" тоог нэгтгэн харуулна. Мэйл/СМС сувгийн бодит
+// холболт ХАРААХАН ХИЙГДЭЭГүй (тусад нь дараагийн ажил).
 const GROUPS = [
   { key: 'owner', label: 'Сууц өмчлөгч' },
   { key: 'client', label: 'Талбай өмчлөгч' },
@@ -46,16 +49,94 @@ const RECIPIENTS_BY_GROUP = {
 
 const NOTICE_TYPES = ['Албан мэдэгдэл', 'Анхаарулга', 'Сануулга', 'Зар мэдээлэл', 'Нэхэмжлэл'];
 
+// Owner (тоот эсвэл дан зогсоол/агуулах)-ийн ТОГТВОРТОЙ target_id —
+// Invoice.jsx-ийн 3 үеийн fallback-тай ЯГ ИЖИЛ логик.
+async function computeOwnerStableId(o, unitLayoutsFull) {
+  if (o.building_no) {
+    const unit = unitLayoutsFull.find((u) => u.building_no === o.building_no && u.floor === o.floor && u.door_no === o.door_no);
+    if (unit) return unit.id;
+  }
+  const parkingUuid = o.has_grid_parking && Array.isArray(o.grid_parkings) && o.grid_parkings.length > 0 ? extractGridItemUuid(o.grid_parkings[0]?.id) : null;
+  if (parkingUuid) return parkingUuid;
+  const storageUuid = o.has_grid_storage && Array.isArray(o.grid_storages) && o.grid_storages.length > 0 ? extractGridItemUuid(o.grid_storages[0]?.id) : null;
+  if (storageUuid) return storageUuid;
+  return o.id;
+}
+
+// Client (талбай)-ийн ТОГТВОРТОЙ target_id — Invoice.jsx-тэй ЯГ ИЖИЛ.
+function computeClientStableId(c) {
+  const landUuid = c.has_grid_land && Array.isArray(c.grid_land_plots) && c.grid_land_plots.length > 0 ? extractGridItemUuid(c.grid_land_plots[0]?.id) : null;
+  if (landUuid) return landUuid;
+  const parkingUuid = c.has_grid_parking && Array.isArray(c.grid_parkings) && c.grid_parkings.length > 0 ? extractGridItemUuid(c.grid_parkings[0]?.id) : null;
+  if (parkingUuid) return parkingUuid;
+  const storageUuid = c.has_grid_storage && Array.isArray(c.grid_storages) && c.grid_storages.length > 0 ? extractGridItemUuid(c.grid_storages[0]?.id) : null;
+  if (storageUuid) return storageUuid;
+  return c.id;
+}
+
+// Бүлэг+Хүлээн авагчийн сонголтод тохирох бодит хүлээн авагчдыг
+// (id, name) DB-ээс уншина. "overdue"/"at_risk" үед invoices-ийн
+// status-аар (тус бүрийн тогтвортой target_id-аар) шүүнэ.
+async function resolveRecipients(hoaId, group, recipientKey, recipientId) {
+  if (group === 'owner' || group === 'spot_only') {
+    let query = supabase.from('owners').select('*').eq('tenant_id', hoaId);
+    query = group === 'owner' ? query.not('building_no', 'is', null) : query.is('building_no', null);
+    const { data: owners } = await query;
+    const rows = owners || [];
+    if (recipientKey === 'one') {
+      return rows.filter((o) => o.id === recipientId).map((o) => ({ id: o.id, name: `${o.firstname || ''} ${o.lastname || ''}`.trim() }));
+    }
+    if (recipientKey === 'all') {
+      return rows.map((o) => ({ id: o.id, name: `${o.firstname || ''} ${o.lastname || ''}`.trim() }));
+    }
+    const { data: unitLayoutsFull } = await fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId));
+    const withStableId = await Promise.all(rows.map(async (o) => ({ o, sid: await computeOwnerStableId(o, unitLayoutsFull || []) })));
+    const stableIds = withStableId.map((x) => x.sid);
+    const { data: invoices } = stableIds.length ? await supabase.from('invoices').select('target_id, status').eq('tenant_id', hoaId).eq('target_type', 'owner').in('target_id', stableIds) : { data: [] };
+    const statusByTarget = {};
+    (invoices || []).forEach((inv) => {
+      if (!statusByTarget[inv.target_id]) statusByTarget[inv.target_id] = new Set();
+      statusByTarget[inv.target_id].add(inv.status);
+    });
+    const wantedStatus = recipientKey === 'overdue' ? 'overdue' : 'sent';
+    return withStableId.filter((x) => statusByTarget[x.sid]?.has(wantedStatus)).map((x) => ({ id: x.o.id, name: `${x.o.firstname || ''} ${x.o.lastname || ''}`.trim() }));
+  }
+  if (group === 'client') {
+    const { data: clients } = await supabase.from('clientele').select('*').eq('tenant_id', hoaId);
+    const rows = clients || [];
+    if (recipientKey === 'one') {
+      return rows.filter((c) => c.id === recipientId).map((c) => ({ id: c.id, name: c.legal_entity_name }));
+    }
+    if (recipientKey === 'all') {
+      return rows.map((c) => ({ id: c.id, name: c.legal_entity_name }));
+    }
+    const withStableId = rows.map((c) => ({ c, sid: computeClientStableId(c) }));
+    const stableIds = withStableId.map((x) => x.sid);
+    const { data: invoices } = stableIds.length ? await supabase.from('invoices').select('target_id, status').eq('tenant_id', hoaId).eq('target_type', 'client').in('target_id', stableIds) : { data: [] };
+    const statusByTarget = {};
+    (invoices || []).forEach((inv) => {
+      if (!statusByTarget[inv.target_id]) statusByTarget[inv.target_id] = new Set();
+      statusByTarget[inv.target_id].add(inv.status);
+    });
+    const wantedStatus = recipientKey === 'overdue' ? 'overdue' : 'sent';
+    return withStableId.filter((x) => statusByTarget[x.sid]?.has(wantedStatus)).map((x) => ({ id: x.c.id, name: x.c.legal_entity_name }));
+  }
+  return [];
+}
+
 function SendTab({ hoaId }) {
   const [group, setGroup] = useState('owner');
   const [recipientKey, setRecipientKey] = useState('all');
+  const [recipientId, setRecipientId] = useState(null);
   const [recipientName, setRecipientName] = useState('');
   const [nameOptions, setNameOptions] = useState([]);
   const [nameOpen, setNameOpen] = useState(false);
+  const [matchCount, setMatchCount] = useState(0);
   const [noticeType, setNoticeType] = useState(NOTICE_TYPES[0]);
   const [title, setTitle] = useState(RECIPIENTS_BY_GROUP.owner[0].title);
   const [content, setContent] = useState('');
   const [channels, setChannels] = useState({ email: false, sms: false, messenger: true });
+  const [sending, setSending] = useState(false);
 
   const recipientOptions = RECIPIENTS_BY_GROUP[group];
   const recipient = recipientOptions.find((r) => r.key === recipientKey) || recipientOptions[0];
@@ -64,6 +145,7 @@ function SendTab({ hoaId }) {
     const first = RECIPIENTS_BY_GROUP[group][0];
     setRecipientKey(first.key);
     setTitle(first.title);
+    setRecipientId(null);
     setRecipientName('');
   }, [group]);
 
@@ -71,9 +153,12 @@ function SendTab({ hoaId }) {
     setRecipientKey(key);
     const r = recipientOptions.find((x) => x.key === key);
     setTitle(r?.title || '');
+    setRecipientId(null);
     setRecipientName('');
   }
 
+  // Ганц тоотой хүлээн авагч сонгогдоход, тохирох бүртгэлээс нэрсийг
+  // татаж, локал хайлтад бэлдэнэ.
   useEffect(() => {
     if (!recipient.singular || !hoaId) { setNameOptions([]); return; }
     let cancelled = false;
@@ -94,11 +179,66 @@ function SendTab({ hoaId }) {
     return () => { cancelled = true; };
   }, [group, recipient.singular, hoaId]);
 
+  // Сонгосон Бүлэг/Хүлээн авагчид бодитоор хэдэн хүн тохирохыг
+  // тоолж, "N хүлээн авагч олдлоо" гэдгийг ЖИНХЭНЭ утгаар харуулна.
+  useEffect(() => {
+    if (!hoaId) return;
+    if (recipient.singular && !recipientId) { setMatchCount(recipientId ? 1 : 0); return; }
+    let cancelled = false;
+    (async () => {
+      const list = await resolveRecipients(hoaId, group, recipientKey, recipientId);
+      if (!cancelled) setMatchCount(list.length);
+    })();
+    return () => { cancelled = true; };
+  }, [hoaId, group, recipientKey, recipientId, recipient.singular]);
+
   const q = recipientName.trim().toLowerCase();
   const filteredNameOptions = (q ? nameOptions.filter((o) => o.name.toLowerCase().startsWith(q)) : nameOptions).slice(0, 8);
 
-  function handleSend() {
-    alert('Албан мэдэгдэл илгээх бодит холболт удахгүй нэмэгдэнэ.');
+  async function handleSend() {
+    if (recipient.singular && !recipientId) {
+      alert('Хүлээн авагчийг жагсаалтаас сонгоно уу.');
+      return;
+    }
+    setSending(true);
+    try {
+      const recipients = await resolveRecipients(hoaId, group, recipientKey, recipientId);
+      if (recipients.length === 0) {
+        alert('Тохирох хүлээн авагч олдсонгүй.');
+        return;
+      }
+      const { data: notice, error } = await supabase.from('official_notices').insert({
+        tenant_id: hoaId, sender: 'SuperAdmin', group_key: group, recipient_key: recipientKey,
+        recipient_label: recipient.label, recipient_id: recipient.singular ? recipientId : null,
+        recipient_name: recipient.singular ? recipientName : null, notice_type: noticeType,
+        title, content, channel_email: channels.email, channel_sms: channels.sms, channel_messenger: channels.messenger,
+        recipient_count: recipients.length,
+      }).select().single();
+      if (error) { alert('Алдаа гарлаа: ' + error.message); return; }
+
+      if (channels.messenger && (group === 'owner' || group === 'spot_only')) {
+        const body = `${title}\n\n${content}`.trim();
+        const listIds = await Promise.all(recipients.map(async (r) => {
+          const { data: existing } = await supabase.from('msgr_list').select('id').eq('tenant_id', hoaId).eq('owner_id', r.id).maybeSingle();
+          if (existing) return existing.id;
+          const { data: created } = await supabase.from('msgr_list').insert({ tenant_id: hoaId, owner_id: r.id }).select('id').single();
+          return created?.id;
+        }));
+        const messages = listIds.filter(Boolean).map((listId) => ({ list_id: listId, tenant_id: hoaId, dir: 'out', body, read: false, official_notice_id: notice.id }));
+        if (messages.length > 0) await supabase.from('msgr_messages').insert(messages);
+      } else if (channels.messenger && group === 'client') {
+        // 2026-09-13: msgr_list зөвхөн owner_id-тэй тул, Талбай
+        // эмчлэгчид зориулсан Мессенжер холболт хараахан байхгүй.
+        alert(`Мэдэгдэл бүртгэгдлээ (${recipients.length} хүлээн авагч), гэхдээ Талбай эмчлэгчид зориулсан Мессенжер холболт хараахан хийгдээгүй тул зурвас илгээгдсэнгүй.`);
+        setContent('');
+        return;
+      }
+
+      alert(`${recipients.length} хүлээн авагчид амжилттай илгээлээ.`);
+      setContent('');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -123,7 +263,7 @@ function SendTab({ hoaId }) {
             </select>
           </div>
         </div>
-        <div className="text-[11px] text-slate-500 dark:text-mutedtext mb-3">19 хүлээн авагч олдлоо</div>
+        <div className="text-[11px] text-slate-500 dark:text-mutedtext mb-3">{matchCount} хүлээн авагч олдлоо</div>
 
         {recipient.singular && (
           <div className="mb-3 relative">
@@ -132,7 +272,7 @@ function SendTab({ hoaId }) {
               className="ds-input w-full"
               placeholder="Нэр эсвэл тоогоор хайх..."
               value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
+              onChange={(e) => { setRecipientName(e.target.value); setRecipientId(null); }}
               onFocus={() => setNameOpen(true)}
               onBlur={() => setTimeout(() => setNameOpen(false), 150)}
             />
@@ -145,7 +285,7 @@ function SendTab({ hoaId }) {
                     <div
                       key={o.id}
                       className="px-2 py-1.5 text-[13px] rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5"
-                      onMouseDown={() => { setRecipientName(o.name); setNameOpen(false); }}
+                      onMouseDown={() => { setRecipientName(o.name); setRecipientId(o.id); setNameOpen(false); }}
                     >
                       {o.name}
                     </div>
@@ -174,7 +314,7 @@ function SendTab({ hoaId }) {
           <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" checked={channels.messenger} onChange={(e) => setChannels((c) => ({ ...c, messenger: e.target.checked }))} /> Мессенжер</label>
         </div>
 
-        <button className="ds-btn-primary w-full" onClick={handleSend}>Илгээх</button>
+        <button className="ds-btn-primary w-full" onClick={handleSend} disabled={sending}>{sending ? 'Илгээж байна...' : 'Илгээх'}</button>
       </div>
 
       <div className="ds-card p-4 flex-1">
@@ -189,26 +329,62 @@ function SendTab({ hoaId }) {
   );
 }
 
-const EXAMPLE_SENT_ROWS = [
-  { sentAt: '2026-09-11 15:51:51', type: 'Албан мэдэгдэл', recipient: 'Бүх сууц өмчлөгч', sender: 'SuperAdmin', title: 'Нийт Сууц өмчлөгч Танааф', content: 'Ene 9 сар', count: 19, read: 0, channel: 'In-app' },
-  { sentAt: '2026-09-11 15:50:47', type: 'Албан мэдэгдэл', recipient: 'Сүхээ Ганбаатар', sender: 'SuperAdmin', title: 'Сүхээ Ганбаатар 1040405 Танаа', content: '2026 оны 9-р сарын СӨХ-ийн төлбөр нэхэмжлэгдлээ:', count: 1, read: 0, channel: 'In-app' },
-  { sentAt: '2026-09-02 07:03:34', type: 'Нэхэмжлэл', recipient: '2026 оны 9-р сарын нэхэмжлэх (54)', sender: 'SuperAdmin', title: '2026 оны 9-р сарын нэхэмжлэх', content: '2026 оны 9-р сарын төлбөр/түрээсийн нэхэмжлэх', count: 54, read: 0, channel: 'In-app' },
-];
-
 const SENT_TYPE_FILTERS = ['Бүх төрөл', 'Албан мэдэгдэл', 'Анхаарулга', 'Сануулга', 'Зар мэдээлэл', 'Нэхэмжлэл'];
 
-function SentTab() {
+function formatSentAt(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function SentTab({ hoaId }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [year, setYear] = useState('all');
   const [month, setMonth] = useState('all');
   const [day, setDay] = useState('all');
   const [type, setType] = useState('Бүх төрөл');
   const [search, setSearch] = useState('');
 
-  const yearOptions = [...new Set(EXAMPLE_SENT_ROWS.map((r) => r.sentAt.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
+  useEffect(() => {
+    if (!hoaId) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data: notices } = await fetchAllRows(() => supabase.from('official_notices').select('*').eq('tenant_id', hoaId).order('created_at', { ascending: false }));
+      const list = notices || [];
+      const noticeIds = list.map((n) => n.id);
+      const readCountByNotice = {};
+      if (noticeIds.length > 0) {
+        const { data: msgs } = await fetchAllRows(() => supabase.from('msgr_messages').select('official_notice_id, read').in('official_notice_id', noticeIds));
+        (msgs || []).forEach((m) => {
+          if (!readCountByNotice[m.official_notice_id]) readCountByNotice[m.official_notice_id] = 0;
+          if (m.read) readCountByNotice[m.official_notice_id]++;
+        });
+      }
+      if (cancelled) return;
+      setRows(list.map((n) => ({
+        id: n.id,
+        sentAt: formatSentAt(n.created_at),
+        type: n.notice_type,
+        recipient: n.recipient_name ? `${n.recipient_label} — ${n.recipient_name}` : n.recipient_label,
+        sender: n.sender,
+        title: n.title,
+        content: n.content || '',
+        count: n.recipient_count,
+        read: readCountByNotice[n.id] || 0,
+        channel: [n.channel_email && 'Мэйл', n.channel_sms && 'СМС', n.channel_messenger && 'In-app'].filter(Boolean).join(', ') || '—',
+      })));
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [hoaId]);
+
+  const yearOptions = [...new Set(rows.map((r) => r.sentAt.slice(0, 4)))].sort((a, b) => b.localeCompare(a));
   const monthOptions = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const dayOptions = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
-  const filteredRows = EXAMPLE_SENT_ROWS.filter((r) => {
+  const filteredRows = rows.filter((r) => {
     const [datePart] = r.sentAt.split(' ');
     const [y, m, d] = datePart.split('-');
     if (year !== 'all' && y !== year) return false;
@@ -259,7 +435,7 @@ function SentTab() {
               <tr>
                 <th className="py-2.5 px-3">ХУГАЦАА</th>
                 <th className="py-2.5 px-3">ТӨРӨЛ</th>
-                <th className="py-2.5 px-3">ХҮЛЭЭН АВАГЧ</th>
+                <th className="py-2.5 px-3">ХүЛЭЭН АВАГЧ</th>
                 <th className="py-2.5 px-3">ИЛГЭЭГЧ</th>
                 <th className="py-2.5 px-3">ГАРЧИГ</th>
                 <th className="py-2.5 px-3">АГУУЛГА</th>
@@ -269,10 +445,12 @@ function SentTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-              {filteredRows.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={9} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              ) : filteredRows.length === 0 ? (
                 <tr><td colSpan={9} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
-              ) : filteredRows.map((r, i) => (
-                <tr key={i}>
+              ) : filteredRows.map((r) => (
+                <tr key={r.id}>
                   <td className="py-2.5 px-3 whitespace-nowrap">{r.sentAt}</td>
                   <td className="py-2.5 px-3">{r.type}</td>
                   <td className="py-2.5 px-3">{r.recipient}</td>
