@@ -260,8 +260,20 @@ export default function Owners() {
         onEdit={(owner) => { setEditingSpotOnly(owner); setSelectedSpotOnly(null); }}
       />
 
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон 3 холбоотой
+          цоорхой (шинэ өмчлөгч нэмэх модаль өмнөх мэдээллийг цэвэрлэдэггүй,
+          eмнe нь бүртгэсэн зогсоол/агуулах "сул" мэт дахин дуудагддаг,
+          хадгалаагүй өөрчлөлт үлдэж үлддэг) бүгд НЭГ л үндсэн шалтгаанаас
+          үүдэлтэй байв: "Нэмэх" модаль (key огт байхгүй) БОЛОН "Засах"
+          модаль (key зөвхөн өмчлөгч солигдоход л өөрчлөгддөг) хоёул
+          НЭЭГДЭХ БүРТ дахин mount хийгддэггүй тул, дотоод (typed, гэхдээ
+          хадгалаагүй) form state нь дараагийн НЭЭЛТ хүртэл үлдэж, шинэ
+          DB dataгаар шинэчлэгддэггүй байв. Одоо "нээгдэх бүрт eeр key"
+          болгож, ЯГ ТЭР ГАНЦ eмчлэгчийг дахин нээсэн ч (жиш хадгалаагүй
+          өөрчлөлтийг хүчингүй болгож дахин нээх үед) шинэ mount үүсгэж,
+          form-ыг ЯГ ОДООГИЙН (DB дэх бодит) утгаар дахин эхлүүлдэг болов. */}
       <EditOwnerModal
-        key={editing?.id}
+        key={editing ? `edit-${editing.id}` : 'edit-none'}
         open={!!editing}
         onClose={() => setEditing(null)}
         owner={editing}
@@ -270,6 +282,7 @@ export default function Owners() {
       />
 
       <EditOwnerModal
+        key={adding ? 'add-open' : 'add-closed'}
         open={adding}
         onClose={() => setAdding(false)}
         owner={null}
@@ -278,7 +291,7 @@ export default function Owners() {
       />
 
       <EditOwnerSpotOnlyModal
-        key={`spot-${editingSpotOnly?.id}`}
+        key={editingSpotOnly ? `spot-edit-${editingSpotOnly.id}` : 'spot-edit-none'}
         open={!!editingSpotOnly}
         onClose={() => setEditingSpotOnly(null)}
         owner={editingSpotOnly}
@@ -287,6 +300,7 @@ export default function Owners() {
       />
 
       <EditOwnerSpotOnlyModal
+        key={addingSpotOnly ? 'spot-add-open' : 'spot-add-closed'}
         open={addingSpotOnly}
         onClose={() => setAddingSpotOnly(false)}
         owner={null}

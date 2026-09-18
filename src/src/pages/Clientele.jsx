@@ -130,8 +130,12 @@ export default function Clientele() {
         onEdit={(c) => { setEditing(c); setSelected(null); }}
       />
 
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой
+          (модал "нээгдэх бүрт" биш, зөвхөн "өөр клиент солигдоход" л
+          дахин mount хийгддэг байсан тул, хадгалаагүй өөрчлөлт үлдэж
+          үлддэг байв). "Нээгдэх бүрт eeр key" болгож зассан. */}
       <EditClientModal
-        key={editing?.id}
+        key={editing ? `edit-${editing.id}` : 'edit-none'}
         open={!!editing}
         onClose={() => setEditing(null)}
         client={editing}
@@ -140,6 +144,7 @@ export default function Clientele() {
       />
 
       <EditClientModal
+        key={adding ? 'add-open' : 'add-closed'}
         open={adding}
         onClose={() => setAdding(false)}
         client={null}
