@@ -35,6 +35,13 @@ export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
     navigate(`/${hoaId}/msgr?list=${listId}`);
   }
 
+  function openOfficialNotice() {
+    onClose();
+    navigate(`/${hoaId}/anndunn`, {
+      state: { group: 'spot_only', recipientId: owner.id, firstname: owner.firstname, lastname: owner.lastname },
+    });
+  }
+
   return (
     <Modal
       open={!!owner}
@@ -46,7 +53,7 @@ export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
           <button className="ds-btn-secondary" onClick={openMessenger} disabled={opening}>Мессенжер</button>
           <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
-          <button className="ds-btn-secondary">Мэдэгдэл</button>
+          <button className="ds-btn-secondary" onClick={openOfficialNotice}>Албан мэдэгдэл</button>
           <button className="ds-btn-secondary" onClick={() => onEdit(owner)}>Засах</button>
           <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         </>

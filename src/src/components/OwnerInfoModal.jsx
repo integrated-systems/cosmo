@@ -43,6 +43,17 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
     navigate(`/${hoaId}/msgr?list=${listId}`);
   }
 
+  function openOfficialNotice() {
+    onClose();
+    navigate(`/${hoaId}/anndunn`, {
+      state: {
+        group: 'owner', recipientId: owner.id,
+        firstname: owner.firstname, lastname: owner.lastname,
+        building_no: owner.building_no, floor: owner.floor, door_no: owner.door_no,
+      },
+    });
+  }
+
   return (
     <Modal
       open={!!owner}
@@ -54,7 +65,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
           <button className="ds-btn-secondary" onClick={openMessenger} disabled={opening}>Мессенжер</button>
           <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
-          <button className="ds-btn-secondary">Мэдэгдэл</button>
+          <button className="ds-btn-secondary" onClick={openOfficialNotice}>Албан мэдэгдэл</button>
           <button className="ds-btn-secondary" onClick={() => onEdit(owner)}>Засах</button>
           <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         </>

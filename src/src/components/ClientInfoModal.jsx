@@ -1,5 +1,5 @@
 import { formatDate } from '../lib/format';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { summarizeSpots, summarizeVehicles, summarizeGridSpots } from '../lib/spotVehicleFormat';
 import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import Modal from './Modal';
@@ -8,11 +8,20 @@ import Modal from './Modal';
 // загварыг дахин ашигласан (Rule of two).
 // 2026-09-03 ОЛСОН БОДИТ АЛДАА - грид (Конструктор)-оос сонгосон
 // Зогсоол/Агуулах/Талбай огт харуулагдаж байгаагүй, "Талбай" (полигон)
-// мвр огт байхгүй байсан. "Талбай" нэрийг м2 талбартай зврчилдвхгүй
+// мвр огт байхгүй байсан. "Талбай" нэрийг м2 талбартай зөрчилдөхгүй
 // байхын тулд "Эзэмшдэг талбай" гэж тусад нь нэрлэв.
 export default function ClientInfoModal({ client, onClose, onEdit }) {
   const { hoaId } = useParams();
+  const navigate = useNavigate();
   const { gridParkingSpots, gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
+
+  function openOfficialNotice() {
+    onClose();
+    navigate(`/${hoaId}/anndunn`, {
+      state: { group: 'client', recipientId: client.id, legalEntityName: client.legal_entity_name },
+    });
+  }
+
   return (
     <Modal
       open={!!client}
@@ -24,7 +33,7 @@ export default function ClientInfoModal({ client, onClose, onEdit }) {
           <button className="ds-btn-secondary">Мессенжер</button>
           <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
-          <button className="ds-btn-secondary">Мэдэгдэл</button>
+          <button className="ds-btn-secondary" onClick={openOfficialNotice}>Албан мэдэгдэл</button>
           <button className="ds-btn-secondary" onClick={() => onEdit(client)}>Засах</button>
           <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
         </>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -12,51 +12,57 @@ import TabButton from '../components/TabButton';
 // авагч сонгогдоход "Хүлээн авагчийн нэр" талбар нэмж гарч ирэхийг
 // UI түвшинд бүрэн хэрэгжүүлсэн.
 //
-// 2026-09-13 (3-р шинэчлэл): БҮРЭН АЖИЛЛАГААТАЙ БОЛГОВ — "Илгээх"
-// товч дарахад official_notices (migration 0129) хүснэгэлд бодит
-// мвр үүсгэж, In-app сувгаар (group='owner'/'spot_only'/'client'
-// бүгд дэмждэг) тохирох хүлээн авагч бүрт мэдэгдэл бичдэг болов.
-// "Илгээсэн" таб одоо official_notices-ээс бодитоор уншиж, "УНШСАН"
-// тоог нэгтгэн харуулна. Мэйл/СМС сувгийн бодит холболт ХАРААХАН
-// ХИЙГДЭЭГүй (тусад нь дараагийн ажил).
-//
-// 2026-09-13 (4-р шинэчлэл): "Мессенжер" гэж буруу нэрлэсэн In-app
-// сувгийг зөөр "In-app" болгож нэрлэж, msgr_list/msgr_messages
-// (2 талын chat систем)-ээс БүРЭН тусгаарлаж, тусдаа
-// official_notice_recipients (migration 0130) хүснэгэлд бичдэг
-// болгов — vvгээр Талбай эмчлэгч (client) ч мөн бодит In-app
-// мэдэгдэл хүлээн авах боломжтой болов (өмнө нь msgr_list зөвхөн
-// owner_id-тэй тул client-д огт илгээгддэггүй байсан цоорхойг ч
-// засав). UserApp талд шинэ тусдаа "Албан мэдэгдэл" inbox (badge +
-// push notification-той) тусад нь хэрэгжсэн.
+// 2026-09-13 (5-р шинэчлэл): Инфо модалиудын "Албан мэдэгдэл" товч
+// дараад өөрчлөлт нэмэв: (1) хүлээн авагчийн нэрийг "[Нэр][Овог]
+// ([Байр] [ДавхарТоот])" форматтай болгов (Давхар/Тоот тус бүр 2
+// оронтойгоор залгаастай), (2) info модалаас дамжуулсан location.
+// state-ийг унших замаар Бүлэг/Хүлээн авагч/Хүлээн авагчийн нэр
+// автоматаар бөглөгддөг болгов, (3) Төрөл="Нэхэмжлэл" сонгогдоход,
+// сонгосон өмчлүүгчийн төлбөрийн мэдээллийг (өмнөх төлөгдөөгүй сарууд
+// + энэ сарын бүрэн задаргаа + Санхүү тохиргооны Банкны/Дансны/
+// Байгууллагын мэдээлэл) Агуулгад автоматаар үүсгэдэг болгов.
 const GROUPS = [
-  { key: 'owner', label: 'Сууц өмчлөгч' },
-  { key: 'client', label: 'Талбай өмчлөгч' },
-  { key: 'spot_only', label: 'Зогсоол, агуулах өмчлөгч' },
+  { key: 'owner', label: 'Сууц эмчлэгч' },
+  { key: 'client', label: 'Талбай эмчлэгч' },
+  { key: 'spot_only', label: 'Зогсоол, агуулах эмчлэгч' },
 ];
 
 const RECIPIENTS_BY_GROUP = {
   owner: [
-    { key: 'all', label: 'Бүх сууц өмчлөгч', singular: false, title: 'Нийт сууц өмчлөгчдөд' },
-    { key: 'one', label: 'Сууц өмчлөгч', singular: true, title: 'Сууц өмчлөгч Танаа' },
-    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх сууц өмчлөгч', singular: false, title: 'Хугацаа хэтэрсэн нийт сууц өмчлөгчдөд' },
-    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх сууц өмчлөгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт сууц өмчлөгчдөд' },
+    { key: 'all', label: 'Бүх сууц эмчлэгч', singular: false, title: 'Нийт сууц эмчлэгчдэд' },
+    { key: 'one', label: 'Сууц эмчлэгч', singular: true, title: 'Сууц эмчлэгч Танаа' },
+    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх сууц эмчлэгч', singular: false, title: 'Хугацаа хэтэрсэн нийт сууц эмчлэгчдэд' },
+    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх сууц эмчлэгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт сууц эмчлэгчдэд' },
   ],
   client: [
-    { key: 'all', label: 'Бүх талбай өмчлөгч', singular: false, title: 'Нийт талбай өмчлөгчдөд' },
-    { key: 'one', label: 'Талбай өмчлөгч', singular: true, title: 'Талбай өмчлөгч Танаа' },
-    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх талбай өмчлөгч', singular: false, title: 'Хугацаа хэтэрсэн нийт талбай өмчлөгчдөд' },
-    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх талбай өмчлөгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт талбай өмчлөгчдөд' },
+    { key: 'all', label: 'Бүх талбай эмчлэгч', singular: false, title: 'Нийт талбай эмчлэгчдэд' },
+    { key: 'one', label: 'Талбай эмчлэгч', singular: true, title: 'Талбай эмчлэгч Танаа' },
+    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх талбай эмчлэгч', singular: false, title: 'Хугацаа хэтэрсэн нийт талбай эмчлэгчдэд' },
+    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх талбай эмчлэгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт талбай эмчлэгчдэд' },
   ],
   spot_only: [
-    { key: 'all', label: 'Бүх зогсоол, агуулах өмчлөгч', singular: false, title: 'Нийт зогсоол, агуулах өмчлөгчдөд' },
-    { key: 'one', label: 'Зогсоол, агуулах өмчлөгч', singular: true, title: 'Зогсоол, агуулах өмчлөгч Танаа' },
-    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх зогсоол, агуулах өмчлөгч', singular: false, title: 'Хугацаа хэтэрсэн нийт зогсоол, агуулах өмчлөгчдөд' },
-    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх зогсоол, агуулах өмчлөгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт зогсоол, агуулах өмчлөгчдөд' },
+    { key: 'all', label: 'Бүх зогсоол, агуулах эмчлэгч', singular: false, title: 'Нийт зогсоол, агуулах эмчлэгчдэд' },
+    { key: 'one', label: 'Зогсоол, агуулах эмчлэгч', singular: true, title: 'Зогсоол, агуулах эмчлэгч Танаа' },
+    { key: 'overdue', label: 'Төлбөрийн хугацаа хэтэрсэн бүх зогсоол, агуулах эмчлэгч', singular: false, title: 'Хугацаа хэтэрсэн нийт зогсоол, агуулах эмчлэгчдэд' },
+    { key: 'at_risk', label: 'Төлбөрийн эрсдэлтэй бүх зогсоол, агуулах эмчлэгч', singular: false, title: 'Төлбөрийн эрсдэлтэй нийт зогсоол, агуулах эмчлэгчдэд' },
   ],
 };
 
 const NOTICE_TYPES = ['Албан мэдэгдэл', 'Анхаарулга', 'Сануулга', 'Зар мэдээлэл', 'Нэхэмжлэл'];
+const MONTH_NAMES = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
+
+function fmtMoney(n) {
+  return Number(n || 0).toLocaleString('mn-MN') + '₮';
+}
+
+// "[Байр] [ДавхарТоот]" — Давхар/Тоот тус бүр 2 оронтойгоор
+// залгаастай, Байрнаас 1 space-ээр тусгаарлагдана.
+function formatUnitParen(building_no, floor, door_no) {
+  if (!building_no) return '';
+  const floor2 = String(floor ?? '').padStart(2, '0');
+  const door2 = String(door_no ?? '').padStart(2, '0');
+  return ` (${String(building_no).trim()} ${floor2}${door2})`;
+}
 
 // Owner (тоот эсвэл дан зогсоол/агуулах)-ийн ТОГТВОРТОЙ target_id —
 // Invoice.jsx-ийн 3 үеийн fallback-тай ЯГ ИЖИЛ логик.
@@ -133,10 +139,60 @@ async function resolveRecipients(hoaId, group, recipientKey, recipientId) {
   return [];
 }
 
-function SendTab({ hoaId }) {
-  const [group, setGroup] = useState('owner');
-  const [recipientKey, setRecipientKey] = useState('all');
-  const [recipientId, setRecipientId] = useState(null);
+// Төрөл="Нэхэмжлэл" сонгогдоход, сонгосон өмчлүүгчийн (өмнөх
+// төлөгдөөгүй сарууд + энэ сарын бүрэн задаргаа + банк/данс/
+// байгууллагын мэдээлэл) Агуулга автоматаар үүсгэнэ.
+async function generateInvoiceContent(hoaId, group, recipientId) {
+  if (!recipientId) return '';
+  let stableId;
+  if (group === 'owner' || group === 'spot_only') {
+    const { data: o } = await supabase.from('owners').select('*').eq('id', recipientId).single();
+    if (!o) return '';
+    const { data: unitLayoutsFull } = await fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId));
+    stableId = await computeOwnerStableId(o, unitLayoutsFull || []);
+  } else if (group === 'client') {
+    const { data: c } = await supabase.from('clientele').select('*').eq('id', recipientId).single();
+    if (!c) return '';
+    stableId = computeClientStableId(c);
+  } else {
+    return '';
+  }
+  const targetType = (group === 'owner' || group === 'spot_only') ? 'owner' : 'client';
+
+  const { data: invoiceRows } = await fetchAllRows(() => supabase.from('invoices').select('*, invoice_items(*)').eq('tenant_id', hoaId).eq('target_type', targetType).eq('target_id', stableId).order('period_year').order('period_month'));
+  const rows = invoiceRows || [];
+
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
+  const curKey = curYear * 12 + curMonth;
+  const previousUnpaid = rows.filter((i) => (i.period_year * 12 + i.period_month) < curKey && i.status !== 'paid');
+  const currentInvoice = rows.find((i) => i.period_year === curYear && i.period_month === curMonth);
+
+  const lines = [];
+  if (currentInvoice) {
+    lines.push(`${curYear} оны ${curMonth}-р сарын СөХ-ийн төлбөр нэхэмжлэгдлээ:`);
+    (currentInvoice.invoice_items || []).forEach((li) => lines.push(`- ${li.description}: ${fmtMoney(li.amount)}`));
+  }
+  if (previousUnpaid.length > 0) {
+    lines.push('Өмнөх төлөгдөөгүй сарууд:');
+    previousUnpaid.forEach((i) => lines.push(`- ${MONTH_NAMES[i.period_month - 1]}-ын төлбөр: ${fmtMoney(i.total_amount)}`));
+  }
+  const total = (currentInvoice?.total_amount || 0) + previousUnpaid.reduce((s, i) => s + Number(i.total_amount || 0), 0);
+  lines.push(`Нийт: ${fmtMoney(total)}`);
+
+  const { data: orgInfo } = await supabase.from('org_report_info').select('org_name, bank_accounts').eq('tenant_id', hoaId).maybeSingle();
+  const accStr = (orgInfo?.bank_accounts || []).map((a) => (a.bank ? `${a.bank} ${a.iban || ''}`.trim() : '')).filter(Boolean).join(', ');
+  if (accStr) lines.push(`Данс: ${accStr}.`);
+  if (orgInfo?.org_name) lines.push(orgInfo.org_name);
+
+  return lines.join('\n');
+}
+
+function SendTab({ hoaId, initial }) {
+  const [group, setGroup] = useState(initial?.group || 'owner');
+  const [recipientKey, setRecipientKey] = useState(initial?.recipientId ? 'one' : 'all');
+  const [recipientId, setRecipientId] = useState(initial?.recipientId || null);
   const [recipientName, setRecipientName] = useState('');
   const [nameOptions, setNameOptions] = useState([]);
   const [nameOpen, setNameOpen] = useState(false);
@@ -146,11 +202,28 @@ function SendTab({ hoaId }) {
   const [content, setContent] = useState('');
   const [channels, setChannels] = useState({ email: false, sms: false, inApp: true });
   const [sending, setSending] = useState(false);
+  const appliedInitialRef = useRef(false);
 
   const recipientOptions = RECIPIENTS_BY_GROUP[group];
   const recipient = recipientOptions.find((r) => r.key === recipientKey) || recipientOptions[0];
 
+  // Бүлэг өөрчлөгдөхөд, тэр бүлгийн 1-р хүлээн авагчийг анхдагчаар
+  // сонгоно. Хэрэв Инфо модалаас (location.state) шилжсэн бол, эхний
+  // (1) удаа тэр мэдээллийг л ашиглаж, дараагийн бүх Бүлэг өөрчлөлт
+  // үед энгийн анхдагч логикт шилждэг.
   useEffect(() => {
+    if (!appliedInitialRef.current && initial?.recipientId) {
+      appliedInitialRef.current = true;
+      const displayName = initial.legalEntityName
+        ? initial.legalEntityName
+        : `${initial.firstname || ''} ${initial.lastname || ''}`.trim() + formatUnitParen(initial.building_no, initial.floor, initial.door_no);
+      setRecipientKey('one');
+      setRecipientId(initial.recipientId);
+      setRecipientName(displayName);
+      setTitle(`${displayName} Танаа`);
+      return;
+    }
+    appliedInitialRef.current = true;
     const first = RECIPIENTS_BY_GROUP[group][0];
     setRecipientKey(first.key);
     setTitle(first.title);
@@ -167,15 +240,16 @@ function SendTab({ hoaId }) {
   }
 
   // Ганц тоотой хүлээн авагч сонгогдоход, тохирох бүртгэлээс нэрсийг
-  // татаж, локал хайлтад бэлдэнэ.
+  // (Сууц эмчлэгчийн хувьд "[Нэр] [Овог] ([Байр] [ДавхарТоот])"
+  // форматтайгаар) татаж, локал хайлтад бэлдэнэ.
   useEffect(() => {
     if (!recipient.singular || !hoaId) { setNameOptions([]); return; }
     let cancelled = false;
     (async () => {
       let rows = [];
       if (group === 'owner') {
-        const { data } = await supabase.from('owners').select('id, firstname, lastname').eq('tenant_id', hoaId).not('building_no', 'is', null);
-        rows = (data || []).map((o) => ({ id: o.id, name: `${o.firstname || ''} ${o.lastname || ''}`.trim() }));
+        const { data } = await supabase.from('owners').select('id, firstname, lastname, building_no, floor, door_no').eq('tenant_id', hoaId).not('building_no', 'is', null);
+        rows = (data || []).map((o) => ({ id: o.id, name: `${o.firstname || ''} ${o.lastname || ''}`.trim() + formatUnitParen(o.building_no, o.floor, o.door_no) }));
       } else if (group === 'client') {
         const { data } = await supabase.from('clientele').select('id, legal_entity_name').eq('tenant_id', hoaId);
         rows = (data || []).map((c) => ({ id: c.id, name: c.legal_entity_name }));
@@ -201,6 +275,19 @@ function SendTab({ hoaId }) {
     return () => { cancelled = true; };
   }, [hoaId, group, recipientKey, recipientId, recipient.singular]);
 
+  // Төрөл="Нэхэмжлэл" + тодорхой хүлээн авагч сонгогдсон үед,
+  // Агуулгыг тухайн өмчлүүгчийн бодит төлбөрийн мэдээллээр автоматаар
+  // үүсгэнэ.
+  useEffect(() => {
+    if (noticeType !== 'Нэхэмжлэл' || !recipientId || !hoaId) return;
+    let cancelled = false;
+    (async () => {
+      const generated = await generateInvoiceContent(hoaId, group, recipientId);
+      if (!cancelled) setContent(generated);
+    })();
+    return () => { cancelled = true; };
+  }, [noticeType, recipientId, group, hoaId]);
+
   const q = recipientName.trim().toLowerCase();
   const filteredNameOptions = (q ? nameOptions.filter((o) => o.name.toLowerCase().startsWith(q)) : nameOptions).slice(0, 8);
 
@@ -225,12 +312,6 @@ function SendTab({ hoaId }) {
       }).select().single();
       if (error) { alert('Алдаа гарлаа: ' + error.message); return; }
 
-      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — "In-app" (өмнө нь "Мессенжер"
-      // гэж буруу нэрлэсэн) суваг одоо msgr_list/msgr_messages-тэй
-      // ОГТ ХОЛБООГүй, тусдаа official_notice_recipients-руу бичдэг
-      // болов. үүгээр Талбай эмчлэгч (client) ч мөн бодит In-app
-      // мэдэгдэл хүлээн авах боломжтой болов (өмнө нь msgr_list
-      // зөвхөн owner_id-тэй тул client-д огт илгээгддэггүй байсан).
       if (channels.inApp) {
         const rows = recipients.map((r) => ({
           notice_id: notice.id, tenant_id: hoaId,
@@ -291,7 +372,7 @@ function SendTab({ hoaId }) {
                     <div
                       key={o.id}
                       className="px-2 py-1.5 text-[13px] rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5"
-                      onMouseDown={() => { setRecipientName(o.name); setRecipientId(o.id); setNameOpen(false); }}
+                      onMouseDown={() => { setRecipientName(o.name); setRecipientId(o.id); setNameOpen(false); setTitle(`${o.name} Танаа`); }}
                     >
                       {o.name}
                     </div>
@@ -369,11 +450,15 @@ function SentTab({ hoaId }) {
         });
       }
       if (cancelled) return;
+      // 2026-09-13: "Хүлээн авагч" баганы формат — recipient_name-ийг
+      // (ганц хүнд илгээсэн үед) шууд харуулна, учир нь энэ талбар
+      // ЯГ ТЭР ("[Нэр][Овог] ([Байр] [ДавхарТоот])") форматтайгаар
+      // ИЛГЭЭХ үед л хадгалагдсан.
       setRows(list.map((n) => ({
         id: n.id,
         sentAt: formatSentAt(n.created_at),
         type: n.notice_type,
-        recipient: n.recipient_name ? `${n.recipient_label} — ${n.recipient_name}` : n.recipient_label,
+        recipient: n.recipient_name || n.recipient_label,
         sender: n.sender,
         title: n.title,
         content: n.content || '',
@@ -478,6 +563,7 @@ function SentTab({ hoaId }) {
 
 export default function OfficialNotice() {
   const { hoaId } = useParams();
+  const location = useLocation();
   const [tab, setTab] = useState('send');
 
   return (
@@ -487,7 +573,7 @@ export default function OfficialNotice() {
         <TabButton active={tab === 'sent'} onClick={() => setTab('sent')}>Илгээсэн</TabButton>
       </div>
 
-      {tab === 'send' ? <SendTab hoaId={hoaId} /> : <SentTab hoaId={hoaId} />}
+      {tab === 'send' ? <SendTab hoaId={hoaId} initial={location.state} /> : <SentTab hoaId={hoaId} />}
     </>
   );
 }
