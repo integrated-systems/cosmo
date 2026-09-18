@@ -136,7 +136,8 @@ function CategoriesTab({ canManage, categories, types, loading, reload }) {
         </div>
       </div>
 
-      <CategoryModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} category={editing} onSaved={reload} />
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой */}
+      <CategoryModal key={editing ? `edit-${editing.id}` : (adding ? 'add-open' : 'add-closed')} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} category={editing} onSaved={reload} />
       <ConfirmDialog />
     </>
   );
@@ -276,7 +277,8 @@ function TypesTab({ canManage, categories, types, loading, reload }) {
         </div>
       </div>
 
-      <TypeModal key={editing?.id} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} type={editing} categories={categories} defaultCategoryId={activeCategoryId} onSaved={reload} />
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой */}
+      <TypeModal key={editing ? `edit-${editing.id}` : (adding ? 'add-open' : 'add-closed')} open={!!editing || adding} onClose={() => { setEditing(null); setAdding(false); }} type={editing} categories={categories} defaultCategoryId={activeCategoryId} onSaved={reload} />
       <ConfirmDialog />
     </>
   );

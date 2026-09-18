@@ -834,8 +834,9 @@ export default function FixedAssets() {
         </>
       )}
 
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой */}
       <EditFixedAssetModal
-        key={editing?.id}
+        key={editing ? `edit-${editing.id}` : 'edit-none'}
         open={!!editing}
         onClose={() => setEditing(null)}
         asset={editing}
@@ -844,6 +845,7 @@ export default function FixedAssets() {
       />
 
       <EditFixedAssetModal
+        key={adding ? 'add-open' : 'add-closed'}
         open={adding}
         onClose={() => setAdding(false)}
         asset={null}
@@ -873,6 +875,7 @@ export default function FixedAssets() {
       />
 
       <RepairModal
+        key={addingRepair ? 'repair-open' : 'repair-closed'}
         open={addingRepair}
         onClose={() => setAddingRepair(false)}
         assets={rows}

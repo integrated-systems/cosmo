@@ -333,7 +333,10 @@ export default function Accounts() {
         <div className="ds-table-summary"><div>Нийт: <span className="text-slate-900 dark:text-white font-medium">{filtered.length}</span></div></div>
       </div>
 
-      <AddUserModal open={adding || !!editing} editing={editing} hoaId={hoaId} onClose={() => { setAdding(false); setEditing(null); }} onSave={handleSave} />
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой: key
+          огт байгаагүй тул, "Нэмэх"/"Засах" аль аль нь нээгдэх бүрт
+          дахин mount хийгддэггүй байв. */}
+      <AddUserModal key={editing ? `edit-${editing.id}` : (adding ? 'add-open' : 'add-closed')} open={adding || !!editing} editing={editing} hoaId={hoaId} onClose={() => { setAdding(false); setEditing(null); }} onSave={handleSave} />
       <ConfirmDialog />
       <AlertDialog />
     </>

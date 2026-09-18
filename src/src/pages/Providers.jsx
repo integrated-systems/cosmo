@@ -13,7 +13,7 @@ import { useAccessRules } from '../hooks/useAccessRules';
 // Clientele.jsx-ийн бүтэц/компонент задаргааны загварыг яг дахин
 // ашигласан (Rule of two). Supabase "providers" хүснэгэлээс tenant_id-
 // аар шүүж унших/бичих/устгах. 2026-08-19 хэрэглэгч тодорхой заасны
-// дагуу: зввхүн үйлчилгээ үзүүлэгч (provider) байгууллагын бүртгэл,
+// дагуу: зөвхүн үйлчилгээ үзүүлэгч (provider) байгууллагын бүртгэл,
 // Owners/Clientele-тэй одоогоор ХОЛБООГүй.
 export default function Providers() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
@@ -108,8 +108,9 @@ export default function Providers() {
         canDelete={can('providers', 'delete')}
       />
 
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой */}
       <EditProviderModal
-        key={editing?.id}
+        key={editing ? `edit-${editing.id}` : 'edit-none'}
         open={!!editing}
         onClose={() => setEditing(null)}
         provider={editing}
@@ -117,6 +118,7 @@ export default function Providers() {
       />
 
       <EditProviderModal
+        key={adding ? 'add-open' : 'add-closed'}
         open={adding}
         onClose={() => setAdding(false)}
         provider={null}

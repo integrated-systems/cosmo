@@ -182,8 +182,11 @@ export default function RealEstateMarket() {
         </div>
       </div>
 
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой:
+          "Нэмэх" үед editing=null тул key үргэлж 'add' тогтмол үлдэж,
+          дараагийн нэмэлт сессүүдэд шинэ mount хийгддэггүй байв. */}
       <EditMarketModal
-        key={editing?.month || 'add'}
+        key={editing ? `edit-${editing.month}` : (adding ? 'add-open' : 'add-closed')}
         open={!!editing || adding}
         onClose={() => { setEditing(null); setAdding(false); }}
         row={editing}

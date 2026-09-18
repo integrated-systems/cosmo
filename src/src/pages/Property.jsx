@@ -295,8 +295,9 @@ export default function Property() {
         onClose={() => setSelectedClient(null)}
         onEdit={(client) => { setEditingClient(client); setSelectedClient(null); }}
       />
+      {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — Owners.jsx-тэй ижил цоорхой */}
       <EditClientModal
-        key={editingClient?.id}
+        key={editingClient ? `edit-${editingClient.id}` : 'edit-none'}
         open={!!editingClient}
         onClose={() => setEditingClient(null)}
         client={editingClient}
