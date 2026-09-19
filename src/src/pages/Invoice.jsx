@@ -17,21 +17,25 @@ import { useAlert } from '../hooks/useAlert';
 // жишээ шиг тооцооллын алдааг ХАДГАЛАХААС ӨМНӨ олж засах боломжтой.
 const FIXED_NAMES = ['СӨХ-ны төлбөр', 'Зогсоол', 'Агуулах'];
 const BREAKDOWN_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef5555', '#0a428f', '#ec4899', '#14b8a6'];
+// 2026-09-13: module-level тогтмол болгосон — computePreview() (эрт),
+// info карт тооцоолол (хожим), 2 хэсэгт хоёуланд нь ашиглагдана.
+const SPOT_ONLY_SUB_LABEL = 'Зогсоол, агуулах дангаар өмчлөгч';
 
 function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
   const items = [];
+  const warnings = [];
   tariffItems.filter((t) => t.active).forEach((t) => {
     if (t.name === 'Зогсоол') {
       const qty = (owner.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
     } else if (t.name === 'Агуулах') {
-      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
-      // calc_method='area' үед sumLinkedSqm() 0/null буцаавал (жиш
-      // Конструктор дээр м2 оруулаагүй агуулах), эмчлэгч БүРЭН
-      // алгасагддаг байв (0 line items = invoice-оос бүр мxeн алга
-      // болно). Одоо агуулахтай (qty>0) л бол, м2 олдохгүй ч гэсэн
-      // ТООГООР нөөцлөн тооцож, эмчлэгчийг ХЭЗЭЭ Ч бүрэн алгасахгүй
-      // (гэхдээ admin-д "м2 дутуу" гэдгийг тодорхой мэдэгдэнэ).
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ (2-р шинэчлэл) — хэрэглэгчийн
+      // тодруулсны дагуу: calc_method='area' үед м2 олдохгүй бол,
+      // ТООГООР "нөөцлөн" тооцож ТӨЛБӨР үүсгэх нь БУРУУ дүнгээр
+      // нэхэмжлэх эрсдэлтэй. Иймд одоо төлбөр ОГТ тооцохгүй, харин
+      // "warnings"-д тэмдэглэж, admin-д тодорхой ("N эмчлэгчид
+      // тариф тооцох боломжгүй") анхааруулга харуулна — гэхдээ энэ
+      // эмчлэгч НЭХЭМЖЛЭХЭЭС БҮРЭН АЛГА (info карт, тоолуур) БОЛОХГҮЙ.
       const qty = (owner.grid_storages || []).length;
       if (qty > 0) {
         if (t.calc_method === 'area') {
@@ -39,7 +43,7 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
           if (sqm != null && sqm > 0) {
             items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
           } else {
-            items.push({ tariff_item_id: t.id, description: `${t.name} (м² бүртгэгдээгүй тул тоогоор тооцов)`, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+            warnings.push(`${t.name}: ${qty} агуулахын м² бүртгэгдээгүй тул тариф тооцоологдсонгүй`);
           }
         } else {
           items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
@@ -52,17 +56,19 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
       items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
     }
   });
-  return items;
+  return { items, warnings };
 }
 
 function calcClientItems(client, tariffItems, gridStorageSpots) {
   const items = [];
+  const warnings = [];
   tariffItems.filter((t) => t.active).forEach((t) => {
     if (t.name === 'Зогсоол') {
       const qty = (client.grid_parkings || []).length;
       if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
     } else if (t.name === 'Агуулах') {
-      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — calcOwnerItems-тэй ЯГ ИЖИЛ засвар.
+      // 2026-09-13 БОДИТ АЛДАА ЗАСАВ (2-р шинэчлэл) — calcOwnerItems-
+      // тэй ЯГ ИЖИЛ засвар.
       const qty = (client.grid_storages || []).length;
       if (qty > 0) {
         if (t.calc_method === 'area') {
@@ -70,7 +76,7 @@ function calcClientItems(client, tariffItems, gridStorageSpots) {
           if (sqm != null && sqm > 0) {
             items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
           } else {
-            items.push({ tariff_item_id: t.id, description: `${t.name} (м² бүртгэгдээгүй тул тоогоор тооцов)`, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
+            warnings.push(`${t.name}: ${qty} агуулахын м² бүртгэгдээгүй тул тариф тооцоологдсонгүй`);
           }
         } else {
           items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
@@ -83,7 +89,7 @@ function calcClientItems(client, tariffItems, gridStorageSpots) {
       items.push({ tariff_item_id: t.id, description: t.name, quantity: 1, unit_price: t.amount, amount: t.amount });
     }
   });
-  return items;
+  return { items, warnings };
 }
 
 // 3 ФИКС нэрийг эхэнд, дараа нь бусдыг дүнгээр нь буурахаар эрэмбэлнэ.
@@ -128,6 +134,7 @@ export default function Invoice() {
   const [saving, setSaving] = useState(false);
   const [invoices, setInvoices] = useState([]); // committed (Supabase-с)
   const [previewRows, setPreviewRows] = useState(null); // тооцоолсон ч хараахан хадгалаагүй
+  const [incompleteRows, setIncompleteRows] = useState([]); // 2026-09-13: м2/дата дутуу тул тариф тооцоологдоогүй эмчлэгчид
   const [loading, setLoading] = useState(true);
   const [names, setNames] = useState({});
   const [structureTypeByBuilding, setStructureTypeByBuilding] = useState({});
@@ -138,6 +145,7 @@ export default function Invoice() {
   async function loadInvoices() {
     setLoading(true);
     setPreviewRows(null); // сар/жил солиход тооцоолол дахин эхэлнэ
+    setIncompleteRows([]);
     const { data } = await fetchAllRows(() =>
       supabase.from('invoices').select('*').eq('tenant_id', hoaId).eq('period_year', year).eq('period_month', month).order('created_at', { ascending: false })
     );
@@ -253,6 +261,7 @@ export default function Invoice() {
       const { data: unitLayoutsFull } = await fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId));
 
       const rows = [];
+      const incompleteRows = [];
       (owners || []).forEach((o) => {
         // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — сууцтай (building_no бий)
         // болон Дан зогсоол/агуулах (сууцгүй) эмчлэгчийг ТУСДАА
@@ -260,11 +269,14 @@ export default function Invoice() {
         // байсан тул, "СөХ-ны төлбөр" зэрэг сууцад л хамаарах мөр
         // сууцгүй хүнд буруу тооцогдож болзошгүй байв.
         const applicableTariffs = o.building_no ? ownerTariffs : spotOnlyTariffs;
-        const lineItems = calcOwnerItems(o, applicableTariffs, gridStorageSpots);
+        const { items: lineItems, warnings } = calcOwnerItems(o, applicableTariffs, gridStorageSpots);
+        const ownerName = `${o.firstname || ''} ${o.lastname || ''}`.trim();
+        const ownerSub = o.building_no ? formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) : SPOT_ONLY_SUB_LABEL;
+        if (warnings.length > 0) incompleteRows.push({ name: ownerName, sub: ownerSub, warnings });
         if (lineItems.length === 0) return;
-        // Сууц өмчлөгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
+        // Сууц eмчлэгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
         // (байр+давхар+тоотоор тохирно). 2026-09-13: "Дан зогсоол,
-        // агуулах өмчлөгч" (сууцгүй) үед unit_layouts тохирохгүй тул,
+        // агуулах eмчлэгч" (сууцгүй) үед unit_layouts тохирохгүй тул,
         // тэдний grid_parkings/grid_storages-ийн 1-р задалсан UUID-г
         // ТОГТВОРТОЙ нэгж болгож ашиглана. Юу ч олдохгүй бол (ховор
         // тохиолдол) хамгийн сүүлд owner.id рүү буцаж холбоно (төлөв
@@ -274,12 +286,13 @@ export default function Invoice() {
         const ownerStorageUuid = !matchedUnit && !ownerParkingUuid && o.has_grid_storage && Array.isArray(o.grid_storages) && o.grid_storages.length > 0 ? extractGridItemUuid(o.grid_storages[0]?.id) : null;
         rows.push({
           target_type: 'owner', target_id: matchedUnit?.id || ownerParkingUuid || ownerStorageUuid || o.id,
-          name: `${o.firstname || ''} ${o.lastname || ''}`.trim(), sub: o.building_no ? formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) : 'Зогсоол, агуулах дангаар өмчлөгч',
+          name: ownerName, sub: ownerSub,
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
       });
       (clientele || []).forEach((c) => {
-        const lineItems = calcClientItems(c, clientTariffs, gridStorageSpots);
+        const { items: lineItems, warnings } = calcClientItems(c, clientTariffs, gridStorageSpots);
+        if (warnings.length > 0) incompleteRows.push({ name: c.legal_entity_name, sub: 'Талбай эмчлэгч', warnings });
         if (lineItems.length === 0) return;
         // Талбай өмчлөгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
         // (unit_layouts-той адил хүснэгэл) байхгүй тул, холбогдсон
@@ -302,6 +315,7 @@ export default function Invoice() {
         });
       });
       setPreviewRows(rows);
+      setIncompleteRows(incompleteRows);
     } finally {
       setComputing(false);
     }
@@ -309,6 +323,7 @@ export default function Invoice() {
 
   function cancelPreview() {
     setPreviewRows(null);
+    setIncompleteRows([]);
   }
 
   // ---------------- үе шат 2: ХАДГАЛАХ (бодитоор бичнэ) ----------------
@@ -343,6 +358,7 @@ export default function Invoice() {
       if (failed) parts.push(`${failed} задаргаа бичих үед алдаа гарсан тул үүсгэсэнгүй`);
       alert(`${parts.join(', ')}.`);
       setPreviewRows(null);
+      setIncompleteRows([]);
       loadInvoices();
     } finally {
       setSaving(false);
@@ -373,10 +389,9 @@ export default function Invoice() {
   // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: ownerCount
   // зөвхөн target_type==='owner'-ыг л шалгадаг байсан тул, "Дан
   // зогсоол/агуулах эмчлэгч" (сууцгүй) ч мөн "Сууц эмчлэгч" гэж буруу
-  // тоологддог байв. sub талбарын ("Зогсоол, агуулах дангаар өмчлөгч"
+  // тоологддог байв. sub талбарын ("Зогсоол, агуулах дангаар эмчлэгч"
   // гэсэн тодорхой текст) ялгаагаар 2 тусдаа тоолуур болгов, мөн шинэ
-  // "Зогсоол, агуулах дангаар өмчлөгч" info карт нэмэв.
-  const SPOT_ONLY_SUB_LABEL = 'Зогсоол, агуулах дангаар өмчлөгч';
+  // "Зогсоол, агуулах дангаар эмчлэгч" info карт нэмэв.
   const unitOwnerCount = displayRows.filter((r) => r.type === 'owner' && r.sub !== SPOT_ONLY_SUB_LABEL).length;
   const spotOnlyCount = displayRows.filter((r) => r.type === 'owner' && r.sub === SPOT_ONLY_SUB_LABEL).length;
   const clientCount = displayRows.filter((r) => r.type === 'client').length;
@@ -429,7 +444,7 @@ export default function Invoice() {
         )}
       </div>
 
-      <div className="grid grid-cols-5 gap-[10px]">
+      <div className="grid grid-cols-6 gap-[10px]">
         <div className="ds-card p-3">
           <div className="text-[11px] text-mutedtext mb-1.5">Нэхэмжлэхийн тоо</div>
           <div className="text-[19px] font-bold">{displayRows.length}</div>
@@ -457,7 +472,32 @@ export default function Invoice() {
           <div className="text-[11px] text-mutedtext mb-1.5">Талбай өмчлөгч (ААН)</div>
           <div className="text-[19px] font-bold">{clientCount}</div>
         </div>
+        {/* 2026-09-13: Хэрэглэгчийн заасны дагуу — м2/дата дутуу тул
+            тариф ТООЦООГүйгээр үлдсэн эмчлэгчийг (буруу таамагласан
+            дүнгээр нэхэмжлэхээс зайлсхийхийн тулд) "Дутуу мэдээлэлтэй"
+            гэсэн тусад нь тоолуур, доор жагсаалттайгаар тодорхой
+            харуулна — үүгээр ямар ч анхааруулгагүй "невроор алга"
+            болохгүй. */}
+        <div className="ds-card p-3">
+          <div className="text-[11px] text-mutedtext mb-1.5">Дутуу мэдээлэлтэй</div>
+          <div className={`text-[19px] font-bold ${incompleteRows.length > 0 ? 'text-customRed' : ''}`}>{incompleteRows.length}</div>
+        </div>
       </div>
+
+      {incompleteRows.length > 0 && (
+        <div className="ds-card p-3 mt-2.5" style={{ borderColor: '#f59e0b' }}>
+          <div className="text-[13px] font-semibold mb-1.5" style={{ color: '#f59e0b' }}>
+            ⚠️ {incompleteRows.length} эмчлэгчид зарим тариф тооцоологдсонгүй (мэдээлэл дутуу)
+          </div>
+          <ul style={{ listStyle: 'disc', paddingLeft: 18, margin: 0 }}>
+            {incompleteRows.map((r, i) => (
+              <li key={i} className="text-[12px] text-mutedtext">
+                <b>{r.name}</b> ({r.sub}) — {r.warnings.join(', ')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {activeBreakdown.length > 0 && (
         <div className="ds-card flex flex-wrap divide-x divide-slate-200 dark:divide-bordercol">
