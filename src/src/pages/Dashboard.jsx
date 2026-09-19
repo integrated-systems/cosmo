@@ -5,6 +5,7 @@ import { deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
 import { useTenantStats } from '../hooks/useTenantStats';
 import { useTopUsageAssets } from '../hooks/useTopUsageAssets';
+import { useCurrentMonthInvoiced } from '../hooks/useCurrentMonthInvoiced';
 import UsageProgressBar from '../components/UsageProgressBar';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const { rows, loading } = useMarketRows(hoaId);
   const { stats: tenantStats } = useTenantStats(hoaId);
   const topUsageAssets = useTopUsageAssets(hoaId, 5);
+  const { stats: invoicedStats } = useCurrentMonthInvoiced(hoaId);
   const marketSeries = deriveMarketSeries(rows);
   const last12Rows = rows.slice(-12);
   const marketSeries12 = deriveMarketSeries(last12Rows);
@@ -58,12 +60,24 @@ export default function Dashboard() {
     <>
       {/* 1. Дээд талын 4 үндсэн мэдээллийн карт */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
-        <StatCard label="ЭНЭ САРД НЭХЭМЖИЛСЭН" value={`${formatMoney(14385000)}₮`} valueColor="text-customBlue"
-          detail={[`Сууц өмчлөгч - ${formatMoney(1510000)}₮`, `Талбай өмчлөгч - ${formatMoney(12875000)}₮`]} />
+        {/* 2026-09-13 БОДИТ АЛДАА ЗАСАВ — placeholder статик тоо
+            (14,385,000₮) байсныг бодит invoices хүснэгэлээс уншиж
+            (useCurrentMonthInvoiced hook) динамик болгов. Картын
+            css/дизайн (StatCard компонент) огт хөндөгүй, зөвхөн
+            дамжуулж буй value/detail props-ыг л бодит болгов. Мөн
+            "Зогсоол, агуулах дангаар өмчлөгч" мвр нэмэв (нэхэмжилсэн
+            дүнг бүлэглэж үзүүлж байгаа тул 3 дахь бүлэг ч хамрагдах
+            ёстой). */}
+        <StatCard label="ЭНЭ САРД НЭХЭМЖИЛСЭН" value={`${formatMoney(invoicedStats?.total || 0)}₮`} valueColor="text-customBlue"
+          detail={[
+            `Сууц өмчлөгч - ${formatMoney(invoicedStats?.unitTotal || 0)}₮`,
+            `Зогсоол, агуулах дангаар өмчлөгч - ${formatMoney(invoicedStats?.spotOnlyTotal || 0)}₮`,
+            `Талбай өмчлөгч - ${formatMoney(invoicedStats?.clientTotal || 0)}₮`,
+          ]} />
         <StatCard label="ЭНЭ САРЫН ОРЛОГО" value={`${formatMoney(0)}₮`} valueColor="text-customGreen"
-          detail={['Сууц өмчлөгч - 0/18', 'Талбай өмчлөгч - 0/36']} />
+          detail={['Сууц өмчлөгч - 0/18', 'Зогсоол, агуулах дангаар өмчлөгч - 0/3', 'Талбай өмчлөгч - 0/36']} />
         <StatCard label="НИЙТ ӨР АВЛАГА" value={`${formatMoney(28770000)}₮`} valueColor="text-customRed"
-          detail={['Сууц өмчлөгч - 18/18', 'Талбай өмчлөгч - 36/36']} />
+          detail={['Сууц өмчлөгч - 18/18', 'Зогсоол, агуулах дангаар өмчлөгч - 3/3', 'Талбай өмчлөгч - 36/36']} />
         <StatCard label="НИЙТ ОРШИН СУУГЧ" value={tenantStats ? String(tenantStats.residentCount) : '—'} valueColor="text-slate-900 dark:text-text"
           detail={tenantStats ? [`0-6 насны хүүхэд - ${tenantStats.child05}`, `6-18 насны хүүхэд - ${tenantStats.child618}`] : []} />
       </div>
@@ -165,13 +179,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4. Ашиглалтын хугацаа дуусч буй Үндсэн хeрeнгe — 2026-09-08:
-          Үндсэн хeрeнгийн бүртгэлтэй динамик холбов (useTopUsageAssets),
+      {/* 4. Ашиглалтын хугацаа дуусч буй Үндсэн хөрөнгө — 2026-09-08:
+          Үндсэн хөрөнгийн бүртгэлтэй динамик холбов (useTopUsageAssets),
           хамгийн ойрхон дуусаж буй 5-ыг дээрээс доош (тулсангаас нь
           арай бага тулсан руу) progress bar-тай нь харуулна. */}
       <div className="ds-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-sm font-semibold text-slate-900 dark:text-white">Ашиглалтын хугацаа дуусч буй Үндсэн хeрeнгe</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-white">Ашиглалтын хугацаа дуусч буй Үндсэн хөрөнгө</div>
           <Link to={`/${hoaId}/fixedassets`} className="text-xs text-blue-500 hover:underline">Бүгдийг харах →</Link>
         </div>
         <div className="flex flex-col gap-3">
