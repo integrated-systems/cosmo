@@ -33,9 +33,9 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
       // тодруулсны дагуу: calc_method='area' үед м2 олдохгүй бол,
       // ТООГООР "нөөцлөн" тооцож ТӨЛБӨР үүсгэх нь БУРУУ дүнгээр
       // нэхэмжлэх эрсдэлтэй. Иймд одоо төлбөр ОГТ тооцохгүй, харин
-      // "warnings"-д тэмдэглэж, admin-д тодорхой ("N эмчлэгчид
+      // "warnings"-д тэмдэглэж, admin-д тодорхой ("N өмчлөгчид
       // тариф тооцох боломжгүй") анхааруулга харуулна — гэхдээ энэ
-      // эмчлэгч НЭХЭМЖЛЭХЭЭС БҮРЭН АЛГА (info карт, тоолуур) БОЛОХГҮЙ.
+      // өмчлөгч НЭХЭМЖЛЭХЭЭС БҮРЭН АЛГА (info карт, тоолуур) БОЛОХГҮЙ.
       const qty = (owner.grid_storages || []).length;
       if (qty > 0) {
         if (t.calc_method === 'area') {
@@ -134,7 +134,7 @@ export default function Invoice() {
   const [saving, setSaving] = useState(false);
   const [invoices, setInvoices] = useState([]); // committed (Supabase-с)
   const [previewRows, setPreviewRows] = useState(null); // тооцоолсон ч хараахан хадгалаагүй
-  const [incompleteRows, setIncompleteRows] = useState([]); // 2026-09-13: м2/дата дутуу тул тариф тооцоологдоогүй эмчлэгчид
+  const [incompleteRows, setIncompleteRows] = useState([]); // 2026-09-13: м2/дата дутуу тул тариф тооцоологдоогүй өмчлөгчид
   const [loading, setLoading] = useState(true);
   const [names, setNames] = useState({});
   const [structureTypeByBuilding, setStructureTypeByBuilding] = useState({});
@@ -181,9 +181,9 @@ export default function Invoice() {
     if (invoices.length === 0) return;
     (async () => {
       const map = {};
-      // 2026-09-13: target_id одоо eмчлэгчийн ID биш, ТОГТВОРТОЙ нэгжийн
+      // 2026-09-13: target_id одоо өмчлөгчийн ID биш, ТОГТВОРТОЙ нэгжийн
       // (unit_layouts / grid_land_plot) ID тул, тухайн нэгжийг ОДОО
-      // эзэмшиж буй eмчлэгчийг эргүүлж хайх шаардлагатай болов.
+      // эзэмшиж буй өмчлөгчийг эргүүлж хайх шаардлагатай болов.
       if (committedIds.ownerIds.length) {
         const { data: units } = await supabase.from('unit_layouts').select('id, building_no, floor, door_no').in('id', committedIds.ownerIds);
         const { data: ownersData } = await fetchAllRows(() => supabase.from('owners').select('firstname, lastname, building_no, floor, door_no, has_grid_parking, grid_parkings, has_grid_storage, grid_storages').eq('tenant_id', hoaId));
@@ -264,7 +264,7 @@ export default function Invoice() {
       const incompleteRows = [];
       (owners || []).forEach((o) => {
         // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — сууцтай (building_no бий)
-        // болон Дан зогсоол/агуулах (сууцгүй) эмчлэгчийг ТУСДАА
+        // болон Дан зогсоол/агуулах (сууцгүй) өмчлөгчийг ТУСДАА
         // тарифаар тооцоолно. eмнe нь бүгд ownerTariffs ашигладаг
         // байсан тул, "СөХ-ны төлбөр" зэрэг сууцад л хамаарах мөр
         // сууцгүй хүнд буруу тооцогдож болзошгүй байв.
@@ -274,9 +274,9 @@ export default function Invoice() {
         const ownerSub = o.building_no ? formatUnitCode(o.building_no, structureTypeByBuilding[String(o.building_no || '').trim()], o.floor, null, o.door_no) : SPOT_ONLY_SUB_LABEL;
         if (warnings.length > 0) incompleteRows.push({ name: ownerName, sub: ownerSub, warnings });
         if (lineItems.length === 0) return;
-        // Сууц eмчлэгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
+        // Сууц өмчлөгчийн хувьд ТОГТВОРТОЙ нэгж бол unit_layouts мөр
         // (байр+давхар+тоотоор тохирно). 2026-09-13: "Дан зогсоол,
-        // агуулах eмчлэгч" (сууцгүй) үед unit_layouts тохирохгүй тул,
+        // агуулах өмчлөгч" (сууцгүй) үед unit_layouts тохирохгүй тул,
         // тэдний grid_parkings/grid_storages-ийн 1-р задалсан UUID-г
         // ТОГТВОРТОЙ нэгж болгож ашиглана. Юу ч олдохгүй бол (ховор
         // тохиолдол) хамгийн сүүлд owner.id рүү буцаж холбоно (төлөв
@@ -292,7 +292,7 @@ export default function Invoice() {
       });
       (clientele || []).forEach((c) => {
         const { items: lineItems, warnings } = calcClientItems(c, clientTariffs, gridStorageSpots);
-        if (warnings.length > 0) incompleteRows.push({ name: c.legal_entity_name, sub: 'Талбай эмчлэгч', warnings });
+        if (warnings.length > 0) incompleteRows.push({ name: c.legal_entity_name, sub: 'Талбай өмчлөгч', warnings });
         if (lineItems.length === 0) return;
         // Талбай өмчлөгчийн хувьд одоогоор бүрэн тогтвортой бүртгэл
         // (unit_layouts-той адил хүснэгэл) байхгүй тул, холбогдсон
@@ -388,10 +388,10 @@ export default function Invoice() {
   const totalSum = displayRows.reduce((s, r) => s + Number(r.total), 0);
   // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: ownerCount
   // зөвхөн target_type==='owner'-ыг л шалгадаг байсан тул, "Дан
-  // зогсоол/агуулах эмчлэгч" (сууцгүй) ч мөн "Сууц эмчлэгч" гэж буруу
-  // тоологддог байв. sub талбарын ("Зогсоол, агуулах дангаар эмчлэгч"
+  // зогсоол/агуулах өмчлөгч" (сууцгүй) ч мөн "Сууц өмчлөгч" гэж буруу
+  // тоологддог байв. sub талбарын ("Зогсоол, агуулах дангаар өмчлөгч"
   // гэсэн тодорхой текст) ялгаагаар 2 тусдаа тоолуур болгов, мөн шинэ
-  // "Зогсоол, агуулах дангаар эмчлэгч" info карт нэмэв.
+  // "Зогсоол, агуулах дангаар өмчлөгч" info карт нэмэв.
   const unitOwnerCount = displayRows.filter((r) => r.type === 'owner' && r.sub !== SPOT_ONLY_SUB_LABEL).length;
   const spotOnlyCount = displayRows.filter((r) => r.type === 'owner' && r.sub === SPOT_ONLY_SUB_LABEL).length;
   const clientCount = displayRows.filter((r) => r.type === 'client').length;
@@ -473,7 +473,7 @@ export default function Invoice() {
           <div className="text-[19px] font-bold">{clientCount}</div>
         </div>
         {/* 2026-09-13: Хэрэглэгчийн заасны дагуу — м2/дата дутуу тул
-            тариф ТООЦООГүйгээр үлдсэн эмчлэгчийг (буруу таамагласан
+            тариф ТООЦООГүйгээр үлдсэн өмчлөгчийг (буруу таамагласан
             дүнгээр нэхэмжлэхээс зайлсхийхийн тулд) "Дутуу мэдээлэлтэй"
             гэсэн тусад нь тоолуур, доор жагсаалттайгаар тодорхой
             харуулна — үүгээр ямар ч анхааруулгагүй "невроор алга"
@@ -487,7 +487,7 @@ export default function Invoice() {
       {incompleteRows.length > 0 && (
         <div className="ds-card p-3 mt-2.5" style={{ borderColor: '#f59e0b' }}>
           <div className="text-[13px] font-semibold mb-1.5" style={{ color: '#f59e0b' }}>
-            ⚠️ {incompleteRows.length} эмчлэгчид зарим тариф тооцоологдсонгүй (мэдээлэл дутуу)
+            ⚠️ Дараах {incompleteRows.length} өмчлөгчид зарим тариф тооцоологдсонгүй (мэдээлэл дутуу)
           </div>
           <ul style={{ listStyle: 'disc', paddingLeft: 18, margin: 0 }}>
             {incompleteRows.map((r, i) => (
