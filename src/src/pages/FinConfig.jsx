@@ -44,7 +44,7 @@ function calcMethodLabel(v) {
 // гэсэн 3 ФИКС категорийг ЯГ НЭРЭЭР нь таньж (нэр солигдохгүй,
 // устгагдахгүй, ямагт идэвхтэй), тооцооллын логикыг Invoice.jsx-д
 // шууд код дотор тодорхойлно (simplicity is everything). Бусад бүх
-// мвр = энгийн, "идэвхтэй эсэхээс шалтгаалан" нэмэгддэг тогтмол
+// мөр = энгийн, "идэвхтэй эсэхээс шалтгаалан" нэмэгддэг тогтмол
 // хураамж.
 const FIXED_NAMES = ['СӨХ-ны төлбөр', 'Зогсоол', 'Агуулах'];
 
@@ -106,7 +106,7 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
     if (!form.name.trim()) return;
     const editingRow = rows.find((r) => r.id === editingId);
     const payload = editingRow && isFixed(editingRow)
-      ? { calc_method: form.calc_method, amount: +form.amount || 0 } // ФИКС мвр - нэр/төлө өөрчлөгдөхгүй
+      ? { calc_method: form.calc_method, amount: +form.amount || 0 } // ФИКС мөр - нэр/төлө өөрчлөгдөхгүй
       : { tenant_id: hoaId, category, name: form.name.trim(), calc_method: form.calc_method, amount: +form.amount || 0 };
     if (editingId) {
       await supabase.from('tariff_items').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editingId);
@@ -135,7 +135,7 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
     <div className="ds-card p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Тарифын каталог — {title}</div>
-        <span className="text-[11px] text-mutedtext">{rows.length} төлбөрийн мвр</span>
+        <span className="text-[11px] text-mutedtext">{rows.length} төлбөрийн мөр</span>
       </div>
       {loading ? (
         <div className="text-[12px] text-mutedtext py-6 text-center">Ачаалж байна...</div>
@@ -348,7 +348,7 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
   );
 }
 
-// ---------------- fin_settings-д тулгуурласан ганц мврт тохиргооны карт ----------------
+// ---------------- fin_settings-д тулгуурласан ганц мөрт тохиргооны карт ----------------
 function useFinSettings(hoaId) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -522,6 +522,57 @@ function InvoiceScheduleCard({ hoaId }) {
   );
 }
 
+// 2026-09-20 (56): "Өмнөх сарын тайлан мэдээ" — хэрэглэгчтэй
+// зөвлөлдсөний дагуу хэрэгжүүлэв. Тохируулсан календарийн өдөр
+// хүрэхэд, send-monthly-report-news Edge Function (pg_cron-оор өдөр
+// бүр дуудагдана) энэ tenant-ийн fin_settings-ийг шалгаж, тохирвол
+// өмнөх сарын орлого/зарлагын тайланг "Мэдээ, мэдээлэл"-д автоматаар
+// НИЙТЛЭГДСЭН төрлөөр үүсгэнэ (алдаатай үед л дараагийн сар хүртэл
+// дахин оролдохгүй тул, сард 1-ээс олон удаа давхардахгүй).
+function MonthlyReportScheduleCard({ hoaId }) {
+  const { settings, loading, save } = useFinSettings(hoaId);
+  const [form, setForm] = useState({ monthly_report_enabled: false, monthly_report_day: '' });
+  useEffect(() => {
+    if (settings) setForm({
+      monthly_report_enabled: settings.monthly_report_enabled ?? false,
+      monthly_report_day: settings.monthly_report_day ?? 5,
+    });
+  }, [settings]);
+  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  return (
+    <div className="ds-card p-4" style={{ maxWidth: 460 }}>
+      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Өмнөх сарын тайлан мэдээ</div>
+      <label className="flex items-center gap-2 text-[12.5px] text-slate-700 dark:text-mutedtext cursor-pointer mb-4">
+        <input type="checkbox" checked={form.monthly_report_enabled} onChange={(e) => setForm((f) => ({ ...f, monthly_report_enabled: e.target.checked }))} />
+        Идэвхтэй
+      </label>
+      <SettingsField
+        label="Автоматаар нийтлэх календарийн өдөр"
+        hint="Тухайн сарын энэ өдөр (1-28), өмнөх сарын орлого, зарлагын тайланг автоматаар мэдээ болгон нийтэлнэ."
+        value={form.monthly_report_day} onChange={(v) => setForm((f) => ({ ...f, monthly_report_day: v }))}
+      />
+      <div className="text-[11.5px] text-mutedtext leading-relaxed mb-4" style={{ maxWidth: 420 }}>
+        Энд тохиргоог идэвхтэй төлөвт шилжүүлж календарийн сарын eдрийг
+        тохируулбал тухайн тохируулсан календарийн өдөр "Мэдээ, мэдээлэл"
+        хуудаст өмнөх сарын орлого, зарлагын тайланг автоматаар мэдээ
+        болгон нийтлэх ба уг тайланд дуудагдах өгөгдлүүд нь автоматаар
+        серверээс дуудагдаж мэдээний агуулгад бөглөгдөнэ. Хэрэглэгч
+        хүсвэл уг автомат тохиргоог идэвхгүй төлөвт шилжүүлж, "Мэдээ,
+        мэдээлэл" хуудасны "Мэдээний агрегат" таб-д "Шинэ мэдээ үүсгэх"
+        товчийг дарж "Ангилал" талбарт "Сарын орлого, зарлагын тайлан"
+        мөрийг сонгосноор "Агуулга" талбарт өмнөх сарын өгөгдлийн
+        хамт автоматаар нийтлэхэд бэлэн байдлаар үүснэ. Мөн уг текстийг
+        нийтлэхээс өмнө онцгой тохиолдолд өгөгдлүүдийг гараар засварлаж
+        болно. Тайлан мэдээ сард 1-ээс олон удаа давхардаж нийтлэгдэхгүй.
+      </div>
+      <button className="ds-btn-primary" onClick={() => save({
+        monthly_report_enabled: form.monthly_report_enabled,
+        monthly_report_day: +form.monthly_report_day || 5,
+      })}>Хадгалах</button>
+    </div>
+  );
+}
+
 const LIABILITY_TYPES = [
   'Хувьцаат компани',
   'Хязгаарлагдмал хариуцлагатай компани',
@@ -543,8 +594,8 @@ const OWNERSHIP_GROUPS = [
 
 // 2026-09-04 (5): "Тайланд дуудагдах мэдээлэл" - Сангийн яам/Татварын
 // ерөнхий газар/НДЕГ-т цахимаар тайлан илгээхэд шаардлагатай
-// байгууллагын үндсэн бүртгэлийн мэдээлэл. Ганц мврт тохиргоо
-// (org_report_info, tenant бүрт НЭГ мвр).
+// байгууллагын үндсэн бүртгэлийн мэдээлэл. Ганц мөрт тохиргоо
+// (org_report_info, tenant бүрт НЭГ мөр).
 function useOrgReportInfo(hoaId) {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1165,6 +1216,7 @@ const TARIFF_TABS = [
 const NBB_TABS = [
   { key: 'income_cats', label: 'Орлогын дэд ангилал' },
   { key: 'invoice', label: 'Нэхэмжлэх' },
+  { key: 'monthly_report', label: 'Өмнөх сарын тайлан мэдээ' },
   { key: 'overdue', label: 'Төлбөрийн хоцрогдол' },
   { key: 'reserve', label: 'Хуримтлалын сан' },
   { key: 'bonuses', label: 'Цалин - Нэмэгдэл' },
@@ -1225,6 +1277,7 @@ export default function FinConfig() {
           </div>
           {nbbTab === 'income_cats' && <IncomeCategoriesPlaceholder hoaId={hoaId} />}
           {nbbTab === 'invoice' && <InvoiceScheduleCard hoaId={hoaId} />}
+          {nbbTab === 'monthly_report' && <MonthlyReportScheduleCard hoaId={hoaId} />}
           {nbbTab === 'overdue' && <OverdueCard hoaId={hoaId} />}
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
           {nbbTab === 'org_info' && <OrgReportInfoCard hoaId={hoaId} />}
