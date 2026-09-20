@@ -147,7 +147,7 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
               <th className="py-2 px-2">ТООЦООЛЛЫН АРГА</th>
               <th className="py-2 px-2">ХЭМЖИХ НЭГЖ</th>
               <th className="py-2 px-2">ТӨЛӨВ</th>
-              <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
+              <th className="py-2 px-2 text-right">ҮЙЛДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -210,10 +210,17 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
 
 
 // 2026-09-04 (4): "Орлогын дэд ангилал" - НББ модуль хийх үед
-// ашиглагдах жинхэнэ бүтэц, гэхдээ ОДООГООР placeholder (гүйлгээ
-// бүртгэл, дансны холболт огт байхгүй, зөвхөн жагсаалт+тайлбар).
+// ашиглагдах жинхэнэ бүтэц.
+// 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон "Үйлдэл"
+// баганын Засах/Устгах товч ажиллахгүй байсан цоорхойг засав.
+// Урьд нь ЗӨВХӨН энэ HARDCODED статик массив харагддаг, товчнууд
+// `disabled` байсан (тайлбар: "НББ модуль хийгдсэний дараа
+// идэвхжинэ"). Одоо income_subcategories (migration 0132)
+// хүснэгэлээр дамжуулан бодит tenant тус бүрийн жагсаалт болгож,
+// Нэмэх/Засах/Устгах бүрэн ажиллагаатай болгов. Анх удаа энэ tenant
+// табруу ирэхэд, доорх анхны 10 нэрийг автоматаар үрждэг (seed).
 const INCOME_CATEGORIES = [
-  'Айл, врх, зогсоол, агуулах',
+  'Айл, эрх, зогсоол, агуулах',
   'Аж ахуйн нэгж',
   'Антены, лифтний самбарын түрээс',
   'Банкны хүүгийн орлого',
@@ -225,41 +232,118 @@ const INCOME_CATEGORIES = [
   'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр',
 ];
 
-function IncomeCategoriesPlaceholder() {
+function useIncomeSubcategories(hoaId) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('income_subcategories').select('*').eq('tenant_id', hoaId).order('sort_order');
+    if (data && data.length > 0) {
+      setRows(data);
+    } else {
+      const seedRows = INCOME_CATEGORIES.map((name, i) => ({ tenant_id: hoaId, name, sort_order: i }));
+      const { data: inserted } = await supabase.from('income_subcategories').insert(seedRows).select();
+      setRows(inserted || []);
+    }
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+  return { rows, loading, reload: load };
+}
+
+function IncomeCategoriesPlaceholder({ hoaId }) {
+  const { rows, loading, reload } = useIncomeSubcategories(hoaId);
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  function startEdit(row) {
+    setEditingId(row.id);
+    setEditValue(row.name);
+  }
+  async function saveEdit() {
+    if (!editValue.trim()) return;
+    await supabase.from('income_subcategories').update({ name: editValue.trim() }).eq('id', editingId);
+    setEditingId(null);
+    reload();
+  }
+  async function handleDelete(row) {
+    const ok = await confirm({ title: 'Дэд ангилал устгах', message: `"${row.name}" дэд ангиллыг устгах уу?` });
+    if (!ok) return;
+    await supabase.from('income_subcategories').delete().eq('id', row.id);
+    reload();
+  }
+  async function handleAdd() {
+    if (!newName.trim()) return;
+    const maxOrder = rows.reduce((m, r) => Math.max(m, r.sort_order), -1);
+    await supabase.from('income_subcategories').insert({ tenant_id: hoaId, name: newName.trim(), sort_order: maxOrder + 1 });
+    setNewName('');
+    setAdding(false);
+    reload();
+  }
+
   return (
     <div>
       <div className="ds-card p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Орлогын дэд ангилал</div>
-          <button className="ds-btn-primary" disabled title="НББ модуль хийгдсэний дараа идэвхжинэ">+ Шинэ дэд ангилал нэмэх</button>
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ дэд ангилал нэмэх</button>
         </div>
-        <table className="ds-table w-full">
-          <thead>
-            <tr>
-              <th className="py-2 px-2">НЭР</th>
-              <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-            {INCOME_CATEGORIES.map((name) => (
-              <tr key={name}>
-                <td className="py-2 px-2 text-customBlue">{name}</td>
-                <td className="py-2 px-2 text-right whitespace-nowrap opacity-40">
-                  <button className="ds-icon-btn" disabled><EditIcon /></button>
-                  <button className="ds-icon-btn danger" disabled><DeleteIcon /></button>
-                </td>
+        {adding && (
+          <div className="flex items-center gap-2 mb-3">
+            <input className="ds-input flex-1" placeholder="Шинэ дэд ангиллын нэр" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
+            <button className="ds-btn-primary" onClick={handleAdd}>Хадгалах</button>
+            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setNewName(''); }}>Цуцлах</button>
+          </div>
+        )}
+        {loading ? (
+          <div className="text-center text-mutedtext py-4">Ачаалж байна...</div>
+        ) : (
+          <table className="ds-table w-full">
+            <thead>
+              <tr>
+                <th className="py-2 px-2">НЭР</th>
+                <th className="py-2 px-2 text-right">ҮЙЛДЭЛ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td className="py-2 px-2 text-customBlue">
+                    {editingId === row.id ? (
+                      <input className="ds-input w-full" value={editValue} onChange={(e) => setEditValue(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && saveEdit()} />
+                    ) : row.name}
+                  </td>
+                  <td className="py-2 px-2 text-right whitespace-nowrap">
+                    {editingId === row.id ? (
+                      <>
+                        <button className="ds-btn-secondary" onClick={saveEdit}>Хадгалах</button>
+                        <button className="ds-btn-secondary" onClick={() => setEditingId(null)}>Цуцлах</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="ds-icon-btn" onClick={() => startEdit(row)}><EditIcon /></button>
+                        <button className="ds-icon-btn danger" onClick={() => handleDelete(row)}><DeleteIcon /></button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
       <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed">
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг, юу хийдэггүй вэ</div>
         <p className="mb-2">Эндээс тохируулсан нэрс нь зөвхөн "Гүйлгээ бүртгэл — Орлого — Орлого нэмэх" модалийн "Дэд ангилал" dropdown жагсаалтад харагдана. Энэ жагсаалт нь ямар нэг тодорхой дансанд шууд заагдаагүй, чөлөөт текст шинж чанартай.</p>
-        <p className="mb-2"><b>НББ-ийн дансанд хэрхэн твсдэглэгдэх вэ:</b> Та дээрх жагсаалтаас аль нь сонгосон ч, гүйлгээ бүр яг ижил нэг данс — 5600 "Бусад орлого"-нд бичигдэнэ (дэд ангиллын нэрээс үл хамаарна). өөрөөр хэлбэл, "Банкны хүүгийн орлого" эсвэл "Зогсоолын хураамж" аль алийг сонгосон ч, журналын бичилт адилхан 5600 дансанд орно — зөвхөн гүйлгээний тайлбар (сар, зорилго) л ялгаатай харагдана.</p>
+        <p className="mb-2"><b>НББ-ийн дансанд хэрхэн тусгагдах вэ:</b> Та дээрх жагсаалтаас аль нь сонгосон ч, гүйлгээ бүр яг ижил нэг данс — 5600 "Бусад орлого"-нд бичигдэнэ (дэд ангиллын нэрээс үл хамаарна). eeрeeр хэлбэл, "Банкны хүүгийн орлого" эсвэл "Зогсоолын хураамж" аль алийг сонгосон ч, журналын бичилт адилхан 5600 дансанд орно — зөвхөн гүйлгээний тайлбар (сар, зорилго) л ялгаатай харагдана.</p>
         <p className="mb-2"><b>Тэгэхээр яагаад энэ тохиргоо хэрэгтэй вэ:</b> Дансанд нөлөөгүй ч, СӨХ-ны дотоод санхүүгийн бүртгэлийг цэгцтэй, ойлгомжтой байлгах зорилготой (жиш нь тайлан, жагсаалт харахад "юу вэ" гэдгийг тодорхой ялгах). Нэр солих, нэмэх, устгах, дараалал өөрчлөх нь Нягтлан бодох бүртгэлийн модульд хамааралтай.</p>
-        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГүй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хвлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зөвлөдэггүй.</p>
+        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГүй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хөлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зөвлөдөггүй.</p>
       </div>
+      <ConfirmDialog />
     </div>
   );
 }
@@ -495,6 +579,31 @@ function OrgReportInfoCard({ hoaId }) {
   const [form, setForm] = useState(null);
   useEffect(() => { if (info) setForm(info); }, [info]);
 
+  // 2026-09-13: "Гарын үсэг зурах албан тушаалтнууд" хэсгийн тайлбарт
+  // "Ажилтны бүртгэл-ээс автоматаар татагдана" гэж аль хэдийн бичсэн
+  // байсан ч, бодит татах логик хэрэгжээгүй байсныг хэрэглэгч олов.
+  // "Гүйцэтгэх захирал"/"Нягтлан бодогч" alban тушаалтай ажилтныг
+  // employees+job_positions-ээс хайж, ЗӨВХӨН тухайн талбар ХООСОН
+  // үед л автоматаар бөглөнэ (гараар оруулсан утгыг дарж бичихгүй).
+  useEffect(() => {
+    if (!hoaId || !form) return;
+    if (form.ceo_name && form.accountant_name) return;
+    (async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('first_name, last_name, job_positions(name)')
+        .eq('tenant_id', hoaId);
+      const ceo = (data || []).find((e) => e.job_positions?.name === 'Гүйцэтгэх захирал');
+      const accountant = (data || []).find((e) => e.job_positions?.name === 'Нягтлан бодогч');
+      setForm((f) => ({
+        ...f,
+        ceo_name: f.ceo_name || (ceo ? `${ceo.first_name || ''} ${ceo.last_name || ''}`.trim() : f.ceo_name),
+        accountant_name: f.accountant_name || (accountant ? `${accountant.first_name || ''} ${accountant.last_name || ''}`.trim() : f.accountant_name),
+      }));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoaId, !!form]);
+
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -632,7 +741,7 @@ function JobPositionsList({ hoaId }) {
         <thead>
           <tr>
             <th className="py-2 px-2">АЛБАН ТУШААЛ</th>
-            <th className="py-2 px-2 text-right">үЙЛДЭЛ</th>
+            <th className="py-2 px-2 text-right">ҮЙЛДЭЛ</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -1114,7 +1223,7 @@ export default function FinConfig() {
               </button>
             ))}
           </div>
-          {nbbTab === 'income_cats' && <IncomeCategoriesPlaceholder />}
+          {nbbTab === 'income_cats' && <IncomeCategoriesPlaceholder hoaId={hoaId} />}
           {nbbTab === 'invoice' && <InvoiceScheduleCard hoaId={hoaId} />}
           {nbbTab === 'overdue' && <OverdueCard hoaId={hoaId} />}
           {nbbTab === 'reserve' && <ReserveFundCard hoaId={hoaId} />}
