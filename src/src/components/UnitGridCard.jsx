@@ -22,7 +22,7 @@ const COLOR_CLASSES = {
   customGreen: { bg: 'bg-emerald-500/[0.12]', border: 'border-emerald-500/40', text: 'text-customGreen', hoverBorder: 'hover:border-customGreen' },
 };
 
-export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow', atRiskColor = 'customRed' }) {
+export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default' }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
 
   if (buildings.length === 0) {
@@ -51,8 +51,8 @@ export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow
                       <div className="flex flex-wrap gap-1">
                         {items.map((it, idx) => {
                           const status = it.vacant ? 'none' : (it.paymentStatus || 'none');
-                          const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : null;
-                          const colorClass = colorKey && COLOR_CLASSES[colorKey]
+                          const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : null;
+                          const colorClass = colorKey && colorKey !== 'default' && COLOR_CLASSES[colorKey]
                             ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].border} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].hoverBorder}`
                             : 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400';
                           return (

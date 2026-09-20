@@ -42,7 +42,7 @@ export default function Property() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const monthOptions = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
-  const { getMonthStatus, earliestYear, overdueColor, atRiskColor } = useInvoicePayments(hoaId, 'owner');
+  const { getMonthStatus, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'owner');
   // 2026-09-13: Хэрэглэгчийн хүсэлтээр — dropdown нь хатуу кодолсон
   // (data-тай холбоогүй) 2022-2027 хүрээ биш, эхний нэхэмжлэх үүссэн
   // жилээс эхлэн одоогийн он хүртэл л үзүүлдэг болов.
@@ -284,7 +284,7 @@ export default function Property() {
       ) : (
         <>
           {tab === 'household' && (
-            <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" overdueColor={overdueColor} atRiskColor={atRiskColor} />
+            <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} />
           )}
           {tab === 'gridSpots' && (
             <GridSpotsViewer

@@ -28,7 +28,7 @@ export function useInvoicePayments(hoaId, targetType) {
     setLoading(true);
     Promise.all([
       fetchAllRows(() => supabase.from('invoices').select('target_id, period_year, period_month, status, sent_at, created_at').eq('tenant_id', hoaId).eq('target_type', targetType)),
-      supabase.from('fin_settings').select('overdue_days, at_risk_days, overdue_color, at_risk_color').eq('tenant_id', hoaId).maybeSingle(),
+      supabase.from('fin_settings').select('overdue_days, at_risk_days, overdue_color, at_risk_color, pending_color').eq('tenant_id', hoaId).maybeSingle(),
     ]).then(([{ data: invRows }, { data: settingsRow }]) => {
       if (cancelled) return;
       setInvoices(invRows || []);
@@ -42,6 +42,7 @@ export function useInvoicePayments(hoaId, targetType) {
   const atRiskDays = finSettings?.at_risk_days ?? 180;
   const overdueColor = finSettings?.overdue_color || 'customYellow';
   const atRiskColor = finSettings?.at_risk_color || 'customRed';
+  const pendingColor = finSettings?.pending_color || 'default';
 
   // 2026-09-13: Он шүүх dropdown-д зориулав — тухайн tenant-ийн энэ
   // targetType-ийн хамгийн эртний нэхэмжлэхийн он. Invoice огт байхгүй
@@ -90,5 +91,5 @@ export function useInvoicePayments(hoaId, targetType) {
     return computeInvoiceStatus(inv);
   }
 
-  return { loading, earliestYear, getYearSummary, getMonthStatus, overdueColor, atRiskColor };
+  return { loading, earliestYear, getYearSummary, getMonthStatus, overdueColor, atRiskColor, pendingColor };
 }

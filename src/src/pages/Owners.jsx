@@ -45,7 +45,7 @@ export default function Owners() {
   const [buildingFilter, setBuildingFilter] = useState('');
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const { getYearSummary, earliestYear, overdueColor, atRiskColor } = useInvoicePayments(hoaId, 'owner');
+  const { getYearSummary, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'owner');
   const yearOptions = Array.from({ length: Math.max(1, now.getFullYear() - earliestYear + 1) }, (_, i) => earliestYear + i);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -232,6 +232,7 @@ export default function Owners() {
           getYearSummary={getYearSummary}
           overdueColor={overdueColor}
           atRiskColor={atRiskColor}
+          pendingColor={pendingColor}
         />
       ) : (
         <OwnersSpotOnlyTable
@@ -248,6 +249,7 @@ export default function Owners() {
           getYearSummary={getYearSummary}
           overdueColor={overdueColor}
           atRiskColor={atRiskColor}
+          pendingColor={pendingColor}
         />
       )}
 

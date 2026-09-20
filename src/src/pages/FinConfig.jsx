@@ -396,7 +396,7 @@ function ReserveFundCard({ hoaId }) {
 
 function OverdueCard({ hoaId }) {
   const { settings, loading, save } = useFinSettings(hoaId);
-  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '', overdue_color: 'customYellow', at_risk_color: 'customRed' });
+  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '', overdue_color: 'customYellow', at_risk_color: 'customRed', pending_color: 'default' });
   useEffect(() => {
     if (settings) setForm({
       overdue_penalty_pct: settings.overdue_penalty_pct ?? 0,
@@ -404,6 +404,7 @@ function OverdueCard({ hoaId }) {
       at_risk_days: settings.at_risk_days ?? 180,
       overdue_color: settings.overdue_color || 'customYellow',
       at_risk_color: settings.at_risk_color || 'customRed',
+      pending_color: settings.pending_color || 'default',
     });
   }, [settings]);
   if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
@@ -411,6 +412,13 @@ function OverdueCard({ hoaId }) {
     <div className="ds-card p-4" style={{ maxWidth: 480 }}>
       <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Төлбөрийн хоцрогдол</div>
       <div className="text-[10.5px] text-mutedtext mb-3">Сууц өмчлөгч БОЛОН Талбай өмчлөгч хоёуланд адилхан үйлчлэх ерөнхий нэг тохиргоо</div>
+      {/* 2026-09-20 (2-р нэмэлт) — хэрэглэгчийн хүсэлтээр: "pending"
+          (нэхэмжлэх үүсгэж илгээсэн боловч хугацаа хэтрээгүй) төлөвийн
+          өнгийг ч мөн адил ЭНД тохируулдаг болгов. */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Хүлээгдэж буй (илгээгдсэн, хараахан хугацаа хэтрээгүй) өнгө:</span>
+        <ColorSwatchPicker value={form.pending_color} onChange={(c) => setForm((f) => ({ ...f, pending_color: c }))} allowDefault />
+      </div>
       <SettingsField label="Хугацаа хэтэрсэн торгуулийн хувь (%/сар)" value={form.overdue_penalty_pct} onChange={(v) => setForm((f) => ({ ...f, overdue_penalty_pct: v }))} />
       <SettingsField
         label="Төлбөр төлөлтийг хугацаа хэтэрсэнд тооцох хугацаа"
@@ -441,24 +449,34 @@ function OverdueCard({ hoaId }) {
         at_risk_days: +form.at_risk_days || 0,
         overdue_color: form.overdue_color,
         at_risk_color: form.at_risk_color,
+        pending_color: form.pending_color,
       })}>Хадгалах</button>
     </div>
   );
 }
 
-// 2026-09-20: "Төлбөрийн хоцрогдол"-ийн Хугацаа хэтэрсэн/Эрсдэлтэй
-// өнгийг сонгоход ашиглана. tailwind.config.js-ийн customYellow/
-// customGreen/customBlue/customRed-тэй ЯГ ИЖИЛ hex код (динамик
-// Tailwind класс үүсгэхгүй, зөвхөн inline style ашиглана).
+// 2026-09-20: "Төлбөрийн хоцрогдол"-ийн Хугацаа хэтэрсэн/Эрсдэлтэй/
+// Хүлээгдэж буй өнгийг сонгоход ашиглана. tailwind.config.js-ийн
+// customYellow/customGreen/customBlue/customRed-тэй ЯГ ИЖИЛ hex код
+// (динамик Tailwind класс үүсгэхгүй, зөвхөн inline style ашиглана).
 const SWATCH_OPTIONS = [
   { key: 'customYellow', hex: '#f8f23d' },
   { key: 'customRed', hex: '#ef5555' },
   { key: 'customGreen', hex: '#10b981' },
   { key: 'customBlue', hex: '#3b82f6' },
 ];
-function ColorSwatchPicker({ value, onChange }) {
+function ColorSwatchPicker({ value, onChange, allowDefault }) {
   return (
     <div className="flex items-center gap-1.5">
+      {allowDefault && (
+        <button
+          type="button"
+          onClick={() => onChange('default')}
+          title="Анхдагч (тодруулгагүй)"
+          className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] text-slate-500 dark:text-mutedtext"
+          style={{ background: 'transparent', borderColor: value === 'default' ? '#94a3b8' : '#94a3b850' }}
+        >×</button>
+      )}
       {SWATCH_OPTIONS.map((c) => (
         <button
           key={c.key}

@@ -8,7 +8,7 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // эдгээр өмчлөгч сууцгүй). Төлбөрийн индикатор (PaymentBadges) энд
 // grid_parkings/grid_storages-ийн 1-р задалсан UUID-г тогтвортой
 // нэгж болгож ашиглана (Invoice.jsx-тэй ижил зарчим).
-export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId, year, getYearSummary, overdueColor, atRiskColor }) {
+export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId, year, getYearSummary, overdueColor, atRiskColor, pendingColor }) {
   const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
 
   const sortedRows = [...rows].sort((a, b) => `${a.lastname || ''}${a.firstname || ''}`.localeCompare(`${b.lastname || ''}${b.firstname || ''}`, undefined, { numeric: true, sensitivity: 'base' }));
@@ -63,7 +63,7 @@ export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowCli
                 <td className="py-2.5 px-3">{summarizeGridSpots(r.grid_storages, gridStorageSpots)}</td>
                 <td className="py-2.5 px-3">{summarizePropertyNos(r.grid_storages)}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>
-                <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(stableTargetId(r), year)} overdueColor={overdueColor} atRiskColor={atRiskColor} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
+                <td className="py-2.5 px-3"><PaymentBadges {...getYearSummary(stableTargetId(r), year)} overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} currentMonth={year < new Date().getFullYear() ? 12 : year > new Date().getFullYear() ? 0 : new Date().getMonth() + 1} /></td>
                 <td className="py-2.5 px-3 max-w-[180px] truncate" title={r.note}>{r.note || '—'}</td>
                 <td className="py-2.5 px-3 text-right whitespace-nowrap">
                   {canEdit && <button className="ds-icon-btn" onClick={(ev) => { ev.stopPropagation(); onEdit(r); }}><EditIcon /></button>}

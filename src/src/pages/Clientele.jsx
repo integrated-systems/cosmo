@@ -27,7 +27,7 @@ export default function Clientele() {
   const [adding, setAdding] = useState(false);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const { getYearSummary, earliestYear, overdueColor, atRiskColor } = useInvoicePayments(hoaId, 'client');
+  const { getYearSummary, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'client');
   // 2026-09-13: Хэрэглэгчийн хүсэлтээр — dropdown нь хатуу кодолсон
   // (data-тай холбоогүй) 2022-2027 хүрээ биш, эхний нэхэмжлэх үүссэн
   // жилээс эхлэн одоогийн он хүртэл л үзүүлдэг болов.
@@ -124,6 +124,7 @@ export default function Clientele() {
         getYearSummary={getYearSummary}
         overdueColor={overdueColor}
         atRiskColor={atRiskColor}
+        pendingColor={pendingColor}
       />
 
       <ClientInfoModal

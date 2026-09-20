@@ -26,15 +26,15 @@ export const EXAMPLE_PAYMENT_ROWS = [
   { monthStatuses: Array.from({ length: 12 }, () => 'none') },
 ];
 
-export default function PaymentBadges({ monthStatuses, currentMonth, overdueColor = 'customYellow', atRiskColor = 'customRed' }) {
+export default function PaymentBadges({ monthStatuses, currentMonth, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default' }) {
   const cm = currentMonth ?? (new Date().getMonth() + 1);
   const statuses = monthStatuses || EXAMPLE_PAYMENT_ROWS[0].monthStatuses;
   return (
     <div className="flex gap-[2px]">
       {MONTHS_SHORT.map((m) => {
         const status = m <= cm ? statuses[m - 1] : 'none';
-        const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : null;
-        const cls = colorKey && COLOR_CLASSES[colorKey] ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].border}` : DEFAULT_CLASS;
+        const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : null;
+        const cls = colorKey && colorKey !== 'default' && COLOR_CLASSES[colorKey] ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].border}` : DEFAULT_CLASS;
         return (
           <span
             key={m}
