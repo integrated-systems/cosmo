@@ -171,7 +171,7 @@ async function generateInvoiceContent(hoaId, group, recipientId) {
 
   const lines = [];
   if (currentInvoice) {
-    lines.push(`${curYear} оны ${curMonth}-р сарын СөХ-ийн төлбөр нэхэмжлэгдлээ:`);
+    lines.push(`${curYear} оны ${curMonth}-р сарын нэхэмжлэх:`);
     (currentInvoice.invoice_items || []).forEach((li) => lines.push(`- ${li.description}: ${fmtMoney(li.amount)}`));
   }
   if (previousUnpaid.length > 0) {
