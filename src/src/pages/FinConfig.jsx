@@ -408,45 +408,70 @@ function OverdueCard({ hoaId }) {
     });
   }, [settings]);
   if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+
+  // 2026-09-20 (3-р нэмэлт) БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон
+  // цоорхой: хуучин загвар өнгөний сонголтыг хугацааны талбаруудын
+  // ДУНД цоо задгай, ямар ч дараалалгүй байрлуулж, ойлгоход
+  // будилуулах магадлалтай (системчлэл муутай) байв. Хэрэглэгчийн
+  // өгсөн шинэ загварын дагуу БҮРЭН дахин зохион байгуулав:
+  // 1) Ерөнхий тайлбар, 2) торгуулийн хувь, 3) "Хүлээлттэй"-ийн хоног
+  // + тайлбар, 4) "Эрсдэлтэй"-ийн хязгаар + тайлбар, 5) индикатор/
+  // слот-той холбоотой тайлбар, 6) 4 өнгөний сонголтын мөр (Хугацаандаа/
+  // Хүлээлттэй/Хугацаа хэтэрсэн/Эрсдэлтэй) — ЯГ ЭНЭ дарааллаар, доод
+  // хэсэгт НЭГ дор бүлэглэв. Мөн 4 мөрийн тайлбарт орсон "30"/"180"
+  // хоногийн тоо нь ДЭЭРХ хоног талбаруудын бодит утгатай ДИНАМИКААР
+  // уялдана (form.overdue_days/form.at_risk_days-аас шууд уншина).
+  const overdueDaysNum = form.overdue_days === '' ? 0 : +form.overdue_days || 0;
+  const atRiskDaysNum = form.at_risk_days === '' ? 0 : +form.at_risk_days || 0;
+
   return (
-    <div className="ds-card p-4" style={{ maxWidth: 480 }}>
+    <div className="ds-card p-4" style={{ maxWidth: 560 }}>
       <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">Төлбөрийн хоцрогдол</div>
-      <div className="text-[10.5px] text-mutedtext mb-3">Сууц өмчлөгч БОЛОН Талбай өмчлөгч хоёуланд адилхан үйлчлэх ерөнхий нэг тохиргоо</div>
-      {/* 2026-09-20 (2-р нэмэлт) — хэрэглэгчийн хүсэлтээр: "pending"
-          (нэхэмжлэх үүсгэж илгээсэн боловч хугацаа хэтрээгүй) төлөвийн
-          өнгийг ч мөн адил ЭНД тохируулдаг болгов. */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Хүлээгдэж буй (илгээгдсэн, хараахан хугацаа хэтрээгүй) өнгө:</span>
-        <ColorSwatchPicker value={form.pending_color} onChange={(c) => setForm((f) => ({ ...f, pending_color: c }))} allowDefault />
-      </div>
+      <div className="text-[11px] text-mutedtext mb-4">Доорх тохиргоо сууц өмчлөгч, талбай өмчлөгч, зогсоол, агуулах өмчлөгч нарт адил үйлчлэнэ.</div>
+
       <SettingsField label="Хугацаа хэтэрсэн торгуулийн хувь (%/сар)" value={form.overdue_penalty_pct} onChange={(v) => setForm((f) => ({ ...f, overdue_penalty_pct: v }))} />
+
       <SettingsField
-        label="Төлбөр төлөлтийг хугацаа хэтэрсэнд тооцох хугацаа"
-        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос дотогш байгаа бол Хүлээлттэйд тооцогдох ба дээрх хоногоос илүү гарвал автоматаар Хугацаа хэтэрсэнд тооцогдоно."
+        label={'Төлбөр төлөлтийг "Хүлээлттэй"-д тооцох хоног'}
         value={form.overdue_days} onChange={(v) => setForm((f) => ({ ...f, overdue_days: v }))}
       />
-      {/* 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
-          overdue_days/at_risk_days ЯМАР Ч файлд уншигддаггүй байсныг
-          олж, PaymentBadges.jsx/UnitGridCard.jsx-тэй холбов. Хэрэглэгчийн
-          заасны дагуу, өнгөний сонголтыг ч ЭНД, хугацааны талбар бүртэй
-          хамт тохируулдаг болгов. */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Хугацаа хэтэрсэн өнгө:</span>
-        <ColorSwatchPicker value={form.overdue_color} onChange={(c) => setForm((f) => ({ ...f, overdue_color: c }))} />
+      <div className="text-[11px] text-mutedtext mb-4">
+        Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоног дотор байгаа бол СӨХ-ны төлбөр төлөлтийг "Хүлээлттэй"-д тооцох ба хэтэрсэн хоногоос эхлэн "Хугацаа хэтэрсэн"-д тооцно.
       </div>
+
       <SettingsField
-        label="Төлбөр төлөлтийг эрсдэлтэйд тооцох хугацаа"
-        hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос илүү гарвал автоматаар Эрсдэлтэйд тооцогдоно."
+        label={'Төлбөр төлөлтийг "Эрсдэлтэй"-д тооцож эхлэх хязгаар'}
         value={form.at_risk_days} onChange={(v) => setForm((f) => ({ ...f, at_risk_days: v }))}
       />
+      <div className="text-[11px] text-mutedtext mb-4">
+        Нэхэмжлэх илгээсэн өдрөөс хойш төлбөр төлөлт огт хийгдэлгүй дээрх хоногийн хязгаарт хүрсэн буюу дээрх хоногоос хэтэрсэн бол тухайн өмчлөгчийг "Эрсдэлтэй"-д тооцно.
+      </div>
+
+      <div className="text-[11px] text-mutedtext mb-4">
+        Сууц өмчлөгч, Талбай өмчлөгч, Зогсоол, агуулах дангаар өмчлөгч жагсаалтуудын "Төлбөр (сараар)" баганын индикаторууд болон "Тоот"-ын слотуудын өнгийг төлбөр төлөлттэй уялдуулж тохируулах
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">Хугацаандаа буюу {overdueDaysNum} хоног дотор төлбөрөө төлсөн:</span>
+        <ColorSwatchPicker value={null} onChange={() => {}} disabled />
+      </div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">"Хүлээлттэй" буюу {overdueDaysNum} хоногоос хэтрээгүй байгаа:</span>
+        <ColorSwatchPicker value={form.pending_color} onChange={(c) => setForm((f) => ({ ...f, pending_color: c }))} />
+      </div>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">"Хугацаа хэтэрсэн" буюу {overdueDaysNum} хоногоос хэтэрсэн:</span>
+        <ColorSwatchPicker value={form.overdue_color} onChange={(c) => setForm((f) => ({ ...f, overdue_color: c }))} />
+      </div>
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Эрсдэлтэй өнгө:</span>
+        <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">"Эрсдэлтэй" буюу {atRiskDaysNum} хоногоос хэтэрсэн:</span>
         <ColorSwatchPicker value={form.at_risk_color} onChange={(c) => setForm((f) => ({ ...f, at_risk_color: c }))} />
       </div>
+
       <button className="ds-btn-primary" onClick={() => save({
         overdue_penalty_pct: +form.overdue_penalty_pct || 0,
-        overdue_days: +form.overdue_days || 0,
-        at_risk_days: +form.at_risk_days || 0,
+        overdue_days: overdueDaysNum,
+        at_risk_days: atRiskDaysNum,
         overdue_color: form.overdue_color,
         at_risk_color: form.at_risk_color,
         pending_color: form.pending_color,
@@ -455,36 +480,31 @@ function OverdueCard({ hoaId }) {
   );
 }
 
-// 2026-09-20: "Төлбөрийн хоцрогдол"-ийн Хугацаа хэтэрсэн/Эрсдэлтэй/
-// Хүлээгдэж буй өнгийг сонгоход ашиглана. tailwind.config.js-ийн
-// customYellow/customGreen/customBlue/customRed-тэй ЯГ ИЖИЛ hex код
-// (динамик Tailwind класс үүсгэхгүй, зөвхөн inline style ашиглана).
+// 2026-09-20: "Төлбөрийн хоцрогдол"-ийн 4 мөрийн (Хугацаандаа/
+// Хүлээлттэй/Хугацаа хэтэрсэн/Эрсдэлтэй) өнгийг сонгоход ашиглана.
+// tailwind.config.js-ийн customYellow/customGreen/customBlue/
+// customRed-тэй ЯГ ИЖИЛ hex код (динамик Tailwind класс үүсгэхгүй,
+// зөвхөн inline style ашиглана). "Хугацаандаа" (paid) мөр ЗАСВАРЛАХ
+// БОЛОМЖГүй (disabled) — учир нь энэ төлөв үргэлж анхдагч текст
+// өнгөтэй байх ёстой, сонголт байхгүй.
 const SWATCH_OPTIONS = [
   { key: 'customYellow', hex: '#f8f23d' },
   { key: 'customRed', hex: '#ef5555' },
   { key: 'customGreen', hex: '#10b981' },
   { key: 'customBlue', hex: '#3b82f6' },
 ];
-function ColorSwatchPicker({ value, onChange, allowDefault }) {
+function ColorSwatchPicker({ value, onChange, disabled }) {
   return (
     <div className="flex items-center gap-1.5">
-      {allowDefault && (
-        <button
-          type="button"
-          onClick={() => onChange('default')}
-          title="Анхдагч (тодруулгагүй)"
-          className="w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] text-slate-500 dark:text-mutedtext"
-          style={{ background: 'transparent', borderColor: value === 'default' ? '#94a3b8' : '#94a3b850' }}
-        >×</button>
-      )}
       {SWATCH_OPTIONS.map((c) => (
         <button
           key={c.key}
           type="button"
-          onClick={() => onChange(c.key)}
+          disabled={disabled}
+          onClick={() => !disabled && onChange(c.key)}
           title={c.key}
-          className="w-5 h-5 rounded-full border-2"
-          style={{ background: c.hex, borderColor: value === c.key ? '#fff' : 'transparent', boxShadow: value === c.key ? `0 0 0 1.5px ${c.hex}` : 'none' }}
+          className={`w-5 h-5 rounded-full border-2${disabled ? ' opacity-40 cursor-default' : ''}`}
+          style={{ background: c.hex, borderColor: !disabled && value === c.key ? '#fff' : 'transparent', boxShadow: !disabled && value === c.key ? `0 0 0 1.5px ${c.hex}` : 'none' }}
         />
       ))}
     </div>
