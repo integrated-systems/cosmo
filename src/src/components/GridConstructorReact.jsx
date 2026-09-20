@@ -1081,7 +1081,7 @@ export default function GridConstructorReact({ hoaId }) {
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Одоогийн эргэлт: {editingSlot.labelRotation || 0}°</label>
             <div className="flex gap-2 mb-4">
-              <button className="ds-btn-secondary flex-1" onClick={() => updateSlot(editingSlot.id, { labelRotation: ((editingSlot.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүү н)</button>
+              <button className="ds-btn-secondary flex-1" onClick={() => updateSlot(editingSlot.id, { labelRotation: ((editingSlot.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүүн)</button>
               <button className="ds-btn-secondary flex-1" onClick={() => updateSlot(editingSlot.id, { labelRotation: ((editingSlot.labelRotation || 0) + 90) % 360 })}>↻ 90° (баруун)</button>
             </div>
 
@@ -1142,7 +1142,7 @@ export default function GridConstructorReact({ hoaId }) {
 
             <label className="block text-[10.5px] text-mutedtext mb-1">Одоогийн эргэлт: {editingPolygon.labelRotation || 0}°</label>
             <div className="flex gap-2 mb-4">
-              <button className="ds-btn-secondary flex-1" onClick={() => updatePolygon(editingPolygon.id, { labelRotation: ((editingPolygon.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүү н)</button>
+              <button className="ds-btn-secondary flex-1" onClick={() => updatePolygon(editingPolygon.id, { labelRotation: ((editingPolygon.labelRotation || 0) - 90 + 360) % 360 })}>↺ 90° (зүүн)</button>
               <button className="ds-btn-secondary flex-1" onClick={() => updatePolygon(editingPolygon.id, { labelRotation: ((editingPolygon.labelRotation || 0) + 90) % 360 })}>↻ 90° (баруун)</button>
             </div>
 
