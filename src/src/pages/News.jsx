@@ -33,7 +33,7 @@ function toCardProps(row) {
   if (row.featured) badges.push('онцлох');
   if (row.urgent) badges.push('шуурхай');
   // 2026-08-31 ОЛСОН БОДИТ АЛДАА — "Сэрэмжлүүлэг"/"Ноцтой" ангилалтай
-  // мэдээ (warning/critical багана) хүснэгэлд зввв хадгалагдсан ч,
+  // мэдээ (warning/critical багана) хүснэгэлд зөв хадгалагдсан ч,
   // энд badges массивт хэзээ ч нэмэгддэггүй байсан тул жагсаалтад
   // энгийн мэдээнээс визуаль ялгаагүй харагддаг байв.
   if (row.warning) badges.push('сэрэмжлүүлэг');
@@ -141,10 +141,29 @@ export default function NewsPage() {
   // хайлт/legacy зорилгоор HTML-ээс ТЕГШ үсэг рүү хувиргаж дахин тооцоолно
   // (2026-08-19: markdown raw тэмдэглэгээний оронд жинхэнэ WYSIWYG руу
   // шилжсэн — дэлгэрэнгүй: NewsFormModal.jsx-ийн толгой коммент).
+  // 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: анхны
+  // энгийн ".textContent" хүснэгэн (table/tr/td) бүтцэд ЯМАР Ч зай,
+  // мвр шинэчлэл нэмдэггүй тул, "Нэхэмжилсэн дүнНийт нэхэмжилсэн
+  // дүн0₮" мэтээр үгс хүртэл залгаж холилддог байв (хураангуй
+  // харагдацад ашиглагддаг body_text үүнээс үүсдэг). Одоо DOM-ыг
+  // явж, block элемент (p/div/tr/table)-ийн дараа мвр шинэчлэл,
+  // td/th-ийн хооронд зай нэмдэг болов.
   function htmlToPlainText(html) {
     const el = document.createElement('div');
     el.innerHTML = html || '';
-    return el.textContent || '';
+    const BLOCK_TAGS = new Set(['P', 'DIV', 'TR', 'TABLE', 'THEAD', 'TBODY']);
+    let text = '';
+    function walk(node) {
+      if (node.nodeType === Node.TEXT_NODE) { text += node.textContent; return; }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      const tag = node.tagName;
+      if (tag === 'BR') { text += '\n'; return; }
+      node.childNodes.forEach(walk);
+      if (tag === 'TD' || tag === 'TH') text += '  ';
+      else if (BLOCK_TAGS.has(tag)) text += '\n';
+    }
+    walk(el);
+    return text.replace(/\n{3,}/g, '\n\n').trim();
   }
 
   async function upsertRow(form, status) {

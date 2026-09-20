@@ -9,7 +9,7 @@ import Lightbox from './Lightbox';
 // доторхи жижиг элементүүд (badge/зураг) radius 4px (rounded).
 //
 // Props:
-// - badges: ['онцлох' | 'шуурхай', ...] — динамик мврний ДЭЭД талд
+// - badges: ['онцлох' | 'шуурхай', ...] — динамик мөрний ДЭЭД талд
 // - datetime: ISO string/Date, category: string, viewCount: number
 // - title: string, bodyText: string (сонголттой)
 // - videoId: string | null — YouTube (сонголттой)
@@ -136,7 +136,7 @@ function parseNewsBody(text) {
 // байгаагүй байсан тул, DOMPurify тэдгээрийг БүРЭН УСТГАЖ, зөвхөн
 // доторх текстийг л үлдээдэг байв (жиш "Сарын орлого, зарлагын
 // тайлан" автомат үүсгэсэн хүснэгэт тайлан НИЙТЛЭГДЭХ үед бүтэн
-// формат алдагдаж, бүх текст холилдож нэг мвр болж харагддаг байсан
+// формат алдагдаж, бүх текст холилдож нэг мөр болж харагддаг байсан
 // — Программд ч, UserApp-д ч ЯГ АДИЛ, учир нь хоёул ЯГ ЭНЭ НЭГ
 // компонентыг ашигладаг). Одоо хүснэгэний тэгсүүдийг зөвшөөрөв.
 const SANITIZE_OPTS = {
@@ -152,7 +152,7 @@ export default function News({ id, badges, datetime, category, viewCount, title,
   const [expanded, setExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   // Дэлгэцэн дээр бодитоор 4 мөрөөс хэтэрсэн эсэхийг хэмждэг (тэмдэгтийн
-  // тоогоор тааварлахгүй) — screen/container өргөнөөс хамааран мврийн
+  // тоогоор тааварлахгүй) — screen/container өргөнөөс хамааран мөрийн
   // тоо өөрчлөгддөг тул scrollHeight vs clientHeight-ийг харьцуулна.
   // Зүвхүн collapsed (line-clamp-4) үед хэмжинэ, expanded үед clientHeight
   // өөрөө өсдөг тул хуучин үр дүнгээ хадгална.
@@ -215,8 +215,17 @@ export default function News({ id, badges, datetime, category, viewCount, title,
               </div>
             )
           ) : (
-            <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] line-clamp-4">
-              {parseNewsBody(stripInvisible((bodyText || '').replace(/\n+/g, ' ')))}
+            <p ref={textRef} className="text-xs text-mutedtext text-justify indent-0 [text-justify:inter-word] line-clamp-4 whitespace-pre-line">
+              {/* 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+                  ".replace(/\n+/g, ' ')" БүХ мөр шинэчлэлийг (paragraph
+                  break) ЗААВАЛ ганц зайгаар сольж, хураангуй үзүүлэлт
+                  дэх бүх текстийг НЭГ УРТ БLOB болгож холилдуулж байв.
+                  Одоо зөвхөн 3+ дараалсан мөр шинэчлэлийг (хэт олон
+                  хоосон мөр) 2 мөрөөр хязгаарлаж, бодит догол мөрүүдийг
+                  хадгална — "whitespace-pre-line" class нь эдгээрийг
+                  бодит визуал мөр шинэчлэл болгож үзүүлж, line-clamp-4
+                  эхний 4 бодит мөрийг л таслана. */}
+              {parseNewsBody(stripInvisible((bodyText || '').replace(/\n{3,}/g, '\n\n')))}
             </p>
           )}
           {isTruncated && (
