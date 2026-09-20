@@ -396,12 +396,14 @@ function ReserveFundCard({ hoaId }) {
 
 function OverdueCard({ hoaId }) {
   const { settings, loading, save } = useFinSettings(hoaId);
-  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '' });
+  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '', overdue_color: 'customYellow', at_risk_color: 'customRed' });
   useEffect(() => {
     if (settings) setForm({
       overdue_penalty_pct: settings.overdue_penalty_pct ?? 0,
       overdue_days: settings.overdue_days ?? 30,
       at_risk_days: settings.at_risk_days ?? 180,
+      overdue_color: settings.overdue_color || 'customYellow',
+      at_risk_color: settings.at_risk_color || 'customRed',
     });
   }, [settings]);
   if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
@@ -415,16 +417,58 @@ function OverdueCard({ hoaId }) {
         hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос дотогш байгаа бол Хүлээлттэйд тооцогдох ба дээрх хоногоос илүү гарвал автоматаар Хугацаа хэтэрсэнд тооцогдоно."
         value={form.overdue_days} onChange={(v) => setForm((f) => ({ ...f, overdue_days: v }))}
       />
+      {/* 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+          overdue_days/at_risk_days ЯМАР Ч файлд уншигддаггүй байсныг
+          олж, PaymentBadges.jsx/UnitGridCard.jsx-тэй холбов. Хэрэглэгчийн
+          заасны дагуу, өнгөний сонголтыг ч ЭНД, хугацааны талбар бүртэй
+          хамт тохируулдаг болгов. */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Хугацаа хэтэрсэн өнгө:</span>
+        <ColorSwatchPicker value={form.overdue_color} onChange={(c) => setForm((f) => ({ ...f, overdue_color: c }))} />
+      </div>
       <SettingsField
         label="Төлбөр төлөлтийг эрсдэлтэйд тооцох хугацаа"
         hint="Нэхэмжлэх илгээсэн өдрөөс хойш дээрх хоногоос илүү гарвал автоматаар Эрсдэлтэйд тооцогдоно."
         value={form.at_risk_days} onChange={(v) => setForm((f) => ({ ...f, at_risk_days: v }))}
       />
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[11px] text-slate-500 dark:text-mutedtext">Эрсдэлтэй өнгө:</span>
+        <ColorSwatchPicker value={form.at_risk_color} onChange={(c) => setForm((f) => ({ ...f, at_risk_color: c }))} />
+      </div>
       <button className="ds-btn-primary" onClick={() => save({
         overdue_penalty_pct: +form.overdue_penalty_pct || 0,
         overdue_days: +form.overdue_days || 0,
         at_risk_days: +form.at_risk_days || 0,
+        overdue_color: form.overdue_color,
+        at_risk_color: form.at_risk_color,
       })}>Хадгалах</button>
+    </div>
+  );
+}
+
+// 2026-09-20: "Төлбөрийн хоцрогдол"-ийн Хугацаа хэтэрсэн/Эрсдэлтэй
+// өнгийг сонгоход ашиглана. tailwind.config.js-ийн customYellow/
+// customGreen/customBlue/customRed-тэй ЯГ ИЖИЛ hex код (динамик
+// Tailwind класс үүсгэхгүй, зөвхөн inline style ашиглана).
+const SWATCH_OPTIONS = [
+  { key: 'customYellow', hex: '#f8f23d' },
+  { key: 'customRed', hex: '#ef5555' },
+  { key: 'customGreen', hex: '#10b981' },
+  { key: 'customBlue', hex: '#3b82f6' },
+];
+function ColorSwatchPicker({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {SWATCH_OPTIONS.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={() => onChange(c.key)}
+          title={c.key}
+          className="w-5 h-5 rounded-full border-2"
+          style={{ background: c.hex, borderColor: value === c.key ? '#fff' : 'transparent', boxShadow: value === c.key ? `0 0 0 1.5px ${c.hex}` : 'none' }}
+        />
+      ))}
     </div>
   );
 }

@@ -1,22 +1,28 @@
 // "Тоот, Зогсоол, Агуулах" (/property) хуудасны Тоот таб-ийн визуал grid
 // карт — 2026-08-17 (5-р засвар) хэрэглэгчийн заасны дагуу бүрэн дахин
 // зохион байгуулав:
-// - Байр сонгогч (tab) БҮРМӨСӨН арилав — БҮХ байрын grid-ийг НЭГ дэлгэцэнд
-//   зэрэгцүүлэн (баруун тийш цувуулж, дэлгэцний өргөнөөс хэтэрвэл шинэ
+// - Байр сонгогч (tab) БүРМӨСөН арилав — БүХ байрын grid-ийг НЭГ дэлгэцэнд
+//   зэрэгцүүлэн (баруун тийш цувуулж, дэлгэцний eргөнeeс хэтэрвэл шинэ
 //   мөр эхэлдэг flex-wrap) харуулна. Байрууд 1-р давхараараа (доод
 //   талаараа) НЭГ шугаманд байрлана (`items-end`).
-// 2026-09-13 хэрэглэгчийн заасны дагуу 3 төлөвт болгов: ТӨЛСӨН (цэнхэр,
-// хугацаандаа бүрэн төлсөн), ТӨЛӨӨГҮЙ/хугацаа хэтэрсэн (улаан), АНХДАГЧ
-// (эзэнгүй эсвэл эхний нэхэмжлэх хараахан илгээгдээгүй үе — САААРАЛ,
-// тодруулгагүй). Өнгөний динамик өөрчлөлт "эхний төлбөр төлснөөр" биш,
-// "эхний НЭХЭМЖЛЭХ илгээгдснээр" эхэлдэг (PaymentBadges.jsx-той ижил
+// 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн заасны дагуу 4 төлөвт
+// (paid/pending/overdue/at_risk) болгов, eнгийг Санхүү тохиргооноос
+// (overdueColor/atRiskColor) уншина (PaymentBadges.jsx-тэй ЯГ ИЖИЛ
 // зарчим).
 // 2026-09-13 (2-р шинэчлэл): Property.jsx бодит invoices хүснэгэлээс
 // (useInvoicePayments hook) төлөвийг тооцоолж, `cells`-ийн `paymentStatus`
-// талбараар шууд дамжуулдаг болов — энэ компонент өөрөө backend/schema-г
-// мэдэхгүй, зөвхөн ирсэн 'paid'|'overdue'|'none' үнэ цэнийг л зурна.
+// талбараар шууд дамжуулдаг болов — энэ компонент eeрee backend/schema-г
+// мэдэхгүй, зөвхөн ирсэн 'paid'|'pending'|'overdue'|'at_risk'|'none'
+// үнэ цэнийг л зурна.
 
-export default function UnitGridCard({ cells, hint }) {
+const COLOR_CLASSES = {
+  customYellow: { bg: 'bg-[#f8f23d1a]', border: 'border-[#f8f23d66]', text: 'text-customYellow', hoverBorder: 'hover:border-customYellow' },
+  customRed: { bg: 'bg-red-500/[0.12]', border: 'border-red-500/40', text: 'text-customRed', hoverBorder: 'hover:border-customRed' },
+  customBlue: { bg: 'bg-blue-500/[0.12]', border: 'border-blue-500/40', text: 'text-customBlue', hoverBorder: 'hover:border-customBlue' },
+  customGreen: { bg: 'bg-emerald-500/[0.12]', border: 'border-emerald-500/40', text: 'text-customGreen', hoverBorder: 'hover:border-customGreen' },
+};
+
+export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow', atRiskColor = 'customRed' }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
 
   if (buildings.length === 0) {
@@ -45,10 +51,9 @@ export default function UnitGridCard({ cells, hint }) {
                       <div className="flex flex-wrap gap-1">
                         {items.map((it, idx) => {
                           const status = it.vacant ? 'none' : (it.paymentStatus || 'none');
-                          const colorClass = status === 'paid'
-                            ? 'bg-blue-500/[0.12] border-blue-500/40 text-customBlue hover:border-customBlue'
-                            : status === 'overdue'
-                            ? 'bg-red-500/[0.12] border-red-500/40 text-customRed hover:border-customRed'
+                          const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : null;
+                          const colorClass = colorKey && COLOR_CLASSES[colorKey]
+                            ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].border} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].hoverBorder}`
                             : 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400';
                           return (
                             <button

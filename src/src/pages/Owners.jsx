@@ -27,7 +27,7 @@ import { useInvoicePayments } from '../hooks/useInvoicePayments';
 // өмчлөгч" (тоот, давхар, байртай холбогдсон) БОЛОН "Дан зогсоол,
 // агуулах өмчлөгч" (сууцгүй, зөвхөн зогсоол/агуулах эзэмшдэг хүн/
 // ААН). owners хүснэгэл ЯГ АДИЛХАН хэвээр үлдэнэ — зөвхөн 2 дахь
-// табны мврүүдэд building_no/floor/door_no/sqm/property_no/
+// табны мөрүүдэд building_no/floor/door_no/sqm/property_no/
 // own_date/people_count/child_0_5/child_6_18 NULL байдлаар
 // хадгалагдана. Төлбөрийн (invoices) холболтод ч ижил зарчим:
 // сууцтай бол unit_layouts.id, сууцгүй бол grid_parkings/
@@ -45,7 +45,7 @@ export default function Owners() {
   const [buildingFilter, setBuildingFilter] = useState('');
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const { getYearSummary, earliestYear } = useInvoicePayments(hoaId, 'owner');
+  const { getYearSummary, earliestYear, overdueColor, atRiskColor } = useInvoicePayments(hoaId, 'owner');
   const yearOptions = Array.from({ length: Math.max(1, now.getFullYear() - earliestYear + 1) }, (_, i) => earliestYear + i);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -79,8 +79,8 @@ export default function Owners() {
   const buildingOptions = [...new Set(unitLayouts.map((u) => u.building_no?.trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-  // 2026-09-13: Тоотод холбогдсон (building_no бий) мвр "Сууц
-  // өмчлөгч" табд, холбогдоогүй (building_no хоосон) мвр "Дан
+  // 2026-09-13: Тоотод холбогдсон (building_no бий) мөр "Сууц
+  // өмчлөгч" табд, холбогдоогүй (building_no хоосон) мөр "Дан
   // зогсоол, агуулах өмчлөгч" табд орно.
   const unitOwnerRows = rows.filter((r) => !!r.building_no);
   const spotOnlyOwnerRows = rows.filter((r) => !r.building_no);
@@ -230,6 +230,8 @@ export default function Owners() {
           hoaId={hoaId}
           year={year}
           getYearSummary={getYearSummary}
+          overdueColor={overdueColor}
+          atRiskColor={atRiskColor}
         />
       ) : (
         <OwnersSpotOnlyTable
@@ -244,6 +246,8 @@ export default function Owners() {
           hoaId={hoaId}
           year={year}
           getYearSummary={getYearSummary}
+          overdueColor={overdueColor}
+          atRiskColor={atRiskColor}
         />
       )}
 
@@ -269,7 +273,7 @@ export default function Owners() {
           НЭЭГДЭХ БүРТ дахин mount хийгддэггүй тул, дотоод (typed, гэхдээ
           хадгалаагүй) form state нь дараагийн НЭЭЛТ хүртэл үлдэж, шинэ
           DB dataгаар шинэчлэгддэггүй байв. Одоо "нээгдэх бүрт eeр key"
-          болгож, ЯГ ТЭР ГАНЦ eмчлэгчийг дахин нээсэн ч (жиш хадгалаагүй
+          болгож, ЯГ ТЭР ГАНЦ өмчлөгчийг дахин нээсэн ч (жиш хадгалаагүй
           өөрчлөлтийг хүчингүй болгож дахин нээх үед) шинэ mount үүсгэж,
           form-ыг ЯГ ОДООГИЙН (DB дэх бодит) утгаар дахин эхлүүлдэг болов. */}
       <EditOwnerModal
