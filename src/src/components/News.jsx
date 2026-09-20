@@ -131,9 +131,17 @@ function parseNewsBody(text) {
 // 2026-08-19 (3-р засвар): Агуулгын засварлагч markdown raw тэмдэглэгээнээс
 // ЖИНХЭНЭ WYSIWYG (contentEditable, NewsFormModal.jsx) рүү шилжсэн
 // тул одоо bodyHtml (санитайз хийсэн HTML) шууд харуулна.
+// 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
+// ALLOWED_TAGS-д table/tr/td/th зэрэг хүснэгэний тэгсүүд огт
+// байгаагүй байсан тул, DOMPurify тэдгээрийг БүРЭН УСТГАЖ, зөвхөн
+// доторх текстийг л үлдээдэг байв (жиш "Сарын орлого, зарлагын
+// тайлан" автомат үүсгэсэн хүснэгэт тайлан НИЙТЛЭГДЭХ үед бүтэн
+// формат алдагдаж, бүх текст холилдож нэг мвр болж харагддаг байсан
+// — Программд ч, UserApp-д ч ЯГ АДИЛ, учир нь хоёул ЯГ ЭНЭ НЭГ
+// компонентыг ашигладаг). Одоо хүснэгэний тэгсүүдийг зөвшөөрөв.
 const SANITIZE_OPTS = {
-  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'a', 'span', 'div'],
-  ALLOWED_ATTR: ['href', 'target', 'rel', 'style'],
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'a', 'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th'],
+  ALLOWED_ATTR: ['href', 'target', 'rel', 'style', 'colspan', 'rowspan'],
   ALLOWED_URI_REGEXP: /^(?:https?:)/i,
 };
 function sanitizeNewsHtml(html) {
