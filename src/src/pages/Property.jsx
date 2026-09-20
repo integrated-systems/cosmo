@@ -7,6 +7,7 @@ import TabButton from '../components/TabButton';
 import UnitGridCard from '../components/UnitGridCard';
 import OwnerInfoModal from '../components/OwnerInfoModal';
 import EditOwnerModal from '../components/EditOwnerModal';
+import EditOwnerSpotOnlyModal from '../components/EditOwnerSpotOnlyModal';
 import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import GridSpotsViewer from '../components/GridSpotsViewer';
@@ -156,6 +157,40 @@ export default function Property() {
       setAddingGridSpot(null);
     }
     setSelectedOwner(null);
+    await loadAll();
+  }
+
+  // 2026-09-20: "Тоот, Зогсоол, Агуулах" хуудасны сул слот дээр дарж
+  // "Дан өмчлөгч нэмэх" сонгоход дуудагдана — Owners.jsx-ийн
+  // handleSaveSpotOnly()-той ЯГ ИЖИЛ (building_no/floor/door_no үүрд
+  // NULL) payload ашиглана.
+  async function handleSaveOwnerSpotOnly(form) {
+    const payload = {
+      tenant_id: hoaId,
+      building_no: null,
+      floor: null,
+      door_no: null,
+      sqm: null,
+      firstname: form.firstname || null,
+      lastname: form.lastname || null,
+      regno: form.regno || null,
+      own_date: null,
+      property_no: null,
+      phones: (form.phones || []).filter(Boolean),
+      emails: (form.emails || []).filter(Boolean),
+      child_0_5: 0,
+      child_6_18: 0,
+      has_grid_parking: form.hasGridParking,
+      grid_parkings: form.gridParkings,
+      has_grid_storage: form.hasGridStorage,
+      grid_storages: form.gridStorages,
+      has_vehicle: form.hasVehicle,
+      vehicles: form.vehicles,
+      note: form.note || null,
+    };
+    const { error } = await supabase.from('owners').insert(payload);
+    if (error) { alert(error.message); return; }
+    setAddingGridSpot(null);
     await loadAll();
   }
 
@@ -316,17 +351,30 @@ export default function Property() {
             <div className="flex flex-col gap-2">
               <button className="ds-btn-primary" onClick={() => { setAddingGridSpot({ ...gridSpotChoice, target: 'owner' }); setGridSpotChoice(null); }}>Сууц өмчлөгч нэмэх</button>
               <button className="ds-btn-secondary" onClick={() => { setAddingGridSpot({ ...gridSpotChoice, target: 'client' }); setGridSpotChoice(null); }}>Талбай өмчлөгч нэмэх</button>
+              <button className="ds-btn-secondary" onClick={() => { setAddingGridSpot({ ...gridSpotChoice, target: 'spot_only' }); setGridSpotChoice(null); }}>Дан өмчлөгч нэмэх</button>
             </div>
           </div>
         </div>
       )}
       <EditOwnerModal
         key={addingGridSpot?.target === 'owner' ? `grid-${addingGridSpot.item.id}` : 'grid-owner-add'}
-        open={!!addingGridSpot && addingGridSpot.target !== 'client'}
+        open={!!addingGridSpot && addingGridSpot.target === 'owner'}
         onClose={() => setAddingGridSpot(null)}
         owner={null}
-        initialGridSpot={addingGridSpot?.target !== 'client' ? addingGridSpot : null}
+        initialGridSpot={addingGridSpot?.target === 'owner' ? addingGridSpot : null}
         onSave={handleSaveOwner}
+        hoaId={hoaId}
+      />
+      {/* 2026-09-20: "Дан өмчлөгч нэмэх" сонголт — эзэмшигчгүй грид
+          зогсоол/агуулах слот дээр дарж, ЯГ ЗӨВХӨН ТЭР слоттой (сууц,
+          талбай ямар ч холбоогүй) шинэ өмчлөгч үүсгэнэ. */}
+      <EditOwnerSpotOnlyModal
+        key={addingGridSpot?.target === 'spot_only' ? `grid-spot-${addingGridSpot.item.id}` : 'grid-spot-add'}
+        open={!!addingGridSpot && addingGridSpot.target === 'spot_only'}
+        onClose={() => setAddingGridSpot(null)}
+        owner={null}
+        initialGridSpot={addingGridSpot?.target === 'spot_only' ? addingGridSpot : null}
+        onSave={handleSaveOwnerSpotOnly}
         hoaId={hoaId}
       />
       <EditClientModal

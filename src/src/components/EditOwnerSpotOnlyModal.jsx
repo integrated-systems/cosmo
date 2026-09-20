@@ -12,7 +12,7 @@ import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 // зэргийг NULL болгож owners хүснэгэлд бичнэ (яг ижил хүснэгэл,
 // зөвхөн тоотын холбоосгүй мөр) — Rule of two: SpotSelectField/
 // VehicleListField зэргийг EditOwnerModal.jsx-тэй ижил дахин ашиглав.
-export default function EditOwnerSpotOnlyModal({ open, onClose, owner, onSave, hoaId }) {
+export default function EditOwnerSpotOnlyModal({ open, onClose, owner, onSave, hoaId, initialGridSpot }) {
   const { gridParkingSpots, gridStorageSpots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
@@ -23,16 +23,21 @@ export default function EditOwnerSpotOnlyModal({ open, onClose, owner, onSave, h
     fetchTakenGridIds(hoaId, 'grid_storages', owner?.id, null).then(setTakenGridStorageIds);
   }, [open, hoaId, owner?.id]);
 
+  // 2026-09-20: Тоот, зогсоол, агуулах хуудасны сул слот дээр дарж
+  // "Дан өмчлөгч нэмэх" сонгоход, тухайн ЯГ ТЭР слотыг эндээс шууд
+  // тэмдэглэдэг болов (өмнө нь initialGridSpot дэмжигдээгүй, тул
+  // хэрэглэгч гараар шинэ хоосон грид зогсоол/агуулах нэмж, ЯГ ТЭР
+  // слотыг дахин олж сонгох шаардлагатай байсан).
   const [form, setForm] = useState(() => ({
     firstname: owner?.firstname || '',
     lastname: owner?.lastname || '',
     regno: owner?.regno || '',
     phones: owner?.phones?.length ? owner.phones : [''],
     emails: owner?.emails?.length ? owner.emails : [''],
-    hasGridParking: owner?.has_grid_parking || false,
-    gridParkings: owner?.grid_parkings || [],
-    hasGridStorage: owner?.has_grid_storage || false,
-    gridStorages: owner?.grid_storages || [],
+    hasGridParking: owner?.has_grid_parking || (!owner && initialGridSpot?.kind === 'parking') || false,
+    gridParkings: owner?.grid_parkings || (!owner && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
+    hasGridStorage: owner?.has_grid_storage || (!owner && initialGridSpot?.kind === 'storage') || false,
+    gridStorages: owner?.grid_storages || (!owner && initialGridSpot?.kind === 'storage' ? [initialGridSpot.item] : []),
     hasVehicle: owner?.has_vehicle || false, vehicles: owner?.vehicles || [],
     note: owner?.note || '',
   }));
