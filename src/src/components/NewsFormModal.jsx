@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import Modal from './Modal';
 import { NEWS_CATEGORIES } from '../data/newsCategories';
 import { supabase } from '../lib/supabaseClient';
+import { fetchAllRows } from '../lib/fetchAllRows';
 
-// "Мэдээ, мэдээлэл" — Мэдээний агрегат таблицын мвр дээр дарахад,
+// "Мэдээ, мэдээлэл" — Мэдээний агрегат таблицын мөр дээр дарахад,
 // "Засах" товч дарахад, "+ Шинэ мэдээ үүсгэх" товч дарахад бүгд ЯГ ЭНЭ
 // НЭГ модалиар нээгдэнэ (2026-08-19 хэрэглэгчийн тодорхой заасан
 // архитектур — 3 түүврийн зорилго ялгаатай ч дизайн/бүтэц ижил).
@@ -79,7 +80,7 @@ const EMPTY_FORM = {
 
 // Хуучин (markdown raw тэмдэглэгээтэй) мэдээг засварлахад editor-т
 // ЦЭВЭР анхны текст (тэмдэглэгээгүй) орж ирээд, менежер шинээр
-// WYSIWYG форматлаж болохоор — escape хийгээд мврүүдийг <p> болгоно.
+// WYSIWYG форматлаж болохоор — escape хийгээд мөрүүдийг <p> болгоно.
 function plainTextToHtml(text) {
   const esc = document.createElement('div');
   esc.textContent = text;
@@ -88,6 +89,80 @@ function plainTextToHtml(text) {
     .split(/\n\n+/)
     .map((para) => `<p>${para.replace(/^[\s\t]+/, '').replace(/\n/g, '<br>')}</p>`)
     .join('');
+}
+
+// 2026-09-13: "Сарын орлого, зарлагын тайлан" ангилал сонгогдоход,
+// Гарчиг автоматаар "[он] оны [өмнөх сар]-р сарын орлого, зарлагын
+// тайлан" гэж бөглөгдэж, Агуулгад бодит (invoices-ээс) санхүүгийн
+// тайлан хүснэгэн бүтэцтэйгээр автоматаар үүсдэг болов. Хэрэглэгчтэй
+// зөвлөлдсөний дагуу: бодит DB-д journal_entries (Зардал, Дансны
+// үлдэгдэл, Хуримтлалын сан)-ийн мэдээлэл ОГТ БАЙХГүЙ (0 мөр, ямар ч
+// tenant-д ашиглагдаагүй) тул, тэдгээр бүлгийг "мэдээлэл дутуу" гэж
+// ТОДОРХОЙ тэмдэглэж, БУРУУ 0₮ гэж үзүүлэхгүй (0₮ БОЛОН "дата байхгүй"
+// хоёрыг андуурахаас сэргийлнэ). "Нийт орлого"/"Хүлээгдэж буй eр
+// төлбөр" зэрэг бодитоор татах боломжтой хэсгүүдийг л үнэн зөв
+// тооцоолж үзүүлнэ.
+const MONTHLY_REPORT_CATEGORY = 'Сарын орлого, зарлагын тайлан';
+const NO_DATA_NOTE = 'Гүйлгээ бүртгэл хараахан ашиглагдаагүй тул мэдээлэл алга';
+
+function fmtMoney(n) {
+  return Number(n || 0).toLocaleString('mn-MN') + '₮';
+}
+
+async function buildMonthlyReportHtml(hoaId, year, month) {
+  const [{ data: invoices }, { data: unitLayouts }] = await Promise.all([
+    fetchAllRows(() => supabase.from('invoices').select('target_type, target_id, total_amount, status').eq('tenant_id', hoaId).eq('period_year', year).eq('period_month', month)),
+    fetchAllRows(() => supabase.from('unit_layouts').select('id').eq('tenant_id', hoaId)),
+  ]);
+  const unitIds = new Set((unitLayouts || []).map((u) => u.id));
+
+  let invoicedTotal = 0;
+  let paidUnit = 0, paidSpot = 0, paidClient = 0;
+  let sentTotal = 0, overdueTotal = 0;
+  (invoices || []).forEach((inv) => {
+    const amount = Number(inv.total_amount || 0);
+    invoicedTotal += amount;
+    const bucket = inv.target_type === 'client' ? 'client' : (unitIds.has(inv.target_id) ? 'unit' : 'spot');
+    if (inv.status === 'paid') {
+      if (bucket === 'unit') paidUnit += amount;
+      else if (bucket === 'spot') paidSpot += amount;
+      else paidClient += amount;
+    } else if (inv.status === 'overdue') {
+      overdueTotal += amount;
+    } else if (inv.status === 'sent') {
+      sentTotal += amount;
+    }
+  });
+  const paidTotal = paidUnit + paidSpot + paidClient;
+  const paidPct = invoicedTotal > 0 ? ((paidTotal / invoicedTotal) * 100).toFixed(1) : '0.0';
+  const owedTotal = sentTotal + overdueTotal;
+
+  const sectionRow = (label) => `<tr><td colspan="2" style="font-weight:bold; padding:10px 4px 4px;">${label}</td></tr>`;
+  const dataRow = (label, value, bold) => `<tr><td style="padding:3px 8px;${bold ? ' font-weight:bold;' : ''}">${label}</td><td style="padding:3px 8px; text-align:right;${bold ? ' font-weight:bold;' : ''}">${value}</td></tr>`;
+  const noDataRow = () => `<tr><td colspan="2" style="padding:3px 8px; color:#94a3b8; font-style:italic;">${NO_DATA_NOTE}</td></tr>`;
+
+  return `<table style="width:100%; border-collapse:collapse;">
+${sectionRow('Нэхэмжилсэн дүн')}
+${dataRow('Нийт нэхэмжилсэн дүн', fmtMoney(invoicedTotal), true)}
+${sectionRow('Нийт орлого')}
+${dataRow('Сууц өмчлөгч', fmtMoney(paidUnit))}
+${dataRow('Зогсоол, агуулах дангаар өмчлөгч', fmtMoney(paidSpot))}
+${dataRow('Талбай өмчлөгч', fmtMoney(paidClient))}
+${dataRow('Нийт орлого', fmtMoney(paidTotal), true)}
+${dataRow('Төлбөрийн хувь', `${paidPct}%`)}
+${sectionRow('Нийт зардал')}
+${noDataRow()}
+${sectionRow('Дансны эхний үлдэгдэл')}
+${noDataRow()}
+${sectionRow('Дансны эцсийн үлдэгдэл')}
+${noDataRow()}
+${sectionRow('Хүлээгдэж буй нийт өр төлбөр')}
+${dataRow('Энэ сарын төлөгдөөгүй', fmtMoney(sentTotal))}
+${dataRow('Хугацаа хэтэрсэн', fmtMoney(overdueTotal))}
+${dataRow('Нийт өр төлбөр', fmtMoney(owedTotal), true)}
+${sectionRow('Хуримтлалын санд төвлөрсөн хөрөнгө')}
+${noDataRow()}
+</table>`;
 }
 
 export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft, onPublish }) {
@@ -124,13 +199,32 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  // 2026-09-13: "Сарын орлого, зарлагын тайлан" сонгогдоход, Гарчиг
+  // автоматаар бөглөж, Агуулгад бодит санхүүгийн тайлан хүснэгэн
+  // бүтэцтэйгээр үүсгэнэ (buildMonthlyReportHtml() дээрх тайлбарыг
+  // үз).
+  function handleCategoryChange(newCategory) {
+    set('category', newCategory);
+    if (newCategory !== MONTHLY_REPORT_CATEGORY) return;
+    const now = new Date();
+    let prevMonth = now.getMonth();
+    let prevYear = now.getFullYear();
+    if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+    const newTitle = `${prevYear} оны ${prevMonth}-р сарын орлого, зарлагын тайлан`;
+    set('title', newTitle);
+    buildMonthlyReportHtml(hoaId, prevYear, prevMonth).then((html) => {
+      set('bodyHtml', html);
+      if (editorRef.current) editorRef.current.innerHTML = html;
+    });
+  }
+
   function handleEditorInput() {
     set('bodyHtml', editorRef.current?.innerHTML || '');
   }
 
   function handleEditorFocus() {
     // Enter товч дарахад цэвэрхэн <p> блок үүсгэдэг болгоно (анхдагч
-    // browser зан твлвв үе үе <div> эсвэл зүгээр <br> ашигладаг тул).
+    // browser зан төлөө үе үе <div> эсвэл зүгээр <br> ашигладаг тул).
     document.execCommand('defaultParagraphSeparator', false, 'p');
   }
 
@@ -171,17 +265,17 @@ export default function NewsFormModal({ open, onClose, news, hoaId, onSaveDraft,
     }>
       <div className="space-y-4">
         <div>
-          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гарчиг</label>
-          <input className="ds-input w-full" value={form.title} onChange={(e) => set('title', e.target.value)} />
-        </div>
-
-        <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ангилал (Topic)</label>
-          <select className="ds-select w-full" value={form.category} onChange={(e) => set('category', e.target.value)}>
+          <select className="ds-select w-full" value={form.category} onChange={(e) => handleCategoryChange(e.target.value)}>
             {NEWS_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Гарчиг</label>
+          <input className="ds-input w-full" value={form.title} onChange={(e) => set('title', e.target.value)} />
         </div>
 
         <div>
