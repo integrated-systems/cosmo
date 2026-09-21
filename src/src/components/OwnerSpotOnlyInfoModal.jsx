@@ -4,18 +4,20 @@ import { summarizeGridSpots, summarizeVehicles, summarizePropertyNos } from '../
 import { useGridSpots } from '../hooks/useGridSpots';
 import { supabase } from '../lib/supabaseClient';
 import Modal from './Modal';
+import RecordPaymentModal from './RecordPaymentModal';
 
 // 2026-09-13: OwnerInfoModal.jsx-ийн "Зогсоол, агуулах дангаар
 // өмчлөгч" табанд зориулсан хувилбар (Rule of two — ижил бүтэц,
 // footer товчнууд, зөвхөн Байр/Тоот/Талбай/өмчийн ӨУБД (сууц)
 // зэрэг сууцад л хамаарах талбаруудыг арилгаж, ӨУБД Зогсоол/Агуулах
-// (мвр бүр eeрийн) талбаруудыг нэмсэн). eмнe нь мвр дээр дарахад
+// (мөр бүр eeрийн) талбаруудыг нэмсэн). eмнe нь мөр дээр дарахад
 // шууд Засах модал нээгддэг байсныг, Сууц өмчлөгч табтай адил
 // эхлээд Инфо модал нээгддэг болгов.
 export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
   const { hoaId } = useParams();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
   const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
 
   async function openMessenger() {
@@ -43,6 +45,7 @@ export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
   }
 
   return (
+    <>
     <Modal
       open={!!owner}
       onClose={onClose}
@@ -51,7 +54,7 @@ export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
       footer={
         <>
           <button className="ds-btn-secondary" onClick={openMessenger} disabled={opening}>Мессенжер</button>
-          <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
+          <button className="ds-btn-secondary" onClick={() => setRecordingPayment(true)}>Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
           <button className="ds-btn-secondary" onClick={openOfficialNotice}>Албан мэдэгдэл</button>
           <button className="ds-btn-secondary" onClick={() => onEdit(owner)}>Засах</button>
@@ -76,5 +79,15 @@ export default function OwnerSpotOnlyInfoModal({ owner, onClose, onEdit }) {
         </div>
       )}
     </Modal>
+    <RecordPaymentModal
+      key={recordingPayment ? `pay-${owner?.id}` : 'pay-closed'}
+      open={recordingPayment}
+      onClose={() => setRecordingPayment(false)}
+      hoaId={hoaId}
+      targetType="owner"
+      record={owner}
+      onSaved={() => setRecordingPayment(false)}
+    />
+    </>
   );
 }

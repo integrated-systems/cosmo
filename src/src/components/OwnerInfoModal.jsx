@@ -5,19 +5,21 @@ import { summarizeSpots, summarizeVehicles, summarizeGridSpots, formatUnitCode }
 import { useGridSpots } from '../hooks/useGridSpots';
 import { supabase } from '../lib/supabaseClient';
 import Modal from './Modal';
+import RecordPaymentModal from './RecordPaymentModal';
 
 // Owners.jsx-ийн мөр дарахад гарах Инфо модаль — 2026-08-15 хэрэглэгчийн
 // заасны дагуу тусдаа компонент болгов (Rule of two).
-// 2026-08-19: "Байр / Тоот" мврийг EditOwnerModal-ийн Тоот dropdown-той
+// 2026-08-19: "Байр / Тоот" мөрийг EditOwnerModal-ийн Тоот dropdown-той
 // ЯГ ИЖИЛ форматтай (formatUnitCode, структур-мэдрэмтгий) болгож
 // зассан — өмнө нь давхар үгүй, падинг үгүй буруу формат байсан.
 // 2026-08-19 (2): "Мессенжер" товчийг ажилд оруулав — тухайн өмчлөгчид
-// msgr_list мвр байгаа эсэхийг шалгаж, байхгүй бол шинээр үүсгээд,
+// msgr_list мөр байгаа эсэхийг шалгаж, байхгүй бол шинээр үүсгээд,
 // /msgr хуудас руу тэр харилцан ярианд шууд орсон байдлаар шилжүүлнэ.
 export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdit }) {
   const { hoaId } = useParams();
   const navigate = useNavigate();
   const [opening, setOpening] = useState(false);
+  const [recordingPayment, setRecordingPayment] = useState(false);
   const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
   const layoutRow = owner && unitLayouts.find(
     (u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no
@@ -55,6 +57,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
   }
 
   return (
+    <>
     <Modal
       open={!!owner}
       onClose={onClose}
@@ -63,7 +66,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
       footer={
         <>
           <button className="ds-btn-secondary" onClick={openMessenger} disabled={opening}>Мессенжер</button>
-          <button className="ds-btn-secondary">Төлбөр бүртгэх</button>
+          <button className="ds-btn-secondary" onClick={() => setRecordingPayment(true)}>Төлбөр бүртгэх</button>
           <button className="ds-btn-secondary">ИБаримт</button>
           <button className="ds-btn-secondary" onClick={openOfficialNotice}>Албан мэдэгдэл</button>
           <button className="ds-btn-secondary" onClick={() => onEdit(owner)}>Засах</button>
@@ -91,5 +94,16 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
         </div>
       )}
     </Modal>
+    <RecordPaymentModal
+      key={recordingPayment ? `pay-${owner?.id}` : 'pay-closed'}
+      open={recordingPayment}
+      onClose={() => setRecordingPayment(false)}
+      hoaId={hoaId}
+      targetType="owner"
+      record={owner}
+      unitLayouts={unitLayouts}
+      onSaved={() => setRecordingPayment(false)}
+    />
+    </>
   );
 }
