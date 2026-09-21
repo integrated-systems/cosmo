@@ -161,7 +161,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 title={s.label || ''}
               >
                 <div
-                  className={`absolute transition-colors ${paymentBorderColor ? 'border-2' : 'border'} ${s.kind === 'warehouse' ? 'inset-[2px] rounded-full' : 'inset-[1px] rounded-[1px]'} ${!hasCustomBorder && !paymentBorderColor ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute border transition-colors ${s.kind === 'warehouse' ? 'inset-[2px] rounded-full' : 'inset-[1px] rounded-[1px]'} ${!hasCustomBorder && !paymentBorderColor ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
                     ...(hasCustomFill ? { background: s.fillColor } : {}),
@@ -210,7 +210,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                     fillOpacity={hasCustomFill ? 1 : 0.10}
                     stroke={paymentBorderColor || (hasCustomStroke ? p.strokeColor : 'currentColor')}
                     strokeOpacity={paymentBorderColor ? 1 : (hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3))}
-                    strokeWidth={paymentBorderColor ? (p.strokeWidth || 2) * 1.6 : p.strokeWidth}
+                    strokeWidth={paymentBorderColor ? 1 : p.strokeWidth}
                     strokeLinejoin="round"
                     strokeDasharray={p.lineStyle === 'dashed' ? `${(p.strokeWidth || 2) * 3},${(p.strokeWidth || 2) * 2}` : p.lineStyle === 'dotted' ? `${p.strokeWidth || 2},${(p.strokeWidth || 2) * 1.5}` : undefined}
                     strokeLinecap={p.lineStyle === 'dotted' ? 'round' : 'butt'}

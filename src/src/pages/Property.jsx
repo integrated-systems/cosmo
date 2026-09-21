@@ -76,17 +76,13 @@ export default function Property() {
   // ашиглана (PaymentBadges.jsx/UnitGridCard.jsx-тэй ижил зарчим).
   const STATUS_COLOR_HEX = { customYellow: '#f8f23d', customRed: '#ef5555', customGreen: '#10b981', customBlue: '#3b82f6' };
 
-  // 2026-09-20: "Зогсоол, Агуулах, Талбай" таб дахь ЯМАР Ч слот/
-  // полигон (F/B ямар ч давхар, ямар ч tenant)-д ерөнхий байдлаар
-  // үйлчлэх ёстой тул, ЭНД ямар ч tenant/floor-той холбоотой хатуу
-  // кодлол ашиглахгүй — зөвхөн owner/client-ийн бодит бүртгэлээс
-  // (has_grid_parking/has_grid_storage/has_grid_land/building_no)
-  // тогтвортой target_id-г тооцоолж, getMonthStatus()-д дамжуулна.
-  // Хэрэглэгчтэй зөвлөлдсөний дагуу: "paid"/"pending" үед хүрээний
-  // eнгийг ОГТ eeрчлөхгүй (одоогийн анхдагч эсвэл админы гараар
-  // тохируулсан eнгe хэвээр үлдэнэ) — зөвхөн "overdue"/"at_risk" үед
-  // л (жинхэнэ анхаарал татах шаардлагатай үед) тохируулсан
-  // eнгeeр ДАВХЦУУЛЖ тодруулна.
+  // Хэрэглэгчтэй зөвлөлдсөний дагуу: "paid" үед хүрээний өнгийг ОГТ
+  // өөрчлөхгүй (одоогийн анхдагч эсвэл админы гараар тохируулсан
+  // өнгө хэвээр үлдэнэ) — "pending"/"overdue"/"at_risk" үед л
+  // тохируулсан өнгөөр ДАВХЦУУЛЖ тодруулна (2026-09-20 (3-р
+  // шинэчлэл): хэрэглэгчийн заасны дагуу "Хүлээлттэй" (pending)
+  // өнгийг ч мөн адил "Төлбөрийн хоцрогдол"-оос холбов — "default"
+  // (тодруулгагүй) сонгосон бол л өөрчлөхгүй).
   function getLinkBorderColor(link) {
     if (!link) return null;
     const now = new Date();
@@ -109,8 +105,8 @@ export default function Property() {
     } else {
       return null;
     }
-    const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : null;
-    return colorKey ? (STATUS_COLOR_HEX[colorKey] || null) : null;
+    const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : null;
+    return colorKey && colorKey !== 'default' ? (STATUS_COLOR_HEX[colorKey] || null) : null;
   }
 
   function resolveGridLink(floorKey, itemId, field) {
