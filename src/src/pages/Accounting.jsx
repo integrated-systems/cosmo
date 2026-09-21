@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney, formatDateTimeMinutes } from '../lib/format';
 import TabButton from '../components/TabButton';
+import Modal from '../components/Modal';
 import { useChartOfAccounts } from '../hooks/useChartOfAccounts';
 
 // 2026-09-09: Журналын бүх мөрийг татах логикийг НЭГ л газраас
@@ -73,31 +74,35 @@ function ChartOfAccountsTab({ hoaId }) {
 }
 
 function JournalEntriesTab({ hoaId }) {
-  const { accountLabel } = useChartOfAccounts(hoaId);
+  const { accounts, accountLabel } = useChartOfAccounts(hoaId);
   const [entries, setEntries] = useState([]);
   const [lines, setLines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+  const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
+  async function load() {
     if (!hoaId) return;
     setLoading(true);
-    Promise.all([
+    const [{ data: entryRows }, { data: lineRows }] = await Promise.all([
       fetchAllRows(() => supabase.from('journal_entries').select('*').eq('tenant_id', hoaId).order('entry_date', { ascending: false }).order('created_at', { ascending: false })),
       fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id)').eq('journal_entries.tenant_id', hoaId)),
-    ]).then(([{ data: entryRows }, { data: lineRows }]) => {
-      setEntries(entryRows || []);
-      setLines(lineRows || []);
-      setLoading(false);
-    });
-  }, [hoaId]);
+    ]);
+    setEntries(entryRows || []);
+    setLines(lineRows || []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, [hoaId]);
 
   const linesFor = (entryId) => lines.filter((l) => l.entry_id === entryId);
 
   return (
     <div>
-      <div className="text-[12px] text-mutedtext mb-3">
-        Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн журналын бичилтүүд харагдана.
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[12px] text-mutedtext">
+          Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, мөн "+ Шинэ гүйлгээ бүртгэх" товчоор гараар оруулсан журналын бичилтүүд харагдана.
+        </div>
+        <button className="ds-btn-primary shrink-0 ml-3" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
       </div>
       <div className="flex flex-col gap-2">
         {loading ? (
@@ -141,7 +146,120 @@ function JournalEntriesTab({ hoaId }) {
           );
         })}
       </div>
+      <NewJournalEntryModal
+        key={adding ? 'add-open' : 'add-closed'}
+        open={adding}
+        onClose={() => setAdding(false)}
+        hoaId={hoaId}
+        accounts={accounts}
+        onSaved={() => { setAdding(false); load(); }}
+      />
     </div>
+  );
+}
+
+// 2026-09-20 (60): "Журналын бичилт"-д ГАРААР шинэ гүйлгээ (давхар
+// бичилтийн зарчмаар) бүртгэх модаль — Accounting.jsx-ийн 5 таб
+// ХЭЗЭЭ Ч бодит dataгүй байсан үндсэн шалтгаан (ЯМАР Ч INSERT хийх
+// форм байхгүй байсан) яг ЭНЭ. Хэрэглэгчтэй зөвлөлдсөний дагуу,
+// Монголын НББ стандартын дагуу (Дт нийлбэр = Кт нийлбэр байх ёстой)
+// хэрэгжүүлэв. Олон мөрт дэмжлэгтэй (2-оос дээш Дт/Кт мөр байж
+// болно).
+function emptyJournalLine() {
+  return { id: Math.random().toString(36).slice(2), account_code: '', side: 'debit', amount: '' };
+}
+function NewJournalEntryModal({ open, onClose, hoaId, accounts, onSaved }) {
+  const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [description, setDescription] = useState('');
+  const [rows, setRows] = useState([emptyJournalLine(), emptyJournalLine()]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  function updateRow(id, patch) {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  function addRow() {
+    setRows((rs) => [...rs, emptyJournalLine()]);
+  }
+  function removeRow(id) {
+    setRows((rs) => (rs.length > 2 ? rs.filter((r) => r.id !== id) : rs));
+  }
+
+  const totalDebit = rows.filter((r) => r.side === 'debit').reduce((s, r) => s + (+r.amount || 0), 0);
+  const totalCredit = rows.filter((r) => r.side === 'credit').reduce((s, r) => s + (+r.amount || 0), 0);
+  const isBalanced = totalDebit > 0 && Math.abs(totalDebit - totalCredit) < 1;
+  const allRowsFilled = rows.every((r) => r.account_code && (+r.amount || 0) > 0);
+  const canSave = description.trim() && entryDate && allRowsFilled && isBalanced && !saving;
+
+  async function handleSave() {
+    if (!canSave) return;
+    setSaving(true);
+    setError('');
+    try {
+      const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: entryDate, description: description.trim(), source_type: 'manual',
+      }).select().single();
+      if (entryErr) { setError(entryErr.message); return; }
+      const lineRows = rows.map((r) => ({
+        entry_id: entry.id, account_code: r.account_code,
+        debit: r.side === 'debit' ? (+r.amount || 0) : 0,
+        credit: r.side === 'credit' ? (+r.amount || 0) : 0,
+      }));
+      const { error: linesErr } = await supabase.from('journal_entry_lines').insert(lineRows);
+      if (linesErr) { setError(linesErr.message); return; }
+      setEntryDate(new Date().toISOString().slice(0, 10));
+      setDescription('');
+      setRows([emptyJournalLine(), emptyJournalLine()]);
+      onSaved?.();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Шинэ гүйлгээ бүртгэх" size="lg" footer={
+      <>
+        <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
+        <button className="ds-btn-primary" onClick={handleSave} disabled={!canSave}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
+      </>
+    }>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Огноо</label>
+          <input type="date" className="ds-input w-full" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тайлбар</label>
+          <input className="ds-input w-full" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Гүйлгээний тайлбар" />
+        </div>
+      </div>
+
+      <div className="text-[11px] text-slate-500 dark:text-mutedtext mb-1">Дансны мөрүүд (Дт нийлбэр = Кт нийлбэр байх ёстой)</div>
+      <div className="flex flex-col gap-2 mb-2">
+        {rows.map((r) => (
+          <div key={r.id} className="flex items-center gap-2">
+            <select className="ds-select flex-1" value={r.account_code} onChange={(e) => updateRow(r.id, { account_code: e.target.value })}>
+              <option value="">Данс сонгох...</option>
+              {accounts.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+            </select>
+            <select className="ds-select" style={{ width: 90 }} value={r.side} onChange={(e) => updateRow(r.id, { side: e.target.value })}>
+              <option value="debit">Дт</option>
+              <option value="credit">Кт</option>
+            </select>
+            <input type="number" className="ds-input" style={{ width: 140 }} placeholder="Дүн" value={r.amount} onChange={(e) => updateRow(r.id, { amount: e.target.value })} />
+            <button className="ds-icon-btn danger" onClick={() => removeRow(r.id)} disabled={rows.length <= 2} title="Мвр устгах">×</button>
+          </div>
+        ))}
+      </div>
+      <button className="ds-btn-secondary mb-3" onClick={addRow}>+ Мвр нэмэх</button>
+
+      <div className={`ds-card p-3 mb-2 flex items-center justify-between text-[13px] font-semibold ${isBalanced ? 'text-customGreen' : 'text-customRed'}`}>
+        <span>Нийт Дт: {formatMoney(totalDebit)}₮</span>
+        <span>Нийт Кт: {formatMoney(totalCredit)}₮</span>
+        <span>{isBalanced ? '✓ Тэнцэж байна' : '✗ Тэнцэхгүй байна'}</span>
+      </div>
+      {error && <div className="text-[12px] text-customRed mb-2">{error}</div>}
+    </Modal>
   );
 }
 
