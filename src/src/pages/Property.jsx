@@ -14,6 +14,7 @@ import GridSpotsViewer from '../components/GridSpotsViewer';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
+import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useInvoicePayments } from '../hooks/useInvoicePayments';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
@@ -43,6 +44,11 @@ export default function Property() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const monthOptions = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
   const { getMonthStatus, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'owner');
+  // 2026-09-20 (2-р шинэчлэл): "Зогсоол, Агуулах, Талбай" таб-ын слот/
+  // полигоны хүрээний eнгийг эзэмшигчийн төлбөр төлөлттэй уялдуулав.
+  // Талбайн полигон нь owner-т ч, client-т ч харьяалагдаж болдог
+  // тул, client-ийн invoice payments-ийг ч тусад нь дуудна.
+  const { getMonthStatus: getClientMonthStatus } = useInvoicePayments(hoaId, 'client');
   // 2026-09-13: Хэрэглэгчийн хүсэлтээр — dropdown нь хатуу кодолсон
   // (data-тай холбоогүй) 2022-2027 хүрээ биш, эхний нэхэмжлэх үүссэн
   // жилээс эхлэн одоогийн он хүртэл л үзүүлдэг болов.
@@ -63,6 +69,49 @@ export default function Property() {
   // (полигон бол зөвхөн Талбай өмчлөгч л үзэмшдэг тул шууд нээнэ).
   const [addingGridSpot, setAddingGridSpot] = useState(null); // {kind, item}
   const [gridSpotChoice, setGridSpotChoice] = useState(null); // {kind, item} - сонголт хүлээж буй
+
+  // 2026-09-20: tailwind.config.js-ийн customYellow/customRed/
+  // customGreen/customBlue-тэй ЯГ ИЖИЛ hex код — SVG-ийн stroke/CSS
+  // border inline style-д динамик Tailwind класс үүсгэлгүйгээр шууд
+  // ашиглана (PaymentBadges.jsx/UnitGridCard.jsx-тэй ижил зарчим).
+  const STATUS_COLOR_HEX = { customYellow: '#f8f23d', customRed: '#ef5555', customGreen: '#10b981', customBlue: '#3b82f6' };
+
+  // 2026-09-20: "Зогсоол, Агуулах, Талбай" таб дахь ЯМАР Ч слот/
+  // полигон (F/B ямар ч давхар, ямар ч tenant)-д ерөнхий байдлаар
+  // үйлчлэх ёстой тул, ЭНД ямар ч tenant/floor-той холбоотой хатуу
+  // кодлол ашиглахгүй — зөвхөн owner/client-ийн бодит бүртгэлээс
+  // (has_grid_parking/has_grid_storage/has_grid_land/building_no)
+  // тогтвортой target_id-г тооцоолж, getMonthStatus()-д дамжуулна.
+  // Хэрэглэгчтэй зөвлөлдсөний дагуу: "paid"/"pending" үед хүрээний
+  // eнгийг ОГТ eeрчлөхгүй (одоогийн анхдагч эсвэл админы гараар
+  // тохируулсан eнгe хэвээр үлдэнэ) — зөвхөн "overdue"/"at_risk" үед
+  // л (жинхэнэ анхаарал татах шаардлагатай үед) тохируулсан
+  // eнгeeр ДАВХЦУУЛЖ тодруулна.
+  function getLinkBorderColor(link) {
+    if (!link) return null;
+    const now = new Date();
+    let stableId;
+    let status;
+    if (link.type === 'owner') {
+      const o = link.record;
+      const matchedUnit = o.building_no ? unitLayouts.find((u) => u.building_no === o.building_no && u.floor === o.floor && u.door_no === o.door_no) : null;
+      const parkingUuid = !matchedUnit && o.has_grid_parking && Array.isArray(o.grid_parkings) && o.grid_parkings.length > 0 ? extractGridItemUuid(o.grid_parkings[0]?.id) : null;
+      const storageUuid = !matchedUnit && !parkingUuid && o.has_grid_storage && Array.isArray(o.grid_storages) && o.grid_storages.length > 0 ? extractGridItemUuid(o.grid_storages[0]?.id) : null;
+      stableId = matchedUnit?.id || parkingUuid || storageUuid || o.id;
+      status = getMonthStatus(stableId, now.getFullYear(), now.getMonth() + 1);
+    } else if (link.type === 'client') {
+      const c = link.record;
+      const landUuid = c.has_grid_land && Array.isArray(c.grid_land_plots) && c.grid_land_plots.length > 0 ? extractGridItemUuid(c.grid_land_plots[0]?.id) : null;
+      const parkingUuid = !landUuid && c.has_grid_parking && Array.isArray(c.grid_parkings) && c.grid_parkings.length > 0 ? extractGridItemUuid(c.grid_parkings[0]?.id) : null;
+      const storageUuid = !landUuid && !parkingUuid && c.has_grid_storage && Array.isArray(c.grid_storages) && c.grid_storages.length > 0 ? extractGridItemUuid(c.grid_storages[0]?.id) : null;
+      stableId = landUuid || parkingUuid || storageUuid || c.id;
+      status = getClientMonthStatus(stableId, now.getFullYear(), now.getMonth() + 1);
+    } else {
+      return null;
+    }
+    const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : null;
+    return colorKey ? (STATUS_COLOR_HEX[colorKey] || null) : null;
+  }
 
   function resolveGridLink(floorKey, itemId, field) {
     const gid = `${floorKey}:${itemId}`;
@@ -293,6 +342,7 @@ export default function Property() {
               resolvePolygon={resolvePolygon}
               onSlotClick={handleGridSlotClick}
               onPolygonClick={handleGridPolygonClick}
+              getLinkBorderColor={getLinkBorderColor}
             />
           )}
         </>

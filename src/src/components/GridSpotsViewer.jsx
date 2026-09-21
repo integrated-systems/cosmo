@@ -11,11 +11,11 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // зарчим).
 //
 // 2026-09-03: Хэрэглэгчийн хүсэлт - staff зориудаар хүрээ/дүүргэлтийн
-// внгв вгввгүй л бол, default харагдац "Тоот" таб (UnitGridCard.jsx)-
+// өнгө өгвөөгүй л бол, default харагдац "Тоот" таб (UnitGridCard.jsx)-
 // тай ЯГ ИЖИЛ (саарал, theme-aware) байх ёстой - Dark/Light mode
 // хоёуланд адилхан үйлчилнэ. ҮҮнийг Tailwind-ийн className-аар
 // (border-slate-500/30, bg-slate-500/[0.10], text-slate-400
-// dark:text-mutedtext) хэрэгжүүлж, зөвхөн ЗОРИУДААР сонгосон внгвг
+// dark:text-mutedtext) хэрэгжүүлж, зөвхөн ЗОРИУДААР сонгосон өнгөг
 // л inline style-аар дарж бичнэ. SVG-д "currentColor" trick ашиглаж,
 // Tailwind-ийн text-* классаар stroke/fill-ийг theme-aware болгов.
 //
@@ -25,7 +25,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // визуал ялгаа үүсгэх ёсгүй - зөвхөн CLICK-ийн үр дүнд (Инфо модаль
 // vv, Нэмэх модаль vv) л ялгаатай үйлдэл хийнэ. Богино хугацаат
 // (төлбөр, мессеж, сонгуулийн санал өнгөлөлт гэх мэт) ДИНАМИК дохио
-// л ирээдүйд слот/полигон/тоотын хүрээ-фон внгвгүүр илэрхийлэгдэнэ.
+// л ирээдүйд слот/полигон/тоотын хүрээ-фон өнгөгүүр илэрхийлэгдэнэ.
 const CELL = 24;
 
 function cellsRange(slots, lines, texts, compasses, cellSize) {
@@ -55,7 +55,7 @@ function cellsRange(slots, lines, texts, compasses, cellSize) {
   return { cols: maxCol + 2, rows: maxRow + 2 };
 }
 
-export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, onSlotClick, onPolygonClick }) {
+export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, onSlotClick, onPolygonClick, getLinkBorderColor }) {
   const [floors, setFloors] = useState([]);
   const [activeFloor, setActiveFloor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,10 +87,10 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   const { cols, rows } = (() => {
     // 2026-09-04 (15): Хэрэглэгчийн ажигласнаар, давхарга бүр ижил
     // хэмжээтэй (жиш 70x45) торон дээр зурсан ч, зурсан слот/полигоны
-    // байрлалаас хамааран cellsRange() тус бүрдээ ввр хэмжээ тооцож,
+    // байрлалаас хамааран cellsRange() тус бүрдээ өөр хэмжээ тооцож,
     // үзэгдэх масштаб давхарга бүрт ялгаатай болж, будлиулж байсан.
     // Одоо ЭХЛЭЭД Конструктор дээр хадгалсан бодит cols/rows (declared
-    // grid хэмжээ)-ыг ашиглана - зөвхөн эдгээр байхгүй (хуучин мвр)
+    // grid хэмжээ)-ыг ашиглана - зөвхөн эдгээр байхгүй (хуучин мөр)
     // үед л агуулгаас тооцоолсон хэмжээ рүү унана.
     const declaredCols = floor.layout_json?.cols;
     const declaredRows = floor.layout_json?.rows;
@@ -99,7 +99,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
   })();
   const ec = CELL * zoom;
   // 2026-09-04: Зогсоол/Агуулахын тоо - Конструктор дэх ижил
-  // мвнхмал үзүүлэлт (менежерүүдэд алга болох/давхардахыг хурдан
+  // мөнхмал үзүүлэлт (менежерүүдэд алга болох/давхардахыг хурдан
   // чеклэхэд зориулав).
   const parkingCount = slots.filter((s) => s.kind === 'slot').length;
   const warehouseCount = slots.filter((s) => s.kind === 'warehouse').length;
@@ -146,6 +146,12 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
             const hasCustomBorder = !!s.borderColor;
             const hasCustomFill = !!s.fillColor;
             const hasCustomLabel = !!s.labelColor;
+            // 2026-09-20: эзэмшигчийн төлбөр төлөлт "хугацаа хэтэрсэн"/
+            // "эрсдэлтэй" үед л, зөвхөн ХүРЭЭНИЙ eнгийг (дүүргэлт/текст
+            // ОГТ хөндэхгүй) давхцуулж тодруулна. Ямар ч tenant/floor-д
+            // адил үйлчилнэ (Property.jsx-ийн getLinkBorderColor нь
+            // tenant/floor-той холбоотой хатуу кодлолгүй).
+            const paymentBorderColor = getLinkBorderColor?.(link);
             return (
               <button
                 key={i}
@@ -155,10 +161,11 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                 title={s.label || ''}
               >
                 <div
-                  className={`absolute border transition-colors ${s.kind === 'warehouse' ? 'inset-[2px] rounded-full' : 'inset-[1px] rounded-[1px]'} ${!hasCustomBorder ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
+                  className={`absolute transition-colors ${paymentBorderColor ? 'border-2' : 'border'} ${s.kind === 'warehouse' ? 'inset-[2px] rounded-full' : 'inset-[1px] rounded-[1px]'} ${!hasCustomBorder && !paymentBorderColor ? 'border-slate-500/30 group-hover:border-slate-400' : ''} ${!hasCustomFill ? 'bg-slate-500/[0.10]' : ''}`}
                   style={{
                     ...(hasCustomBorder ? { borderColor: s.borderColor } : {}),
                     ...(hasCustomFill ? { background: s.fillColor } : {}),
+                    ...(paymentBorderColor ? { borderColor: paymentBorderColor } : {}),
                   }}
                 />
                 {s.label && (
@@ -184,6 +191,10 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
               const hasCustomStroke = !!p.strokeColor;
               const hasCustomFill = !!p.fillColor;
               const hasCustomLabel = !!p.labelColor;
+              // 2026-09-20: слоттой ЯГ ИЖИЛ зарчим — зөвхөн хүрээ
+              // (stroke)-ийг л давхцуулж тодруулна, дүүргэлт/текст
+              // ОГТ хөндэхгүй.
+              const paymentBorderColor = getLinkBorderColor?.(link);
               return (
                 <g
                   key={i}
@@ -197,9 +208,9 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
                     points={p.points.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
                     fill={hasCustomFill ? p.fillColor : 'currentColor'}
                     fillOpacity={hasCustomFill ? 1 : 0.10}
-                    stroke={hasCustomStroke ? p.strokeColor : 'currentColor'}
-                    strokeOpacity={hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3)}
-                    strokeWidth={p.strokeWidth}
+                    stroke={paymentBorderColor || (hasCustomStroke ? p.strokeColor : 'currentColor')}
+                    strokeOpacity={paymentBorderColor ? 1 : (hasCustomStroke ? 1 : (hoveredPolyIdx === i ? 0.7 : 0.3))}
+                    strokeWidth={paymentBorderColor ? (p.strokeWidth || 2) * 1.6 : p.strokeWidth}
                     strokeLinejoin="round"
                     strokeDasharray={p.lineStyle === 'dashed' ? `${(p.strokeWidth || 2) * 3},${(p.strokeWidth || 2) * 2}` : p.lineStyle === 'dotted' ? `${p.strokeWidth || 2},${(p.strokeWidth || 2) * 1.5}` : undefined}
                     strokeLinecap={p.lineStyle === 'dotted' ? 'round' : 'butt'}
