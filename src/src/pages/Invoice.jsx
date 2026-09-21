@@ -327,10 +327,21 @@ export default function Invoice() {
   }
 
   // ---------------- үе шат 2: ХАДГАЛАХ (бодитоор бичнэ) ----------------
+  // 2026-09-20 (61, 3-р үе шат): "Нягтлан бодох бүртгэл"-ийн 3
+  // тайланг (Орлого-зарлагын тайлан, Тэнцэл) бодит гүйлгээгээр
+  // тестлэх үед олдсон чухал цоорхой ЗАСАВ — нэхэмжлэх үүсгэх үед
+  // ЯМАР Ч журналын бичилт (Дт Авлага / Кт Орлого) үүсгэдэггүй
+  // байсан тул, Орлого (5400/5600) хэзээ ч хүлээн зөвшөөрөгддөггүй,
+  // Авлагын данс (1110/1120) зөвхөн төлбөр бүртгэх үед
+  // (RecordPaymentModal.jsx) КРЕДИТЛЭГДЭЖ, ХЭЗЭЭ Ч ДЕБЕТЛЭГДЭЭГҮЙ тул
+  // сөргөг тал руу үргэлж явдаг байв. Одоо энэ batch-аар үүссэн БҮХ
+  // invoice-ийн нийт дүнг (owner/client тус тусад нь) НЭГ журналын
+  // бичилтэд нэгтгэж үүсгэнэ.
   async function commitPreview() {
     setSaving(true);
     try {
       let created = 0, skipped = 0, failed = 0;
+      let ownerReceivableTotal = 0, clientReceivableTotal = 0;
       for (const row of previewRows) {
         const { data: inv, error } = await supabase.from('invoices')
           .insert({ tenant_id: hoaId, target_type: row.target_type, target_id: row.target_id, period_year: year, period_month: month, total_amount: row.total, status: 'sent', sent_at: new Date().toISOString() })
@@ -352,6 +363,23 @@ export default function Invoice() {
           continue;
         }
         created++;
+        if (row.target_type === 'client') clientReceivableTotal += Number(row.total) || 0;
+        else ownerReceivableTotal += Number(row.total) || 0;
+      }
+      // Орлого хүлээн зөвшөөрөх журналын бичилт (Дт Авлага / Кт Орлого)
+      const journalLines = [];
+      if (ownerReceivableTotal > 0) journalLines.push({ account_code: '1110', debit: ownerReceivableTotal, credit: 0 });
+      if (clientReceivableTotal > 0) journalLines.push({ account_code: '1120', debit: clientReceivableTotal, credit: 0 });
+      const totalIncome = ownerReceivableTotal + clientReceivableTotal;
+      if (journalLines.length > 0 && totalIncome > 0) {
+        journalLines.push({ account_code: '5600', debit: 0, credit: totalIncome });
+        const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+          tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
+          description: `${year} оны ${month}-р сарын нэхэмжлэх (${created} ширхэг)`, source_type: 'invoice_sent',
+        }).select().single();
+        if (!entryErr && entry) {
+          await supabase.from('journal_entry_lines').insert(journalLines.map((l) => ({ ...l, entry_id: entry.id })));
+        }
       }
       const parts = [`${created} нэхэмжлэл үүсгэж илгээлээ`];
       if (skipped) parts.push(`${skipped} аль хэдийн байсан тул алгаслаа`);
