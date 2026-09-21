@@ -44,9 +44,11 @@ async function fetchAll(query: any) {
 }
 
 async function buildMonthlyReportHtml(supabase: any, hoaId: string, year: number, month: number) {
-  const [invoices, unitLayouts] = await Promise.all([
+  const [invoices, unitLayouts, accounts, lineRows] = await Promise.all([
     fetchAll(supabase.from('invoices').select('target_type, target_id, total_amount, status').eq('tenant_id', hoaId).eq('period_year', year).eq('period_month', month)),
     fetchAll(supabase.from('unit_layouts').select('id').eq('tenant_id', hoaId)),
+    fetchAll(supabase.from('chart_of_accounts').select('code, name, category').eq('tenant_id', hoaId).eq('is_active', true)),
+    fetchAll(supabase.from('journal_entry_lines').select('account_code, debit, credit, journal_entries!inner(tenant_id, entry_date)').eq('journal_entries.tenant_id', hoaId)),
   ]);
   const unitIds = new Set(unitLayouts.map((u: any) => u.id));
 
@@ -71,9 +73,64 @@ async function buildMonthlyReportHtml(supabase: any, hoaId: string, year: number
   const paidPct = invoicedTotal > 0 ? ((paidTotal / invoicedTotal) * 100).toFixed(1) : '0.0';
   const owedTotal = sentTotal + overdueTotal;
 
+  // 2026-09-20 (61, 4-р үе шат): journal_entries/journal_entry_lines
+  // (Нягтлан бодох бүртгэл) БОДИТ ажиллаж эхэлсэн тул, "Нийт зардал",
+  // "Дансны эхний/эцсийн үлдэгдэл", "Хуримтлалын сан" placeholder-ийг
+  // БОДИТ dataгаар бөглөв (NewsFormModal.jsx-тэй ЯГ ИЖИЛ логик).
+  const DEBIT_NORMAL_CATEGORIES = ['cash', 'short_term_investment', 'receivable', 'inventory', 'prepaid_expense', 'fixed_asset', 'expense'];
+  const accountByCode: Record<string, any> = {};
+  accounts.forEach((a: any) => { accountByCode[a.code] = a; });
+  const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
+  const periodEnd = new Date(year, month, 0).toISOString().slice(0, 10);
+  const hasAnyEntries = lineRows.length > 0;
+
+  function lineAmount(l: any) {
+    const acc = accountByCode[l.account_code];
+    const isDebitNormal = acc ? DEBIT_NORMAL_CATEGORIES.includes(acc.category) : true;
+    return isDebitNormal ? Number(l.debit) - Number(l.credit) : Number(l.credit) - Number(l.debit);
+  }
+
+  const expenseByAccount: Record<string, number> = {};
+  lineRows.forEach((l: any) => {
+    const acc = accountByCode[l.account_code];
+    if (!acc || acc.category !== 'expense') return;
+    const d = l.journal_entries?.entry_date;
+    if (!d || d < periodStart || d > periodEnd) return;
+    expenseByAccount[l.account_code] = (expenseByAccount[l.account_code] || 0) + lineAmount(l);
+  });
+  const expenseRows = Object.entries(expenseByAccount).filter(([, v]) => v !== 0).map(([code, v]) => ({ code, name: accountByCode[code]?.name || code, amount: v as number }));
+  const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+
+  let beginningBalance = 0, endingBalance = 0;
+  lineRows.forEach((l: any) => {
+    const acc = accountByCode[l.account_code];
+    if (!acc || acc.category !== 'cash') return;
+    const d = l.journal_entries?.entry_date;
+    if (!d) return;
+    const amount = lineAmount(l);
+    if (d < periodStart) beginningBalance += amount;
+    if (d <= periodEnd) endingBalance += amount;
+  });
+
+  let reserveFundBalance = 0;
+  lineRows.forEach((l: any) => {
+    const acc = accountByCode[l.account_code];
+    if (!acc || acc.category !== 'equity') return;
+    const d = l.journal_entries?.entry_date;
+    if (!d || d > periodEnd) return;
+    reserveFundBalance += lineAmount(l);
+  });
+
   const sectionRow = (label: string) => `<tr><td colspan="2" style="font-weight:bold; padding:10px 4px 4px;">${label}</td></tr>`;
   const dataRow = (label: string, value: string, bold?: boolean) => `<tr><td style="padding:3px 8px;${bold ? ' font-weight:bold;' : ''}">${label}</td><td style="padding:3px 8px; text-align:right;${bold ? ' font-weight:bold;' : ''}">${value}</td></tr>`;
   const noDataRow = () => `<tr><td colspan="2" style="padding:3px 8px; color:#94a3b8; font-style:italic;">${NO_DATA_NOTE}</td></tr>`;
+
+  const expenseSectionHtml = !hasAnyEntries
+    ? noDataRow()
+    : expenseRows.map((r) => dataRow(`${r.code} — ${r.name}`, fmtMoney(r.amount))).join('\n') + '\n' + dataRow('Нийт зардал', fmtMoney(totalExpense), true);
+  const beginningRow = hasAnyEntries ? dataRow('Дансны эхний үлдэгдэл', fmtMoney(beginningBalance), true) : noDataRow();
+  const endingRow = hasAnyEntries ? dataRow('Дансны эцсийн үлдэгдэл', fmtMoney(endingBalance), true) : noDataRow();
+  const reserveRow = hasAnyEntries ? dataRow('Хуримтлалын санд төвлөрсөн хөрөнгө', fmtMoney(reserveFundBalance), true) : noDataRow();
 
   return `<table style="width:100%; border-collapse:collapse;">
 ${sectionRow('Нэхэмжилсэн дүн')}
@@ -85,17 +142,17 @@ ${dataRow('Талбай өмчлөгч', fmtMoney(paidClient))}
 ${dataRow('Нийт орлого', fmtMoney(paidTotal), true)}
 ${dataRow('Төлбөрийн хувь', `${paidPct}%`)}
 ${sectionRow('Нийт зардал')}
-${noDataRow()}
+${expenseSectionHtml}
 ${sectionRow('Дансны эхний үлдэгдэл')}
-${noDataRow()}
+${beginningRow}
 ${sectionRow('Дансны эцсийн үлдэгдэл')}
-${noDataRow()}
+${endingRow}
 ${sectionRow('Хүлээгдэж буй нийт өр төлбөр')}
 ${dataRow('Энэ сарын төлөгдөөгүй', fmtMoney(sentTotal))}
 ${dataRow('Хугацаа хэтэрсэн', fmtMoney(overdueTotal))}
 ${dataRow('Нийт өр төлбөр', fmtMoney(owedTotal), true)}
 ${sectionRow('Хуримтлалын санд төвлөрсөн хөрөнгө')}
-${noDataRow()}
+${reserveRow}
 </table>`;
 }
 
@@ -106,7 +163,7 @@ Deno.serve(async (_req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Монголын цагаар (UTC+8) өнөөдрийн сарын eдрийг тооцоолно.
+    // Монголын цагаар (UTC+8) өнөөдрийн сарын өдрийг тооцоолно.
     const now = new Date();
     const mnNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
     const todayDay = mnNow.getUTCDate();
