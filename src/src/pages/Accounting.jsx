@@ -529,7 +529,7 @@ function BalanceSheetTab({ hoaId }) {
 // алдагдлыг ХАРАГДАЦ болгож нэмнэ (BalanceSheetTab-тай ЯГ ИЖИЛ
 // зарчим — Rule of two).
 // 2026-09-22 (67): НББ стандарт нийцүүлэлт (6-р зүйл) — Албан ёсны
-// Ф1 (Санхүүгийн байдлын тайлан) маягт. Сангийн сайдын 2017.386
+// А маягт (Санхүүгийн байдлын тайлан). Сангийн сайдын 2017.386
 // тушаалын 3-р хавсралтаас үзүүлсэн ЯГ мөрийн дугаар, нэрээр
 // (1, 1.1, 1.1.1...1.1.8, 1.2, 1.2.1...2.4) баганалж, манай дансны
 // үлдэгдлүүдийг харгалзах мөрт тавьна. Манай систем одоо хүртэл
@@ -621,7 +621,7 @@ function OfficialFormsTab({ hoaId }) {
 
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + netAssetsTotal)) < 1;
 
-  // 2026-09-22 (67, үргэлжлүүлэлт): Ф2 (үр дүнгийн тайлан) — ЯГ
+  // 2026-09-22 (67, үргэлжлүүлэлт): Б маягт (үр дүнгийн тайлан) — ЯГ
   // адил албан ёсны 3-р хавсралтын мөрийн дугаараар (1-41). Манай
   // тодорхой дансуудыг (5410 Түрээс→5-р мөр, 5610 Бусад орлого→7-р
   // мөр, 7010 Цалин→17-р мөр, 7020 НДШ→18-р мөр, 7030 Засвар→19-р
@@ -680,8 +680,9 @@ function OfficialFormsTab({ hoaId }) {
 
   return (
     <div>
+      <div className="text-[13px] font-semibold mt-1 mb-1">А МАЯГТ — САНХҮҮГИЙН БАЙДЛЫН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдөггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Хуримтлагдсан элэгдэл, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
+        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдөггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
       </div>
       <div className="ds-card p-3">
         <table className="ds-table w-full">
@@ -707,7 +708,7 @@ function OfficialFormsTab({ hoaId }) {
         {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (1.3 = 2.4: {formatMoney(totalAssets)}₮ vs {formatMoney(totalLiabilities + netAssetsTotal)}₮)
       </div>
 
-      <div className="text-[13px] font-semibold mt-6 mb-1">Ф2 — ҮР ДҮНГИЙН ТАЙЛАН</div>
+      <div className="text-[13px] font-semibold mt-6 mb-1">Б МАЯГТ — ҮР ДҮНГИЙН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
         ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Манай систем зарим дэд ангиллыг (Гишүүдийн татвар, Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
       </div>
@@ -1055,7 +1056,7 @@ export default function Accounting() {
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
         <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
         <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
-        <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны Ф1/Ф2 маягт</TabButton>
+        <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны А/Б маягт</TabButton>
         <TabButton active={tab === 'notes'} onClick={() => setTab('notes')}>Тайлангийн тодруулга</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
