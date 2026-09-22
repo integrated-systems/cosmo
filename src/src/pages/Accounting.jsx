@@ -560,8 +560,9 @@ function OfficialFormsTab({ hoaId }) {
   const prepaidExpense = sumByCategory('prepaid_expense');
   const currentAssetsTotal = cash + shortTermInvestment + receivable + inventory + prepaidExpense;
 
-  const fixedAsset = sumByCategory('fixed_asset');
-  const nonCurrentAssetsTotal = fixedAsset;
+  const fixedAssetGross = sumByCode('2010');
+  const accumulatedDepreciation = sumByCode('2020');
+  const nonCurrentAssetsTotal = sumByCategory('fixed_asset');
   const totalAssets = currentAssetsTotal + nonCurrentAssetsTotal;
 
   const salaryPayable = sumByCode('3130');
@@ -590,8 +591,8 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('1.1.7', 'Бусад эргэлтийн хөрэнгө', 0),
     officialRow('1.1.8', 'Эргэлтийн хөрэнгийн дүн', currentAssetsTotal, { bold: true }),
     officialRow('1.2', 'Эргэлтийн бус хөрэнгө', null, { bold: true }),
-    officialRow('1.2.1', 'үндсэн хөрэнгө', fixedAsset),
-    officialRow('1.2.2', 'Хуримтлагдсан элэгдэл', 0),
+    officialRow('1.2.1', 'үндсэн хөрэнгө', fixedAssetGross),
+    officialRow('1.2.2', 'Хуримтлагдсан элэгдэл', accumulatedDepreciation),
     officialRow('1.2.3', 'Бусад үндсэн хөрэнгө', 0),
     officialRow('1.2.5', 'Биет бус хөрэнгө', 0),
     officialRow('1.2.7', 'Хөрэнгө оруулалт ба бусад хөрэнгө', 0),
@@ -633,8 +634,9 @@ function OfficialFormsTab({ hoaId }) {
   const salaryExpense = sumByCode('7010');
   const socialInsuranceExpense = sumByCode('7020');
   const maintenanceExpense = sumByCode('7030');
-  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense;
-  const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + otherExpenseExplicit;
+  const depreciationExpense = sumByCode('7070');
+  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense - depreciationExpense;
+  const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + depreciationExpense + otherExpenseExplicit;
 
   const operatingResult = operatingIncomeTotal - operatingExpenseTotal;
   const netResultF2 = operatingResult;
@@ -660,7 +662,7 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('21', 'Түрээсийн зардал', 0),
     officialRow('22', 'Албан томилолтын зардал', 0),
     officialRow('23', 'Тээврийн зардал', 0),
-    officialRow('24', 'Элэгдлийн зардал', 0),
+    officialRow('24', 'Элэгдлийн зардал', depreciationExpense),
     officialRow('25', 'Зар сурталчилгааны зардал', 0),
     officialRow('26', 'Шуудан холбооны зардал', 0),
     officialRow('27', 'Шатахууны зардал', 0),
