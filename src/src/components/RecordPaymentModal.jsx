@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
 import { computeOwnerTargetId, computeClientTargetId } from '../lib/stableTargetId';
+import { useAuth } from '../lib/AuthContext';
 
 // 2026-09-20 (61, 2-р үе шат): "Төлбөр бүртгэх" товч ОДОО ХҮРТЭЛ
 // ямар ч onClick-гүй placeholder байсныг бодитоор ажиллуулав.
@@ -12,6 +13,7 @@ import { computeOwnerTargetId, computeClientTargetId } from '../lib/stableTarget
 // "paid" болгож, НЭГ журналын бичилт (Дт 1020 Харилцах / Кт [харьяа
 // авлагын данс]) автоматаар үүсгэнэ.
 export default function RecordPaymentModal({ open, onClose, hoaId, targetType, record, unitLayouts, onSaved }) {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function RecordPaymentModal({ open, onClose, hoaId, targetType, r
       const periods = [...new Set(selectedInvoices.map((i) => `${i.period_year}.${i.period_month}`))].join(', ');
       const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
         tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
-        description: `Төлбөр хүлээн авав (${periods})`, source_type: 'invoice_payment', source_ref: ids.join(','),
+        description: `Төлбөр хүлээн авав (${periods})`, source_type: 'invoice_payment', source_ref: ids.join(','), created_by: user?.id,
       }).select().single();
       if (entryErr) { setError(entryErr.message); return; }
       const { error: linesErr } = await supabase.from('journal_entry_lines').insert([

@@ -8,6 +8,7 @@ import { useGridSpots, sumLinkedSqm } from '../hooks/useGridSpots';
 import { formatUnitCode } from '../lib/ownersFormat';
 import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useAlert } from '../hooks/useAlert';
+import { useAuth } from '../lib/AuthContext';
 
 // "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-07 (17): Хэрэглэгчийн
 // зурган хүсэлтээр 2 үе шаттай урсгал болгож бүрэн дахин зохион
@@ -124,6 +125,7 @@ function sortItems(items) {
 
 export default function Invoice() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
+  const { user } = useAuth();
   const { gridStorageSpots } = useGridSpots(hoaId);
   const { alert, AlertDialog } = useAlert();
   const now = new Date();
@@ -376,7 +378,7 @@ export default function Invoice() {
         journalLines.push({ account_code: '5610', debit: 0, credit: totalIncome });
         const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
           tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
-          description: `${year} оны ${month}-р сарын нэхэмжлэх (${created} ширхэг)`, source_type: 'invoice_sent',
+          description: `${year} оны ${month}-р сарын нэхэмжлэх (${created} ширхэг)`, source_type: 'invoice_sent', created_by: user?.id,
         }).select().single();
         if (!entryErr && entry) {
           await supabase.from('journal_entry_lines').insert(journalLines.map((l) => ({ ...l, entry_id: entry.id })));

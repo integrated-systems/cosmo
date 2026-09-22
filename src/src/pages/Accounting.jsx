@@ -7,6 +7,7 @@ import { formatMoney, formatDateTimeMinutes } from '../lib/format';
 import TabButton from '../components/TabButton';
 import Modal from '../components/Modal';
 import { useChartOfAccounts } from '../hooks/useChartOfAccounts';
+import { useAuth } from '../lib/AuthContext';
 
 // 2026-09-09: Журналын бүх мөрийг татах логикийг НЭГ л газраас
 // (Rule of two) — Тэнцвэржүүлсэн тайлан, Орлого зарлагын тайлан,
@@ -74,6 +75,7 @@ function ChartOfAccountsTab({ hoaId }) {
 }
 
 function JournalEntriesTab({ hoaId }) {
+  const { user } = useAuth();
   const { accounts, accountLabel } = useChartOfAccounts(hoaId);
   const [entries, setEntries] = useState([]);
   const [lines, setLines] = useState([]);
@@ -108,7 +110,7 @@ function JournalEntriesTab({ hoaId }) {
       const entryLines = linesFor(entry.id);
       const { data: newEntry, error: entryErr } = await supabase.from('journal_entries').insert({
         tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
-        description: `Буцаалт: ${entry.description}`, source_type: 'manual', reverses_entry_id: entry.id,
+        description: `Буцаалт: ${entry.description}`, source_type: 'manual', reverses_entry_id: entry.id, created_by: user?.id,
       }).select().single();
       if (entryErr) { alert(entryErr.message); return; }
       const reversedLines = entryLines.map((l) => ({ entry_id: newEntry.id, account_code: l.account_code, debit: Number(l.credit), credit: Number(l.debit) }));
@@ -205,6 +207,7 @@ function emptyJournalLine() {
   return { id: Math.random().toString(36).slice(2), account_code: '', side: 'debit', amount: '' };
 }
 function NewJournalEntryModal({ open, onClose, hoaId, accounts, onSaved }) {
+  const { user } = useAuth();
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
   const [rows, setRows] = useState([emptyJournalLine(), emptyJournalLine()]);
@@ -233,7 +236,7 @@ function NewJournalEntryModal({ open, onClose, hoaId, accounts, onSaved }) {
     setError('');
     try {
       const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
-        tenant_id: hoaId, entry_date: entryDate, description: description.trim(), source_type: 'manual',
+        tenant_id: hoaId, entry_date: entryDate, description: description.trim(), source_type: 'manual', created_by: user?.id,
       }).select().single();
       if (entryErr) { setError(entryErr.message); return; }
       const lineRows = rows.map((r) => ({
