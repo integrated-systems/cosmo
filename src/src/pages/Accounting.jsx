@@ -98,7 +98,7 @@ function JournalEntriesTab({ hoaId }) {
   const linesFor = (entryId) => lines.filter((l) => l.entry_id === entryId);
   // 2026-09-22 (64): НББ стандарт нийцүүлэлт (3-р зүйл) — Буцаах
   // бичилт. Үүнээс хойш staff НЭГ ч журналын бичилтийг шууд UPDATE/
-  // DELETE хийж ЧАДАХГүй (RLS-ээр хориглогдсон) — зөвхөн БУЦААХ
+  // DELETE хийж ЧАДАХГҮй (RLS-ээр хориглогдсон) — зөвхөн БУЦААХ
   // (reversing) бичилт үүсгэж, алдааг залруулна.
   const isEntryReversed = (entryId) => entries.some((e) => e.reverses_entry_id === entryId);
 
@@ -525,9 +525,133 @@ function BalanceSheetTab({ hoaId }) {
 // Стандарт 4 үндсэн санхүүгийн тайлангийн НЭГ. Эздийн эрхийн
 // (equity) данс тус бүрийн НЭМЭГДЭЛ (кредит, өсөлт)/ХАСАГДАЛ (дебет,
 // бууралт)-ыг тусад нь харуулж, мөн одоо хүртэл ЭЗДИЙН ЭРХ рүү
-// ХААГДААГүй (closing entry хийгддэггүй) тайлант үеийн цэвэр ашиг/
+// ХААГДААГҮй (closing entry хийгддэггүй) тайлант үеийн цэвэр ашиг/
 // алдагдлыг ХАРАГДАЦ болгож нэмнэ (BalanceSheetTab-тай ЯГ ИЖИЛ
 // зарчим — Rule of two).
+// 2026-09-22 (67): НББ стандарт нийцүүлэлт (6-р зүйл) — Албан ёсны
+// Ф1 (Санхүүгийн байдлын тайлан) маягт. Сангийн сайдын 2017.386
+// тушаалын 3-р хавсралтаас үзүүлсэн ЯГ мөрийн дугаар, нэрээр
+// (1, 1.1, 1.1.1...1.1.8, 1.2, 1.2.1...2.4) баганалж, манай дансны
+// үлдэгдлүүдийг харгалзах мөрт тавьна. Манай систем одоо хүртэл
+// ялгаж хөтлөдэггүй зарим мөр (Найдваргүй авлагын хасагдуулга,
+// Хуримтлагдсан элэгдэл — Элэгдлийн автомат тооцоолол хараахан
+// хийгдээгүй тул, Урт хугацаат зээл гэх мэт) 0 гэж үнэн зөвөөр
+// үзүүлнэ — үүнийг хөвөөтөй мөрт тэмдэглэсэн.
+function officialRow(no, label, value, opts) {
+  const bold = opts?.bold;
+  return { no, label, value, bold };
+}
+function OfficialFormsTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
+
+  const sumByCategory = (cat) => accounts.filter((a) => a.category === cat).reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
+  const sumByCode = (code) => {
+    const acc = accounts.find((a) => a.code === code);
+    return acc ? accountBalance(acc, lines).balance : 0;
+  };
+
+  const cash = sumByCategory('cash');
+  const shortTermInvestment = sumByCategory('short_term_investment');
+  const receivable = sumByCategory('receivable');
+  const inventory = sumByCategory('inventory');
+  const prepaidExpense = sumByCategory('prepaid_expense');
+  const currentAssetsTotal = cash + shortTermInvestment + receivable + inventory + prepaidExpense;
+
+  const fixedAsset = sumByCategory('fixed_asset');
+  const nonCurrentAssetsTotal = fixedAsset;
+  const totalAssets = currentAssetsTotal + nonCurrentAssetsTotal;
+
+  const salaryPayable = sumByCode('3130');
+  const taxPayable = sumByCode('3110') + sumByCode('3120');
+  const deferredIncome = sumByCode('3210');
+  const otherPayable = sumByCode('3310');
+  const accountsPayable = sumByCategory('payable') - salaryPayable - taxPayable - deferredIncome - otherPayable;
+  const currentLiabTotal = accountsPayable + salaryPayable + taxPayable + deferredIncome + otherPayable;
+  const totalLiabilities = currentLiabTotal;
+
+  const incomeTotal = sumByCategory('income');
+  const expenseTotal = sumByCategory('expense');
+  const netResult = incomeTotal - expenseTotal;
+  const reserveUnrestricted = sumByCategory('equity');
+  const netAssetsTotal = reserveUnrestricted + netResult;
+
+  const f1Rows = [
+    officialRow('1', 'ХӨРӨНГӨ', null, { bold: true }),
+    officialRow('1.1', 'Эргэлтийн хөрэнгө', null, { bold: true }),
+    officialRow('1.1.1', 'Мөнгө, түүнтэй адилтгах хөрэнгө', cash),
+    officialRow('1.1.2', 'Богино хугацаат хөрэнгө оруулалт', shortTermInvestment),
+    officialRow('1.1.3', 'Дансны авлага', receivable),
+    officialRow('1.1.4', 'Найдваргүй авлагын хасагдуулга', 0),
+    officialRow('1.1.5', 'Бараа материал', inventory),
+    officialRow('1.1.6', 'Урьдчилж төлсэн зардал/тооцоо', prepaidExpense),
+    officialRow('1.1.7', 'Бусад эргэлтийн хөрэнгө', 0),
+    officialRow('1.1.8', 'Эргэлтийн хөрэнгийн дүн', currentAssetsTotal, { bold: true }),
+    officialRow('1.2', 'Эргэлтийн бус хөрэнгө', null, { bold: true }),
+    officialRow('1.2.1', 'үндсэн хөрэнгө', fixedAsset),
+    officialRow('1.2.2', 'Хуримтлагдсан элэгдэл', 0),
+    officialRow('1.2.3', 'Бусад үндсэн хөрэнгө', 0),
+    officialRow('1.2.5', 'Биет бус хөрэнгө', 0),
+    officialRow('1.2.7', 'Хөрэнгө оруулалт ба бусад хөрэнгө', 0),
+    officialRow('1.2.8', 'Эргэлтийн бус хөрэнгийн дүн', nonCurrentAssetsTotal, { bold: true }),
+    officialRow('1.3', 'НИЙТ ХӨРӨНГИЙН ДҮН', totalAssets, { bold: true }),
+    officialRow('2', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГӨ', null, { bold: true }),
+    officialRow('2.1', 'өр төлбөр', null, { bold: true }),
+    officialRow('2.1.1', 'Богино хугацаат өр төлбэр', null, { bold: true }),
+    officialRow('2.1.1.1', 'Дансны өглөг', accountsPayable),
+    officialRow('2.1.1.2', 'Цалингийн өглөг', salaryPayable),
+    officialRow('2.1.1.3', 'Татварын өр', taxPayable),
+    officialRow('2.1.1.4', 'Богино хугацаат зээл', 0),
+    officialRow('2.1.1.5', 'Урьдчилж орсон орлого', deferredIncome),
+    officialRow('2.1.1.6', 'Бусад өглөг', otherPayable),
+    officialRow('2.1.1.7', 'Богино хугацаат өр төлбөрийн дүн', currentLiabTotal, { bold: true }),
+    officialRow('2.1.2', 'Урт хугацаат өр төлбэр', 0),
+    officialRow('2.2', 'өр төлбөрийн нийт дүн', totalLiabilities, { bold: true }),
+    officialRow('2.3', 'Цэвэр хөрэнгө', null, { bold: true }),
+    officialRow('2.3.1', 'Нөөц: а) хязгаарлалтгүй', reserveUnrestricted),
+    officialRow('2.3.2', 'б) хязгаарлалттай', 0),
+    officialRow('2.3.3', 'Дахин үнэлгээний нэмэгдэл', 0),
+    officialRow('2.3.5', 'Хуримтлагдсан үр дүн (тайлант үеийн)', netResult),
+    officialRow('2.3.6', 'Цэвэр хөрэнгийн дүн', netAssetsTotal, { bold: true }),
+    officialRow('2.4', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГИЙН ДҮН', totalLiabilities + netAssetsTotal, { bold: true }),
+  ];
+
+  const isBalanced = Math.abs(totalAssets - (totalLiabilities + netAssetsTotal)) < 1;
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдэггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Хуримтлагдсан элэгдэл, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
+      </div>
+      <div className="ds-card p-3">
+        <table className="ds-table w-full">
+          <thead>
+            <tr>
+              <th className="py-1.5 px-2" style={{ width: 70 }}>Мөр №</th>
+              <th className="py-1.5 px-2">ҮЗҮҮЛЭЛТ</th>
+              <th className="py-1.5 px-2 text-right" style={{ width: 160 }}>Дүн (₮)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+            {f1Rows.map((r) => (
+              <tr key={r.no} className={r.bold ? 'bg-slate-100 dark:bg-white/[0.03]' : ''}>
+                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.no}</td>
+                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.label}</td>
+                <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.value !== null ? `${formatMoney(r.value)}₮` : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className={`ds-card p-3 mt-3 text-center text-[13px] font-semibold ${isBalanced ? 'text-customGreen' : 'text-customRed'}`}>
+        {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (1.3 = 2.4: {formatMoney(totalAssets)}₮ vs {formatMoney(totalLiabilities + netAssetsTotal)}₮)
+      </div>
+    </div>
+  );
+}
+
 function EquityChangesTab({ hoaId }) {
   const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
   const { lines, loading } = useAllJournalLines(hoaId);
@@ -562,7 +686,7 @@ function EquityChangesTab({ hoaId }) {
               <th className="py-1.5 px-2">ДАНС</th>
               <th className="py-1.5 px-2 text-right">НЭМЭГДЭЛ</th>
               <th className="py-1.5 px-2 text-right">ХАСАГДАЛ</th>
-              <th className="py-1.5 px-2 text-right">үЛДЭГДЭЛ</th>
+              <th className="py-1.5 px-2 text-right">ҮЛДЭГДЭЛ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
@@ -606,11 +730,11 @@ function EquityChangesTab({ hoaId }) {
 // гүйлгээний тайлан (Cash Flow Statement). Стандарт 4 үндсэн санхүүгийн
 // тайлангийн НЭГ, ОДОО ХҮРТЭЛ огт байхгүй байсан. "Шууд арга" (direct
 // method)-аар: journal_entries бүрийг үзэж, тухайн бичилт доtorh
-// Мөнгөн хөрөнгe (cash) мөрийн цэвэр eeрчлөлтийг, ТЭР ЖУРНАЛЫН
+// Мөнгөн хөрөнгө (cash) мөрийн цэвэр eөрчлөлтийг, ТЭР ЖУРНАЛЫН
 // бичилт доторх БУСАД (cash биш) мөрүүдийн ангиллаар (жин: тухайн
-// мөрийн дүнгийн эзлэх хувиар) үйл ажиллагаа/хөрөнгe оруулалт/
+// мөрийн дүнгийн эзлэх хувиар) үйл ажиллагаа/хөрөнгө оруулалт/
 // санхүүжилтийн 3 бүлэгт хуваарилна. Систем эхэлсэн цагаас хойших
-// БүХ гүйлгээг барьдаг тул "эхний үлдэгдэл"-ийг 0-ээс эхэлнэ гэж
+// БҮХ гүйлгээг барьдаг тул "эхний үлдэгдэл"-ийг 0-ээс эхэлнэ гэж
 // үзнэ.
 function CashFlowStatementTab({ hoaId }) {
   const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
@@ -654,16 +778,16 @@ function CashFlowStatementTab({ hoaId }) {
   return (
     <div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Одоогийн бүх журналын бичилтэд үндэслэсэн, Мөнгөн хөрөнгийн (Касс, Харилцах) хөдөлгeeний нэгтгэсэн тайлан. "Шинэ гүйлгээ бүртгэх" үед сонгосон эсрэг дансны ангиллаар (Зардал/Орлого/Авлага/eглөг → үйл ажиллагаа, үндсэн хөрөнгe → хөрөнгe оруулалт, Хуримтлалын сан → санхүүжилт) автоматаар ангилагдана.
+        Одоогийн бүх журналын бичилтэд үндэслэсэн, Мөнгөн хөрөнгийн (Касс, Харилцах) хөдөлгөөний нэгтгэсэн тайлан. "Шинэ гүйлгээ бүртгэх" үед сонгосон эсрэг дансны ангиллаар (Зардал/Орлого/Авлага/өглөг → үйл ажиллагаа, үндсэн хөрөнгө → хөрөнгө оруулалт, Хуримтлалын сан → санхүүжилт) автоматаар ангилагдана.
       </div>
       <div className="flex flex-col gap-3">
         <div className="ds-card p-3">
           <div className="flex justify-between text-[12.5px] py-0.5"><span>үйл ажиллагааны гүйлгээ</span><span>{formatMoney(operatingFlow)}₮</span></div>
-          <div className="flex justify-between text-[12.5px] py-0.5"><span>Хөрөнгe оруулалтын гүйлгээ</span><span>{formatMoney(investingFlow)}₮</span></div>
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>Хөрөнгө оруулалтын гүйлгээ</span><span>{formatMoney(investingFlow)}₮</span></div>
           <div className="flex justify-between text-[12.5px] py-0.5"><span>Санхүүжилтийн гүйлгээ</span><span>{formatMoney(financingFlow)}₮</span></div>
           {otherFlow !== 0 && <div className="flex justify-between text-[12.5px] py-0.5"><span>Бусад</span><span>{formatMoney(otherFlow)}₮</span></div>}
           <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
-            <span>Мөнгөн хөрөнгийн цэвэр eeрчлөлт</span><span>{formatMoney(totalCashNet)}₮</span>
+            <span>Мөнгөн хөрөнгийн цэвэр eөрчлөлт</span><span>{formatMoney(totalCashNet)}₮</span>
           </div>
         </div>
         <div className="ds-card p-3">
@@ -713,7 +837,7 @@ function ClosedPeriodsTab({ hoaId }) {
   return (
     <div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Хаагдсан тайлант үед (сар) шинэ гүйлгээ бүртгэх, засах, устгах ХОРИГЛОГДОНО — энэ нь Нягтлан бодох бүртгэлийн стандарт зарчим бөгeeд, тайлант үе дууссаны дараа санамсаргүй eeрчлөлт орохоос сэргийлнэ.
+        Хаагдсан тайлант үед (сар) шинэ гүйлгээ бүртгэх, засах, устгах ХОРИГЛОГДОНО — энэ нь Нягтлан бодох бүртгэлийн стандарт зарчим бөгөөд, тайлант үе дууссаны дараа санамсаргүй eөрчлөлт орохоос сэргийлнэ.
       </div>
       <div className="ds-card p-3 mb-4 flex items-end gap-2">
         <div>
@@ -761,6 +885,7 @@ export default function Accounting() {
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
         <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
         <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
+        <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны Ф1 маягт</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
@@ -770,6 +895,7 @@ export default function Accounting() {
       {tab === 'balancesheet' && <BalanceSheetTab hoaId={hoaId} />}
       {tab === 'cashflow' && <CashFlowStatementTab hoaId={hoaId} />}
       {tab === 'equity' && <EquityChangesTab hoaId={hoaId} />}
+      {tab === 'official' && <OfficialFormsTab hoaId={hoaId} />}
       {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
