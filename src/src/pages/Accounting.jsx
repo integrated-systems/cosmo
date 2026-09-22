@@ -525,6 +525,81 @@ function BalanceSheetTab({ hoaId }) {
 // шинэ үе хаах, эсвэл (зөвхөн эрх бүхий staff/supersysadmin) буцааж
 // нээх боломжтой. Бодит хориглолт нь RLS дээр (closed_periods
 // migration) хэрэгждэг — ЭНЭ таб зөвхөн харагдац/удирдлагын UI.
+// 2026-09-22 (65): НББ стандарт нийцүүлэлт (4-р зүйл) — Мөнгөн
+// гүйлгээний тайлан (Cash Flow Statement). Стандарт 4 үндсэн санхүүгийн
+// тайлангийн НЭГ, ОДОО ХҮРТЭЛ огт байхгүй байсан. "Шууд арга" (direct
+// method)-аар: journal_entries бүрийг үзэж, тухайн бичилт доtorh
+// Мөнгөн хөрөнгe (cash) мөрийн цэвэр eeрчлөлтийг, ТЭР ЖУРНАЛЫН
+// бичилт доторх БУСАД (cash биш) мөрүүдийн ангиллаар (жин: тухайн
+// мөрийн дүнгийн эзлэх хувиар) үйл ажиллагаа/хөрөнгe оруулалт/
+// санхүүжилтийн 3 бүлэгт хуваарилна. Систем эхэлсэн цагаас хойших
+// БүХ гүйлгээг барьдаг тул "эхний үлдэгдэл"-ийг 0-ээс эхэлнэ гэж
+// үзнэ.
+function CashFlowStatementTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
+
+  const accountByCode = {};
+  accounts.forEach((a) => { accountByCode[a.code] = a; });
+
+  const linesByEntry = {};
+  lines.forEach((l) => {
+    if (!linesByEntry[l.entry_id]) linesByEntry[l.entry_id] = [];
+    linesByEntry[l.entry_id].push(l);
+  });
+
+  let operatingFlow = 0, investingFlow = 0, financingFlow = 0, otherFlow = 0;
+
+  Object.values(linesByEntry).forEach((entryLines) => {
+    const cashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category === 'cash');
+    const nonCashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category !== 'cash');
+    if (cashLines.length === 0) return;
+    const cashNet = cashLines.reduce((s, l) => s + Number(l.debit) - Number(l.credit), 0);
+    const contraTotal = nonCashLines.reduce((s, l) => s + Number(l.debit) + Number(l.credit), 0);
+    if (contraTotal === 0) return;
+    nonCashLines.forEach((l) => {
+      const cat = accountByCode[l.account_code]?.category;
+      const weight = (Number(l.debit) + Number(l.credit)) / contraTotal;
+      const share = cashNet * weight;
+      if (cat === 'fixed_asset') investingFlow += share;
+      else if (cat === 'equity') financingFlow += share;
+      else if (cat) operatingFlow += share;
+      else otherFlow += share;
+    });
+  });
+
+  const totalCashNet = operatingFlow + investingFlow + financingFlow + otherFlow;
+  const beginningCash = 0;
+  const endingCash = beginningCash + totalCashNet;
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Одоогийн бүх журналын бичилтэд үндэслэсэн, Мөнгөн хөрөнгийн (Касс, Харилцах) хөдөлгeeний нэгтгэсэн тайлан. "Шинэ гүйлгээ бүртгэх" үед сонгосон эсрэг дансны ангиллаар (Зардал/Орлого/Авлага/eглөг → үйл ажиллагаа, үндсэн хөрөнгe → хөрөнгe оруулалт, Хуримтлалын сан → санхүүжилт) автоматаар ангилагдана.
+      </div>
+      <div className="flex flex-col gap-3">
+        <div className="ds-card p-3">
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>үйл ажиллагааны гүйлгээ</span><span>{formatMoney(operatingFlow)}₮</span></div>
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>Хөрөнгe оруулалтын гүйлгээ</span><span>{formatMoney(investingFlow)}₮</span></div>
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>Санхүүжилтийн гүйлгээ</span><span>{formatMoney(financingFlow)}₮</span></div>
+          {otherFlow !== 0 && <div className="flex justify-between text-[12.5px] py-0.5"><span>Бусад</span><span>{formatMoney(otherFlow)}₮</span></div>}
+          <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+            <span>Мөнгөн хөрөнгийн цэвэр eeрчлөлт</span><span>{formatMoney(totalCashNet)}₮</span>
+          </div>
+        </div>
+        <div className="ds-card p-3">
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>Эхний үлдэгдэл</span><span>{formatMoney(beginningCash)}₮</span></div>
+          <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
+            <span>Эцсийн үлдэгдэл</span><span>{formatMoney(endingCash)}₮</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ClosedPeriodsTab({ hoaId }) {
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -607,6 +682,7 @@ export default function Accounting() {
         <TabButton active={tab === 'balance'} onClick={() => setTab('balance')}>Тэнцвэржүүлсэн тайлан</TabButton>
         <TabButton active={tab === 'income'} onClick={() => setTab('income')}>Орлого, зарлагын тайлан</TabButton>
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
+        <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
@@ -614,6 +690,7 @@ export default function Accounting() {
       {tab === 'balance' && <TrialBalanceTab hoaId={hoaId} />}
       {tab === 'income' && <IncomeStatementTab hoaId={hoaId} />}
       {tab === 'balancesheet' && <BalanceSheetTab hoaId={hoaId} />}
+      {tab === 'cashflow' && <CashFlowStatementTab hoaId={hoaId} />}
       {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
