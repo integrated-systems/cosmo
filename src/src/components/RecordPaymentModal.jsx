@@ -44,10 +44,11 @@ export default function RecordPaymentModal({ open, onClose, hoaId, targetType, r
   const totalAmount = selectedInvoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
   const canSave = selectedInvoices.length > 0 && !saving;
 
-  // 2026-09-20: харьяа авлагын дансыг target_type-ээр тодорхойлно —
-  // owner (сууц өмчлөгч БОЛОН зогсоол/агуулах дангаар өмчлөгч хоёул)
-  // 1110 "Сууц өмчлөгчдийн авлага", client (талбай өмчлөгч) 1120
-  // "Аж ахуйн нэгжийн авлага".
+  // 2026-09-20 (2026-09-22-нд Монгол улсын НББ стандарттай нийцүүлж
+  // рэнумбер хийсэн): харьяа авлагын дансыг target_type-ээр
+  // тодорхойлно — owner (сууц өмчлөгч БОЛОН зогсоол/агуулах дангаар
+  // өмчлөгч хоёул) 1210 "Сууц өмчлөгчдийн авлага", client (талбай
+  // өмчлөгч) 1220 "Аж ахуйн нэгжийн авлага".
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
@@ -57,7 +58,7 @@ export default function RecordPaymentModal({ open, onClose, hoaId, targetType, r
       const { error: updateErr } = await supabase.from('invoices').update({ status: 'paid' }).in('id', ids);
       if (updateErr) { setError(updateErr.message); return; }
 
-      const receivableAccount = targetType === 'client' ? '1120' : '1110';
+      const receivableAccount = targetType === 'client' ? '1220' : '1210';
       const periods = [...new Set(selectedInvoices.map((i) => `${i.period_year}.${i.period_month}`))].join(', ');
       const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
         tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),

@@ -331,8 +331,9 @@ export default function Invoice() {
   // тайланг (Орлого-зарлагын тайлан, Тэнцэл) бодит гүйлгээгээр
   // тестлэх үед олдсон чухал цоорхой ЗАСАВ — нэхэмжлэх үүсгэх үед
   // ЯМАР Ч журналын бичилт (Дт Авлага / Кт Орлого) үүсгэдэггүй
-  // байсан тул, Орлого (5400/5600) хэзээ ч хүлээн зөвшөөрөгддөггүй,
-  // Авлагын данс (1110/1120) зөвхөн төлбөр бүртгэх үед
+  // байсан тул, Орлого (5410/5610) хүлээн зөвшeeрөгддөггүй,
+  // Авлагын данс (1210/1220, 2026-09-22-нд НББ стандартаар рэнумбер
+  // хийсэн) зөвхөн төлбөр бүртгэх үед
   // (RecordPaymentModal.jsx) КРЕДИТЛЭГДЭЖ, ХЭЗЭЭ Ч ДЕБЕТЛЭГДЭЭГҮЙ тул
   // сөргөг тал руу үргэлж явдаг байв. Одоо энэ batch-аар үүссэн БҮХ
   // invoice-ийн нийт дүнг (owner/client тус тусад нь) НЭГ журналын
@@ -368,11 +369,11 @@ export default function Invoice() {
       }
       // Орлого хүлээн зөвшөөрөх журналын бичилт (Дт Авлага / Кт Орлого)
       const journalLines = [];
-      if (ownerReceivableTotal > 0) journalLines.push({ account_code: '1110', debit: ownerReceivableTotal, credit: 0 });
-      if (clientReceivableTotal > 0) journalLines.push({ account_code: '1120', debit: clientReceivableTotal, credit: 0 });
+      if (ownerReceivableTotal > 0) journalLines.push({ account_code: '1210', debit: ownerReceivableTotal, credit: 0 });
+      if (clientReceivableTotal > 0) journalLines.push({ account_code: '1220', debit: clientReceivableTotal, credit: 0 });
       const totalIncome = ownerReceivableTotal + clientReceivableTotal;
       if (journalLines.length > 0 && totalIncome > 0) {
-        journalLines.push({ account_code: '5600', debit: 0, credit: totalIncome });
+        journalLines.push({ account_code: '5610', debit: 0, credit: totalIncome });
         const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
           tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
           description: `${year} оны ${month}-р сарын нэхэмжлэх (${created} ширхэг)`, source_type: 'invoice_sent',
