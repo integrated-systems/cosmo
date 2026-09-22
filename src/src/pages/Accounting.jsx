@@ -882,6 +882,93 @@ function CashFlowStatementTab({ hoaId }) {
   );
 }
 
+// 2026-09-22 (68): НББ стандарт нийцүүлэлт (7-р зүйл) — Тайлангийн
+// тодруулга (Notes to financial statements). Мөнгө/Авлага/Орлого/
+// Зардлын задаргаа мөрүүдийг journal_entries-ээс АВТОМАТААР
+// тооцоолж харуулна (OfficialFormsTab-тай ЯГ ИЖИЛ sumByCategory/
+// sumByCode загвар — Rule of two). Танилцуулга, НББ-ийн бодлого гэх
+// мэт чөлөөт текст хэсгүүдийг зөвхөн ГАРААР бөглөж, tenant тус бүрт
+// НЭГ удаа хадгална (financial_statement_notes).
+function NotesTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+  const [notes, setNotes] = useState(null);
+  const [form, setForm] = useState({ intro_text: '', accounting_policy_text: '', related_parties_text: '', subsequent_events_text: '' });
+  const [saving, setSaving] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(true);
+
+  useEffect(() => {
+    if (!hoaId) return;
+    setLoadingNotes(true);
+    supabase.from('financial_statement_notes').select('*').eq('tenant_id', hoaId).maybeSingle().then(({ data }) => {
+      setNotes(data);
+      if (data) setForm({ intro_text: data.intro_text || '', accounting_policy_text: data.accounting_policy_text || '', related_parties_text: data.related_parties_text || '', subsequent_events_text: data.subsequent_events_text || '' });
+      setLoadingNotes(false);
+    });
+  }, [hoaId]);
+
+  async function handleSave() {
+    setSaving(true);
+    const { error } = await supabase.from('financial_statement_notes').upsert({ tenant_id: hoaId, ...form });
+    setSaving(false);
+    if (error) alert(error.message);
+  }
+
+  if (loading || accountsLoading || loadingNotes) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
+
+  const breakdownFor = (cat) => accounts.filter((a) => a.category === cat).map((acc) => ({ acc, ...accountBalance(acc, lines) })).filter((r) => r.balance !== 0);
+  const cashRows = breakdownFor('cash');
+  const receivableRows = breakdownFor('receivable');
+  const incomeRows = breakdownFor('income');
+  const expenseRows = breakdownFor('expense');
+
+  const NoteSection = ({ title, rows }) => (
+    <div className="ds-card p-3">
+      <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">{title}</div>
+      {rows.length === 0 ? (
+        <div className="text-[12px] text-mutedtext">Бичилт бүртгэгдээгүй байна</div>
+      ) : rows.map((r) => (
+        <div key={r.acc.id} className="flex justify-between text-[12.5px] py-0.5">
+          <span>{r.acc.code} — {r.acc.name}</span>
+          <span>{formatMoney(r.balance)}₮</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Сангийн сайдын 386 тушаалын "Санхүүгийн тайлангийн тодруулга" хэсэгтэй нийцүүлэв. Мөнгө/Авлага/Орлого/Зардлын задаргаа автоматаар тооцоологдоно; Танилцуулга болон бусад чөлөөт хэсгийг гараар бөглөнэ.
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <NoteSection title="Мөнгө, түүнтэй адилтгах хөрэнгө" rows={cashRows} />
+        <NoteSection title="Авлага" rows={receivableRows} />
+        <NoteSection title="Орлого" rows={incomeRows} />
+        <NoteSection title="Зардал" rows={expenseRows} />
+      </div>
+
+      <div className="ds-card p-3 mb-3">
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Танилцуулга</div>
+        <textarea className="ds-input w-full" rows={4} placeholder="Байршил, үйл ажиллагаа явуулж эхэлсэн огноо, Удирдах зөвлөлийн дарга/Гүйцэтгэх захирал, Ерөнхий нягтлан бодогчийн мэдээлэл гэх мэт..." value={form.intro_text} onChange={(e) => setForm((f) => ({ ...f, intro_text: e.target.value }))} />
+      </div>
+      <div className="ds-card p-3 mb-3">
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Нягтлан бодох бүртгэлийн бодлого</div>
+        <textarea className="ds-input w-full" rows={4} placeholder="Тайлангийн суурь, тайлагнасан валют, хөрөнгийн үнэлгээ, орлого/зардлыг хүлээн зөвшөөрөх бодлого гэх мэт..." value={form.accounting_policy_text} onChange={(e) => setForm((f) => ({ ...f, accounting_policy_text: e.target.value }))} />
+      </div>
+      <div className="ds-card p-3 mb-3">
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Холбоотой талуудтай хийсэн ажил гүйлгээ</div>
+        <textarea className="ds-input w-full" rows={3} value={form.related_parties_text} onChange={(e) => setForm((f) => ({ ...f, related_parties_text: e.target.value }))} />
+      </div>
+      <div className="ds-card p-3 mb-3">
+        <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Болзошгүй өр төлбөр ба тайлангийн өдрийн дараах үйл явдал</div>
+        <textarea className="ds-input w-full" rows={3} value={form.subsequent_events_text} onChange={(e) => setForm((f) => ({ ...f, subsequent_events_text: e.target.value }))} />
+      </div>
+      <button className="ds-btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
+    </div>
+  );
+}
+
 function ClosedPeriodsTab({ hoaId }) {
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -967,6 +1054,7 @@ export default function Accounting() {
         <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
         <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
         <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны Ф1/Ф2 маягт</TabButton>
+        <TabButton active={tab === 'notes'} onClick={() => setTab('notes')}>Тайлангийн тодруулга</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
@@ -977,6 +1065,7 @@ export default function Accounting() {
       {tab === 'cashflow' && <CashFlowStatementTab hoaId={hoaId} />}
       {tab === 'equity' && <EquityChangesTab hoaId={hoaId} />}
       {tab === 'official' && <OfficialFormsTab hoaId={hoaId} />}
+      {tab === 'notes' && <NotesTab hoaId={hoaId} />}
       {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
