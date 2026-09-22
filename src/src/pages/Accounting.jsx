@@ -484,6 +484,81 @@ function BalanceSheetTab({ hoaId }) {
   );
 }
 
+// 2026-09-22 (63): НББ стандарт нийцүүлэлт (2-р зүйл) — Хугацааны
+// хаалт (period locking). Хаагдсан тайлант үе бүрийг жагсааж,
+// шинэ үе хаах, эсвэл (зөвхөн эрх бүхий staff/supersysadmin) буцааж
+// нээх боломжтой. Бодит хориглолт нь RLS дээр (closed_periods
+// migration) хэрэгждэг — ЭНЭ таб зөвхөн харагдац/удирдлагын UI.
+function ClosedPeriodsTab({ hoaId }) {
+  const [periods, setPeriods] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function load() {
+    if (!hoaId) return;
+    setLoading(true);
+    const { data } = await supabase.from('closed_periods').select('*').eq('tenant_id', hoaId).order('period_year', { ascending: false }).order('period_month', { ascending: false });
+    setPeriods(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, [hoaId]);
+
+  async function handleClose() {
+    setSaving(true);
+    setError('');
+    const { error: err } = await supabase.from('closed_periods').insert({ tenant_id: hoaId, period_year: +year, period_month: +month });
+    if (err) { setError(err.message); setSaving(false); return; }
+    setSaving(false);
+    load();
+  }
+
+  async function handleReopen(id) {
+    const { error: err } = await supabase.from('closed_periods').delete().eq('id', id);
+    if (err) { setError(err.message); return; }
+    load();
+  }
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Хаагдсан тайлант үед (сар) шинэ гүйлгээ бүртгэх, засах, устгах ХОРИГЛОГДОНО — энэ нь Нягтлан бодох бүртгэлийн стандарт зарчим бөгeeд, тайлант үе дууссаны дараа санамсаргүй eeрчлөлт орохоос сэргийлнэ.
+      </div>
+      <div className="ds-card p-3 mb-4 flex items-end gap-2">
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Он</label>
+          <input type="number" className="ds-input" style={{ width: 100 }} value={year} onChange={(e) => setYear(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Сар</label>
+          <select className="ds-select" style={{ width: 100 }} value={month} onChange={(e) => setMonth(e.target.value)}>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <button className="ds-btn-primary" onClick={handleClose} disabled={saving}>{saving ? 'Хаагдаж байна...' : 'Тайлант үеийг хаах'}</button>
+      </div>
+      {error && <div className="text-[12px] text-customRed mb-2">{error}</div>}
+      {loading ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : periods.length === 0 ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Хаагдсан тайлант үе алга</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {periods.map((p) => (
+            <div key={p.id} className="ds-card p-3 flex items-center justify-between">
+              <span className="text-[13px]">{p.period_year} оны {p.period_month}-р сар — хаагдсан</span>
+              <button className="ds-btn-secondary" onClick={() => handleReopen(p.id)}>Буцааж нээх</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Accounting() {
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [tab, setTab] = useState('coa');
@@ -496,12 +571,14 @@ export default function Accounting() {
         <TabButton active={tab === 'balance'} onClick={() => setTab('balance')}>Тэнцвэржүүлсэн тайлан</TabButton>
         <TabButton active={tab === 'income'} onClick={() => setTab('income')}>Орлого, зарлагын тайлан</TabButton>
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
+        <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
       {tab === 'journal' && <JournalEntriesTab hoaId={hoaId} />}
       {tab === 'balance' && <TrialBalanceTab hoaId={hoaId} />}
       {tab === 'income' && <IncomeStatementTab hoaId={hoaId} />}
       {tab === 'balancesheet' && <BalanceSheetTab hoaId={hoaId} />}
+      {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
 }
