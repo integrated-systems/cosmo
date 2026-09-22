@@ -80,6 +80,7 @@ function JournalEntriesTab({ hoaId }) {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [reversing, setReversing] = useState(null);
 
   async function load() {
     if (!hoaId) return;
@@ -95,12 +96,35 @@ function JournalEntriesTab({ hoaId }) {
   useEffect(() => { load(); }, [hoaId]);
 
   const linesFor = (entryId) => lines.filter((l) => l.entry_id === entryId);
+  // 2026-09-22 (64): НББ стандарт нийцүүлэлт (3-р зүйл) — Буцаах
+  // бичилт. Үүнээс хойш staff НЭГ ч журналын бичилтийг шууд UPDATE/
+  // DELETE хийж ЧАДАХГүй (RLS-ээр хориглогдсон) — зөвхөн БУЦААХ
+  // (reversing) бичилт үүсгэж, алдааг залруулна.
+  const isEntryReversed = (entryId) => entries.some((e) => e.reverses_entry_id === entryId);
+
+  async function handleReverse(entry) {
+    setReversing(entry.id);
+    try {
+      const entryLines = linesFor(entry.id);
+      const { data: newEntry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
+        description: `Буцаалт: ${entry.description}`, source_type: 'manual', reverses_entry_id: entry.id,
+      }).select().single();
+      if (entryErr) { alert(entryErr.message); return; }
+      const reversedLines = entryLines.map((l) => ({ entry_id: newEntry.id, account_code: l.account_code, debit: Number(l.credit), credit: Number(l.debit) }));
+      const { error: linesErr } = await supabase.from('journal_entry_lines').insert(reversedLines);
+      if (linesErr) { alert(linesErr.message); return; }
+      load();
+    } finally {
+      setReversing(null);
+    }
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="text-[12px] text-mutedtext">
-          Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, мөн "+ Шинэ гүйлгээ бүртгэх" товчоор гараар оруулсан журналын бичилтүүд харагдана.
+          Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, мөн "+ Шинэ гүйлгээ бүртгэх" товчоор гараар оруулсан журналын бичилтүүд харагдана. НББ стандартын дагуу, бичигдсэн бичилтийг шууд засах/устгах боломжгүй — зөвхөн "Буцаах" товчоор алдааг залруулна.
         </div>
         <button className="ds-btn-primary shrink-0 ml-3" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
       </div>
@@ -113,16 +137,22 @@ function JournalEntriesTab({ hoaId }) {
           const entryLines = linesFor(entry.id);
           const totalDebit = entryLines.reduce((s, l) => s + Number(l.debit), 0);
           const isOpen = expanded === entry.id;
+          const reversed = isEntryReversed(entry.id);
           return (
             <div key={entry.id} className="ds-card p-3">
               <button className="w-full flex items-center justify-between text-left" onClick={() => setExpanded(isOpen ? null : entry.id)}>
                 <div>
-                  <div className="font-medium text-slate-900 dark:text-white">{entry.description}</div>
+                  <div className="font-medium text-slate-900 dark:text-white">
+                    {entry.description}
+                    {entry.reverses_entry_id && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-customYellow/20 text-customYellow">Буцаалт</span>}
+                    {reversed && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-slate-500/20 text-mutedtext">Буцаагдсан</span>}
+                  </div>
                   <div className="text-[11px] text-mutedtext">{formatDateTimeMinutes(entry.created_at)} · {entry.source_type === 'payroll' ? 'Цалингийн журнал' : 'Гар аргаар'}</div>
                 </div>
                 <div className="text-[13px] font-semibold shrink-0">{formatMoney(totalDebit)}₮</div>
               </button>
               {isOpen && (
+                <>
                 <table className="ds-table w-full mt-3">
                   <thead>
                     <tr>
@@ -141,6 +171,12 @@ function JournalEntriesTab({ hoaId }) {
                     ))}
                   </tbody>
                 </table>
+                {!entry.reverses_entry_id && !reversed && (
+                  <button className="ds-btn-secondary mt-2" onClick={() => handleReverse(entry)} disabled={reversing === entry.id}>
+                    {reversing === entry.id ? 'Буцааж байна...' : 'Буцаах'}
+                  </button>
+                )}
+                </>
               )}
             </div>
           );
