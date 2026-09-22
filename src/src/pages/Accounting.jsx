@@ -620,10 +620,66 @@ function OfficialFormsTab({ hoaId }) {
 
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + netAssetsTotal)) < 1;
 
+  // 2026-09-22 (67, үргэлжлүүлэлт): Ф2 (үр дүнгийн тайлан) — ЯГ
+  // адил албан ёсны 3-р хавсралтын мөрийн дугаараар (1-41). Манай
+  // тодорхой дансуудыг (5410 Түрээс→5-р мөр, 5610 Бусад орлого→7-р
+  // мөр, 7010 Цалин→17-р мөр, 7020 НДШ→18-р мөр, 7030 Засвар→19-р
+  // мөр) харгалзах мөрт нь тавьж, үлдсэн БҮХ орлого/зардлыг "Бусад"
+  // (7-р/31-р мөр)-т нэгтгэнэ.
+  const rentIncome = sumByCode('5410');
+  const otherIncomeExplicit = sumByCategory('income') - rentIncome;
+  const operatingIncomeTotal = rentIncome + otherIncomeExplicit;
+
+  const salaryExpense = sumByCode('7010');
+  const socialInsuranceExpense = sumByCode('7020');
+  const maintenanceExpense = sumByCode('7030');
+  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense;
+  const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + otherExpenseExplicit;
+
+  const operatingResult = operatingIncomeTotal - operatingExpenseTotal;
+  const netResultF2 = operatingResult;
+
+  const f2Rows = [
+    officialRow('1', 'Үндсэн үйл ажиллагааны орлого', null, { bold: true }),
+    officialRow('2', 'Гишүүдийн татвар', 0),
+    officialRow('3', 'Хөтөлбөр, төслийн орлого', 0),
+    officialRow('4', 'Бэлэг, хандив, тусламжийн орлого', 0),
+    officialRow('5', 'Түрээсийн орлого', rentIncome),
+    officialRow('6', 'Хөрөнгө оруулалтын орлого', 0),
+    officialRow('7', 'Бусад орлого', otherIncomeExplicit),
+    officialRow('8', 'Үйл ажиллагааны орлогын нийт дүн', operatingIncomeTotal, { bold: true }),
+    officialRow('9', 'Үндсэн үйл ажиллагааны зардал', null, { bold: true }),
+    officialRow('10', 'Бэлэг, хандив ба тусламж', 0),
+    officialRow('14', 'Хөтөлбөр хэрэгжүүлсний зардал', 0),
+    officialRow('15', 'Төсөл хэрэгжүүлсний зардал', 0),
+    officialRow('16', 'Ерөнхий удирдлагын зардал', 0),
+    officialRow('17', 'Цалин хөлс, шагнал', salaryExpense),
+    officialRow('18', 'Нийгмийн даатгалын шимтгэл', socialInsuranceExpense),
+    officialRow('19', 'Засвар үйлчилгээний зардал', maintenanceExpense),
+    officialRow('20', 'Ашиглалтын зардал', 0),
+    officialRow('21', 'Түрээсийн зардал', 0),
+    officialRow('22', 'Албан томилолтын зардал', 0),
+    officialRow('23', 'Тээврийн зардал', 0),
+    officialRow('24', 'Элэгдлийн зардал', 0),
+    officialRow('25', 'Зар сурталчилгааны зардал', 0),
+    officialRow('26', 'Шуудан холбооны зардал', 0),
+    officialRow('27', 'Шатахууны зардал', 0),
+    officialRow('28', 'Найдваргүй авлагын зардал', 0),
+    officialRow('29', 'Шагнал, урамшууллын зардал', 0),
+    officialRow('30', 'Зээлийн хүүгийн зардал', 0),
+    officialRow('31', 'Бусад зардал', otherExpenseExplicit),
+    officialRow('32', 'Үндсэн үйл ажиллагааны зардлын дүн', operatingExpenseTotal, { bold: true }),
+    officialRow('33', 'Үндсэн үйл ажиллагааны үр дүн', operatingResult, { bold: true }),
+    officialRow('34', 'Үндсэн бус үйл ажиллагааны ашиг (алдагдал)', 0),
+    officialRow('38', 'Татварын зардал', 0),
+    officialRow('40', 'Онцгой шинжтэй зүйлс (цэвэр дүнгээр)', 0),
+    officialRow('41', 'Тайлант үеийн цэвэр үр дүн', netResultF2, { bold: true }),
+  ];
+
   return (
     <div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдэггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Хуримтлагдсан элэгдэл, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
+        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдөггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Хуримтлагдсан элэгдэл, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
       </div>
       <div className="ds-card p-3">
         <table className="ds-table w-full">
@@ -647,6 +703,31 @@ function OfficialFormsTab({ hoaId }) {
       </div>
       <div className={`ds-card p-3 mt-3 text-center text-[13px] font-semibold ${isBalanced ? 'text-customGreen' : 'text-customRed'}`}>
         {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (1.3 = 2.4: {formatMoney(totalAssets)}₮ vs {formatMoney(totalLiabilities + netAssetsTotal)}₮)
+      </div>
+
+      <div className="text-[13px] font-semibold mt-6 mb-1">Ф2 — ҮР ДҮНГИЙН ТАЙЛАН</div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Манай систем зарим дэд ангиллыг (Гишүүдийн татвар, Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
+      </div>
+      <div className="ds-card p-3">
+        <table className="ds-table w-full">
+          <thead>
+            <tr>
+              <th className="py-1.5 px-2" style={{ width: 70 }}>Мөр №</th>
+              <th className="py-1.5 px-2">ҮЗҮҮЛЭЛТ</th>
+              <th className="py-1.5 px-2 text-right" style={{ width: 160 }}>Дүн (₮)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+            {f2Rows.map((r) => (
+              <tr key={r.no} className={r.bold ? 'bg-slate-100 dark:bg-white/[0.03]' : ''}>
+                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.no}</td>
+                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.label}</td>
+                <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.value !== null ? `${formatMoney(r.value)}₮` : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -885,7 +966,7 @@ export default function Accounting() {
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
         <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
         <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
-        <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны Ф1 маягт</TabButton>
+        <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны Ф1/Ф2 маягт</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
