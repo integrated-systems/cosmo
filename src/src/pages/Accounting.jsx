@@ -520,6 +520,83 @@ function BalanceSheetTab({ hoaId }) {
   );
 }
 
+// 2026-09-22 (66): НББ стандарт нийцүүлэлт (5-р зүйл) — Эздийн
+// эрхийн өөрчлөлтийн тайлан (Statement of Changes in Equity).
+// Стандарт 4 үндсэн санхүүгийн тайлангийн НЭГ. Эздийн эрхийн
+// (equity) данс тус бүрийн НЭМЭГДЭЛ (кредит, өсөлт)/ХАСАГДАЛ (дебет,
+// бууралт)-ыг тусад нь харуулж, мөн одоо хүртэл ЭЗДИЙН ЭРХ рүү
+// ХААГДААГүй (closing entry хийгддэггүй) тайлант үеийн цэвэр ашиг/
+// алдагдлыг ХАРАГДАЦ болгож нэмнэ (BalanceSheetTab-тай ЯГ ИЖИЛ
+// зарчим — Rule of two).
+function EquityChangesTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
+
+  const equityAccounts = accounts.filter((a) => a.category === 'equity');
+  const equityRows = equityAccounts.map((acc) => {
+    const accLines = lines.filter((l) => l.account_code === acc.code);
+    const additions = accLines.reduce((s, l) => s + Number(l.credit), 0);
+    const deductions = accLines.reduce((s, l) => s + Number(l.debit), 0);
+    return { acc, additions, deductions, balance: additions - deductions };
+  }).filter((r) => r.additions !== 0 || r.deductions !== 0);
+
+  const incomeTotal = accounts.filter((a) => a.category === 'income').reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
+  const expenseTotal = accounts.filter((a) => a.category === 'expense').reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
+  const netResult = incomeTotal - expenseTotal;
+
+  const totalAdditions = equityRows.reduce((s, r) => s + r.additions, 0);
+  const totalDeductions = equityRows.reduce((s, r) => s + r.deductions, 0);
+  const totalEndingEquity = equityRows.reduce((s, r) => s + r.balance, 0) + netResult;
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Эздийн эрхийн (Хуримтлалын сан гэх мэт) данс тус бүрийн нэмэгдэл, хасагдлыг харуулна. Тайлант үеийн цэвэр ашиг/алдагдал одоог хүртэл Эздийн эрх рүү албан ёсоор хаагдаагүй тул тусад нь мэдээллийн зорилгоор харуулав.
+      </div>
+      <div className="ds-card p-3">
+        <table className="ds-table w-full">
+          <thead>
+            <tr>
+              <th className="py-1.5 px-2">ДАНС</th>
+              <th className="py-1.5 px-2 text-right">НЭМЭГДЭЛ</th>
+              <th className="py-1.5 px-2 text-right">ХАСАГДАЛ</th>
+              <th className="py-1.5 px-2 text-right">үЛДЭГДЭЛ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+            {equityRows.length === 0 ? (
+              <tr><td colSpan={4} className="py-3 text-center text-mutedtext text-[12px]">Эздийн эрхийн бичилт бүртгэгдээгүй байна</td></tr>
+            ) : equityRows.map((r) => (
+              <tr key={r.acc.id}>
+                <td className="py-1.5 px-2">{r.acc.code} — {r.acc.name}</td>
+                <td className="py-1.5 px-2 text-right">{r.additions > 0 ? `${formatMoney(r.additions)}₮` : '—'}</td>
+                <td className="py-1.5 px-2 text-right">{r.deductions > 0 ? `${formatMoney(r.deductions)}₮` : '—'}</td>
+                <td className="py-1.5 px-2 text-right font-semibold">{formatMoney(r.balance)}₮</td>
+              </tr>
+            ))}
+            <tr>
+              <td className="py-1.5 px-2">Тайлант үеийн (хаагдаагүй) цэвэр {netResult >= 0 ? 'ашиг' : 'алдагдал'}</td>
+              <td className="py-1.5 px-2 text-right">—</td>
+              <td className="py-1.5 px-2 text-right">—</td>
+              <td className="py-1.5 px-2 text-right font-semibold">{formatMoney(netResult)}₮</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-slate-300 dark:border-bordercol bg-slate-100 dark:bg-white/[0.03] font-semibold">
+              <td className="py-1.5 px-2">НИЙТ</td>
+              <td className="py-1.5 px-2 text-right">{formatMoney(totalAdditions)}₮</td>
+              <td className="py-1.5 px-2 text-right">{formatMoney(totalDeductions)}₮</td>
+              <td className="py-1.5 px-2 text-right">{formatMoney(totalEndingEquity)}₮</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // 2026-09-22 (63): НББ стандарт нийцүүлэлт (2-р зүйл) — Хугацааны
 // хаалт (period locking). Хаагдсан тайлант үе бүрийг жагсааж,
 // шинэ үе хаах, эсвэл (зөвхөн эрх бүхий staff/supersysadmin) буцааж
@@ -683,6 +760,7 @@ export default function Accounting() {
         <TabButton active={tab === 'income'} onClick={() => setTab('income')}>Орлого, зарлагын тайлан</TabButton>
         <TabButton active={tab === 'balancesheet'} onClick={() => setTab('balancesheet')}>Тэнцэл</TabButton>
         <TabButton active={tab === 'cashflow'} onClick={() => setTab('cashflow')}>Мөнгөн гүйлгээний тайлан</TabButton>
+        <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
@@ -691,6 +769,7 @@ export default function Accounting() {
       {tab === 'income' && <IncomeStatementTab hoaId={hoaId} />}
       {tab === 'balancesheet' && <BalanceSheetTab hoaId={hoaId} />}
       {tab === 'cashflow' && <CashFlowStatementTab hoaId={hoaId} />}
+      {tab === 'equity' && <EquityChangesTab hoaId={hoaId} />}
       {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
