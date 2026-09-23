@@ -18,8 +18,11 @@ function useAllJournalLines(hoaId) {
   useEffect(() => {
     if (!hoaId) return;
     setLoading(true);
-    fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id)').eq('journal_entries.tenant_id', hoaId)).then(({ data }) => {
-      setLines(data || []);
+    fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id, entry_date)').eq('journal_entries.tenant_id', hoaId)).then(({ data }) => {
+      // 2026-09-23 (74): НББ үлдэгдэл засвар (5-р зүйл) — Харьцуулсан
+      // (eмнөх жилийн) багана. entry_date-ийг мөрт шууд гарган тавьж,
+      // OfficialFormsTab үүнийг үеийн cutoff шүүлтэд ашиглана.
+      setLines((data || []).map((l) => ({ ...l, entry_date: l.journal_entries?.entry_date })));
       setLoading(false);
     });
   }, [hoaId]);
@@ -540,16 +543,17 @@ function BalanceSheetTab({ hoaId }) {
 // Хуримтлагдсан элэгдэл — Элэгдлийн автомат тооцоолол хараахан
 // хийгдээгүй тул, Урт хугацаат зээл гэх мэт) 0 гэж үнэн зөвөөр
 // үзүүлнэ — үүнийг хөвөөтөй мөрт тэмдэглэсэн.
-function officialRow(no, label, value, opts) {
+function officialRow(no, label, value, priorValue, opts) {
   const bold = opts?.bold;
-  return { no, label, value, bold };
+  return { no, label, value, priorValue, bold };
 }
-function OfficialFormsTab({ hoaId }) {
-  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
-  const { lines, loading } = useAllJournalLines(hoaId);
 
-  if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
-
+// 2026-09-23 (74): НББ үлдэгдэл засвар (5-р зүйл) — Харьцуулсан
+// (eмнөх жилийн) багана. Ф1/Ф2-ийн БүХ тооцооллыг НЭГ функцэд
+// нэгтгэж, "энэ жил" (бүх lines) БОЛОН "eмнөх жил" (зөвхөн eмнөх
+// жилийн 12-р сарын 31 хүртэлх lines) гэсэн 2 ТУСДАА dataset дээр
+// ЯГ ИЖИЛ логикоор дуудна (Rule of two — давхардал байхгүй).
+function computeF1F2Snapshot(accounts, lines) {
   const sumByCategory = (cat) => accounts.filter((a) => a.category === cat).reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
   const sumByCode = (code) => {
     const acc = accounts.find((a) => a.code === code);
@@ -584,55 +588,6 @@ function OfficialFormsTab({ hoaId }) {
   const reserveUnrestricted = sumByCategory('equity');
   const netAssetsTotal = reserveUnrestricted + netResult;
 
-  const f1Rows = [
-    officialRow('1', 'ХӨРӨНГӨ', null, { bold: true }),
-    officialRow('1.1', 'Эргэлтийн хөрэнгө', null, { bold: true }),
-    officialRow('1.1.1', 'Мөнгө, түүнтэй адилтгах хөрэнгө', cash),
-    officialRow('1.1.2', 'Богино хугацаат хөрэнгө оруулалт', shortTermInvestment),
-    officialRow('1.1.3', 'Дансны авлага', receivableGross),
-    officialRow('1.1.4', 'Найдваргүй авлагын хасагдуулга', badDebtAllowance),
-    officialRow('1.1.5', 'Бараа материал', inventory),
-    officialRow('1.1.6', 'Урьдчилж төлсэн зардал/тооцоо', prepaidExpense),
-    officialRow('1.1.7', 'Бусад эргэлтийн хөрэнгө', 0),
-    officialRow('1.1.8', 'Эргэлтийн хөрэнгийн дүн', currentAssetsTotal, { bold: true }),
-    officialRow('1.2', 'Эргэлтийн бус хөрэнгө', null, { bold: true }),
-    officialRow('1.2.1', 'үндсэн хөрэнгө', fixedAssetGross),
-    officialRow('1.2.2', 'Хуримтлагдсан элэгдэл', accumulatedDepreciation),
-    officialRow('1.2.3', 'Бусад үндсэн хөрэнгө', 0),
-    officialRow('1.2.5', 'Биет бус хөрэнгө', 0),
-    officialRow('1.2.7', 'Хөрэнгө оруулалт ба бусад хөрэнгө', 0),
-    officialRow('1.2.8', 'Эргэлтийн бус хөрэнгийн дүн', nonCurrentAssetsTotal, { bold: true }),
-    officialRow('1.3', 'НИЙТ ХӨРӨНГИЙН ДҮН', totalAssets, { bold: true }),
-    officialRow('2', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГӨ', null, { bold: true }),
-    officialRow('2.1', 'өр төлбөр', null, { bold: true }),
-    officialRow('2.1.1', 'Богино хугацаат өр төлбэр', null, { bold: true }),
-    officialRow('2.1.1.1', 'Дансны өглөг', accountsPayable),
-    officialRow('2.1.1.2', 'Цалингийн өглөг', salaryPayable),
-    officialRow('2.1.1.3', 'Татварын өр', taxPayable),
-    officialRow('2.1.1.4', 'Богино хугацаат зээл', 0),
-    officialRow('2.1.1.5', 'Урьдчилж орсон орлого', deferredIncome),
-    officialRow('2.1.1.6', 'Бусад өглөг', otherPayable),
-    officialRow('2.1.1.7', 'Богино хугацаат өр төлбөрийн дүн', currentLiabTotal, { bold: true }),
-    officialRow('2.1.2', 'Урт хугацаат өр төлбэр', 0),
-    officialRow('2.2', 'өр төлбөрийн нийт дүн', totalLiabilities, { bold: true }),
-    officialRow('2.3', 'Цэвэр хөрэнгө', null, { bold: true }),
-    officialRow('2.3.1', 'Нөөц: а) хязгаарлалтгүй', reserveUnrestricted),
-    officialRow('2.3.2', 'б) хязгаарлалттай', 0),
-    officialRow('2.3.3', 'Дахин үнэлгээний нэмэгдэл', 0),
-    officialRow('2.3.5', 'Хуримтлагдсан үр дүн (тайлант үеийн)', netResult),
-    officialRow('2.3.6', 'Цэвэр хөрэнгийн дүн', netAssetsTotal, { bold: true }),
-    officialRow('2.4', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГИЙН ДҮН', totalLiabilities + netAssetsTotal, { bold: true }),
-  ];
-
-  const isBalanced = Math.abs(totalAssets - (totalLiabilities + netAssetsTotal)) < 1;
-
-  // 2026-09-22 (67, үргэлжлүүлэлт; 72-т 5110 Гишүүдийн татвар нэмэв):
-  // Б маягт (үр дүнгийн тайлан) — ЯГ адил албан ёсны 3-р хавсралтын
-  // мөрийн дугаараар (1-41). Манай тодорхой дансуудыг (5110 Гишүүдийн
-  // татвар→2-р мөр, 5410 Түрээс→5-р мөр, 5610 Бусад орлого→7-р мөр,
-  // 7010 Цалин→17-р мөр, 7020 НДШ→18-р мөр, 7030 Засвар→19-р мөр)
-  // харгалзах мөрт нь тавьж, үлдсэн БҮХ орлого/зардлыг "Бусад"
-  // (7-р/31-р мөр)-т нэгтгэнэ.
   const membershipDues = sumByCode('5110');
   const rentIncome = sumByCode('5410');
   const otherIncomeExplicit = sumByCategory('income') - membershipDues - rentIncome;
@@ -647,99 +602,151 @@ function OfficialFormsTab({ hoaId }) {
   const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + depreciationExpense + badDebtExpense + otherExpenseExplicit;
 
   const operatingResult = operatingIncomeTotal - operatingExpenseTotal;
-  const netResultF2 = operatingResult;
+
+  return {
+    cash, shortTermInvestment, receivableGross, badDebtAllowance, inventory, prepaidExpense, currentAssetsTotal,
+    fixedAssetGross, accumulatedDepreciation, nonCurrentAssetsTotal, totalAssets,
+    accountsPayable, salaryPayable, taxPayable, deferredIncome, otherPayable, currentLiabTotal, totalLiabilities,
+    reserveUnrestricted, netResult, netAssetsTotal,
+    membershipDues, rentIncome, otherIncomeExplicit, operatingIncomeTotal,
+    salaryExpense, socialInsuranceExpense, maintenanceExpense, depreciationExpense, badDebtExpense, otherExpenseExplicit, operatingExpenseTotal,
+    operatingResult,
+  };
+}
+
+function OfficialFormsTab({ hoaId }) {
+  const { accounts, loading: accountsLoading } = useChartOfAccounts(hoaId);
+  const { lines, loading } = useAllJournalLines(hoaId);
+
+  if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
+
+  const now = new Date();
+  const priorYearEndStr = `${now.getFullYear() - 1}-12-31`;
+  const priorLines = lines.filter((l) => l.entry_date && l.entry_date <= priorYearEndStr);
+
+  const cur = computeF1F2Snapshot(accounts, lines);
+  const prior = computeF1F2Snapshot(accounts, priorLines);
+
+  const f1Rows = [
+    officialRow('1', 'ХӨРӨНГӨ', null, null, { bold: true }),
+    officialRow('1.1', 'Эргэлтийн хөрөнгө', null, null, { bold: true }),
+    officialRow('1.1.1', 'Мөнгө, түүнтэй адилтгах хөрөнгө', cur.cash, prior.cash),
+    officialRow('1.1.2', 'Богино хугацаат хөрөнгө оруулалт', cur.shortTermInvestment, prior.shortTermInvestment),
+    officialRow('1.1.3', 'Дансны авлага', cur.receivableGross, prior.receivableGross),
+    officialRow('1.1.4', 'Найдваргүй авлагын хасагдуулга', cur.badDebtAllowance, prior.badDebtAllowance),
+    officialRow('1.1.5', 'Бараа материал', cur.inventory, prior.inventory),
+    officialRow('1.1.6', 'Урьдчилж төлсөн зардал/тооцоо', cur.prepaidExpense, prior.prepaidExpense),
+    officialRow('1.1.7', 'Бусад эргэлтийн хөрөнгө', 0, 0),
+    officialRow('1.1.8', 'Эргэлтийн хөрөнгийн дүн', cur.currentAssetsTotal, prior.currentAssetsTotal, { bold: true }),
+    officialRow('1.2', 'Эргэлтийн бус хөрөнгө', null, null, { bold: true }),
+    officialRow('1.2.1', 'Үндсэн хөрөнгө', cur.fixedAssetGross, prior.fixedAssetGross),
+    officialRow('1.2.2', 'Хуримтлагдсан элэгдэл', cur.accumulatedDepreciation, prior.accumulatedDepreciation),
+    officialRow('1.2.3', 'Бусад үндсэн хөрөнгө', 0, 0),
+    officialRow('1.2.5', 'Биет бус хөрөнгө', 0, 0),
+    officialRow('1.2.7', 'Хөрөнгө оруулалт ба бусад хөрөнгө', 0, 0),
+    officialRow('1.2.8', 'Эргэлтийн бус хөрөнгийн дүн', cur.nonCurrentAssetsTotal, prior.nonCurrentAssetsTotal, { bold: true }),
+    officialRow('1.3', 'НИЙТ ХӨРӨНГИЙН ДҮН', cur.totalAssets, prior.totalAssets, { bold: true }),
+    officialRow('2', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГӨ', null, null, { bold: true }),
+    officialRow('2.1', 'Өр төлбөр', null, null, { bold: true }),
+    officialRow('2.1.1', 'Богино хугацаат өр төлбэр', null, null, { bold: true }),
+    officialRow('2.1.1.1', 'Дансны өглөг', cur.accountsPayable, prior.accountsPayable),
+    officialRow('2.1.1.2', 'Цалингийн өглөг', cur.salaryPayable, prior.salaryPayable),
+    officialRow('2.1.1.3', 'Татварын өр', cur.taxPayable, prior.taxPayable),
+    officialRow('2.1.1.4', 'Богино хугацаат зээл', 0, 0),
+    officialRow('2.1.1.5', 'Урьдчилж орсон орлого', cur.deferredIncome, prior.deferredIncome),
+    officialRow('2.1.1.6', 'Бусад өглөг', cur.otherPayable, prior.otherPayable),
+    officialRow('2.1.1.7', 'Богино хугацаат өр төлбөрийн дүн', cur.currentLiabTotal, prior.currentLiabTotal, { bold: true }),
+    officialRow('2.1.2', 'Урт хугацаат өр төлбэр', 0, 0),
+    officialRow('2.2', 'Өр төлбөрийн нийт дүн', cur.totalLiabilities, prior.totalLiabilities, { bold: true }),
+    officialRow('2.3', 'Цэвэр хөрөнгө', null, null, { bold: true }),
+    officialRow('2.3.1', 'Нөөц: а) хязгаарлалтгүй', cur.reserveUnrestricted, prior.reserveUnrestricted),
+    officialRow('2.3.2', 'б) хязгаарлалттай', 0, 0),
+    officialRow('2.3.3', 'Дахин үнэлгээний нэмэгдэл', 0, 0),
+    officialRow('2.3.5', 'Хуримтлагдсан үр дүн (тайлант үеийн)', cur.netResult, prior.netResult),
+    officialRow('2.3.6', 'Цэвэр хөрөнгийн дүн', cur.netAssetsTotal, prior.netAssetsTotal, { bold: true }),
+    officialRow('2.4', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГИЙН ДҮН', cur.totalLiabilities + cur.netAssetsTotal, prior.totalLiabilities + prior.netAssetsTotal, { bold: true }),
+  ];
+
+  const isBalanced = Math.abs(cur.totalAssets - (cur.totalLiabilities + cur.netAssetsTotal)) < 1;
 
   const f2Rows = [
-    officialRow('1', 'Үндсэн үйл ажиллагааны орлого', null, { bold: true }),
-    officialRow('2', 'Гишүүдийн татвар', membershipDues),
-    officialRow('3', 'Хөтөлбөр, төслийн орлого', 0),
-    officialRow('4', 'Бэлэг, хандив, тусламжийн орлого', 0),
-    officialRow('5', 'Түрээсийн орлого', rentIncome),
-    officialRow('6', 'Хөрөнгө оруулалтын орлого', 0),
-    officialRow('7', 'Бусад орлого', otherIncomeExplicit),
-    officialRow('8', 'Үйл ажиллагааны орлогын нийт дүн', operatingIncomeTotal, { bold: true }),
-    officialRow('9', 'Үндсэн үйл ажиллагааны зардал', null, { bold: true }),
-    officialRow('10', 'Бэлэг, хандив ба тусламж', 0),
-    officialRow('14', 'Хөтөлбөр хэрэгжүүлсний зардал', 0),
-    officialRow('15', 'Төсөл хэрэгжүүлсний зардал', 0),
-    officialRow('16', 'Ерөнхий удирдлагын зардал', 0),
-    officialRow('17', 'Цалин хөлс, шагнал', salaryExpense),
-    officialRow('18', 'Нийгмийн даатгалын шимтгэл', socialInsuranceExpense),
-    officialRow('19', 'Засвар үйлчилгээний зардал', maintenanceExpense),
-    officialRow('20', 'Ашиглалтын зардал', 0),
-    officialRow('21', 'Түрээсийн зардал', 0),
-    officialRow('22', 'Албан томилолтын зардал', 0),
-    officialRow('23', 'Тээврийн зардал', 0),
-    officialRow('24', 'Элэгдлийн зардал', depreciationExpense),
-    officialRow('25', 'Зар сурталчилгааны зардал', 0),
-    officialRow('26', 'Шуудан холбооны зардал', 0),
-    officialRow('27', 'Шатахууны зардал', 0),
-    officialRow('28', 'Найдваргүй авлагын зардал', badDebtExpense),
-    officialRow('29', 'Шагнал, урамшууллын зардал', 0),
-    officialRow('30', 'Зээлийн хүүгийн зардал', 0),
-    officialRow('31', 'Бусад зардал', otherExpenseExplicit),
-    officialRow('32', 'Үндсэн үйл ажиллагааны зардлын дүн', operatingExpenseTotal, { bold: true }),
-    officialRow('33', 'Үндсэн үйл ажиллагааны үр дүн', operatingResult, { bold: true }),
-    officialRow('34', 'Үндсэн бус үйл ажиллагааны ашиг (алдагдал)', 0),
-    officialRow('38', 'Татварын зардал', 0),
-    officialRow('40', 'Онцгой шинжтэй зүйлс (цэвэр дүнгээр)', 0),
-    officialRow('41', 'Тайлант үеийн цэвэр үр дүн', netResultF2, { bold: true }),
+    officialRow('1', 'Үндсэн үйл ажиллагааны орлого', null, null, { bold: true }),
+    officialRow('2', 'Гишүүдийн татвар', cur.membershipDues, prior.membershipDues),
+    officialRow('3', 'Хөтөлбөр, төслийн орлого', 0, 0),
+    officialRow('4', 'Бэлэг, хандив, тусламжийн орлого', 0, 0),
+    officialRow('5', 'Түрээсийн орлого', cur.rentIncome, prior.rentIncome),
+    officialRow('6', 'Хөрөнгө оруулалтын орлого', 0, 0),
+    officialRow('7', 'Бусад орлого', cur.otherIncomeExplicit, prior.otherIncomeExplicit),
+    officialRow('8', 'Үйл ажиллагааны орлогын нийт дүн', cur.operatingIncomeTotal, prior.operatingIncomeTotal, { bold: true }),
+    officialRow('9', 'Үндсэн үйл ажиллагааны зардал', null, null, { bold: true }),
+    officialRow('10', 'Бэлэг, хандив ба тусламж', 0, 0),
+    officialRow('14', 'Хөтөлбөр хэрэгжүүлсний зардал', 0, 0),
+    officialRow('15', 'Төсөл хэрэгжүүлсний зардал', 0, 0),
+    officialRow('16', 'Ерөнхий удирдлагын зардал', 0, 0),
+    officialRow('17', 'Цалин хөлс, шагнал', cur.salaryExpense, prior.salaryExpense),
+    officialRow('18', 'Нийгмийн даатгалын шимтгэл', cur.socialInsuranceExpense, prior.socialInsuranceExpense),
+    officialRow('19', 'Засвар үйлчилгээний зардал', cur.maintenanceExpense, prior.maintenanceExpense),
+    officialRow('20', 'Ашиглалтын зардал', 0, 0),
+    officialRow('21', 'Түрээсийн зардал', 0, 0),
+    officialRow('22', 'Албан томилолтын зардал', 0, 0),
+    officialRow('23', 'Тээврийн зардал', 0, 0),
+    officialRow('24', 'Элэгдлийн зардал', cur.depreciationExpense, prior.depreciationExpense),
+    officialRow('25', 'Зар сурталчилгааны зардал', 0, 0),
+    officialRow('26', 'Шуудан холбооны зардал', 0, 0),
+    officialRow('27', 'Шатахууны зардал', 0, 0),
+    officialRow('28', 'Найдваргүй авлагын зардал', cur.badDebtExpense, prior.badDebtExpense),
+    officialRow('29', 'Шагнал, урамшууллын зардал', 0, 0),
+    officialRow('30', 'Зээлийн хүүгийн зардал', 0, 0),
+    officialRow('31', 'Бусад зардал', cur.otherExpenseExplicit, prior.otherExpenseExplicit),
+    officialRow('32', 'Үндсэн үйл ажиллагааны зардлын дүн', cur.operatingExpenseTotal, prior.operatingExpenseTotal, { bold: true }),
+    officialRow('33', 'Үндсэн үйл ажиллагааны үр дүн', cur.operatingResult, prior.operatingResult, { bold: true }),
+    officialRow('34', 'Үндсэн бус үйл ажиллагааны ашиг (алдагдал)', 0, 0),
+    officialRow('38', 'Татварын зардал', 0, 0),
+    officialRow('40', 'Онцгой шинжтэй зүйлс (цэвэр дүнгээр)', 0, 0),
+    officialRow('41', 'Тайлант үеийн цэвэр үр дүн', cur.operatingResult, prior.operatingResult, { bold: true }),
   ];
+
+  const renderTable = (rows) => (
+    <div className="ds-card p-3">
+      <table className="ds-table w-full">
+        <thead>
+          <tr>
+            <th className="py-1.5 px-2" style={{ width: 70 }}>Мөр №</th>
+            <th className="py-1.5 px-2">ҮЗҮҮЛЭЛТ</th>
+            <th className="py-1.5 px-2 text-right" style={{ width: 140 }}>Энэ жил (₮)</th>
+            <th className="py-1.5 px-2 text-right" style={{ width: 140 }}>Өмнөх жил (₮)</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+          {rows.map((r) => (
+            <tr key={r.no} className={r.bold ? 'bg-slate-100 dark:bg-white/[0.03]' : ''}>
+              <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.no}</td>
+              <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.label}</td>
+              <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.value !== null ? `${formatMoney(r.value)}₮` : ''}</td>
+              <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.priorValue !== null ? `${formatMoney(r.priorValue)}₮` : ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div>
       <div className="text-[13px] font-semibold mt-1 mb-1">А МАЯГТ — САНХҮҮГИЙН БАЙДЛЫН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. Манай систем одоог хүртэл тусад нь хөтлөдөггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
+        Сангийн сайдын 2017.12.28-ны 386 дугаар тушаалын 3-р хавсралт ("Санхүүгийн тайлангийн А маягт")-ын "Санхүүгийн байдлын тайлан" хэсгийн ЯГ мөрийн дугаар, бүтцээр үзүүлэв. "Өмнөх жил" багана нь өмнөх жилийн 12-р сарын 31-ний өдрийн байдлаарх үлдэгдэл. Манай систем одоог хүртэл тусад нь хөтлөдөггүй зарим мөр (Найдваргүй авлагын хасагдуулга, Урт хугацаат зээл) 0 гэж үнэн зөвөөр харагдана.
       </div>
-      <div className="ds-card p-3">
-        <table className="ds-table w-full">
-          <thead>
-            <tr>
-              <th className="py-1.5 px-2" style={{ width: 70 }}>Мөр №</th>
-              <th className="py-1.5 px-2">ҮЗҮҮЛЭЛТ</th>
-              <th className="py-1.5 px-2 text-right" style={{ width: 160 }}>Дүн (₮)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-            {f1Rows.map((r) => (
-              <tr key={r.no} className={r.bold ? 'bg-slate-100 dark:bg-white/[0.03]' : ''}>
-                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.no}</td>
-                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.label}</td>
-                <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.value !== null ? `${formatMoney(r.value)}₮` : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {renderTable(f1Rows)}
       <div className={`ds-card p-3 mt-3 text-center text-[13px] font-semibold ${isBalanced ? 'text-customGreen' : 'text-customRed'}`}>
-        {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (1.3 = 2.4: {formatMoney(totalAssets)}₮ vs {formatMoney(totalLiabilities + netAssetsTotal)}₮)
+        {isBalanced ? '✓ Тэнцэл тэнцсэн' : '⚠ Тэнцэл тэнцээгүй'} (1.3 = 2.4: {formatMoney(cur.totalAssets)}₮ vs {formatMoney(cur.totalLiabilities + cur.netAssetsTotal)}₮)
       </div>
 
       <div className="text-[13px] font-semibold mt-6 mb-1">Б МАЯГТ — ҮР ДҮНГИЙН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
         ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Гишүүдийн татварыг (2-р мөр) тусад нь ялгаж хөтлөдөг боловч, зарим бусад дэд ангиллыг (Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
       </div>
-      <div className="ds-card p-3">
-        <table className="ds-table w-full">
-          <thead>
-            <tr>
-              <th className="py-1.5 px-2" style={{ width: 70 }}>Мөр №</th>
-              <th className="py-1.5 px-2">ҮЗҮҮЛЭЛТ</th>
-              <th className="py-1.5 px-2 text-right" style={{ width: 160 }}>Дүн (₮)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-            {f2Rows.map((r) => (
-              <tr key={r.no} className={r.bold ? 'bg-slate-100 dark:bg-white/[0.03]' : ''}>
-                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.no}</td>
-                <td className={`py-1.5 px-2 ${r.bold ? 'font-semibold' : ''}`}>{r.label}</td>
-                <td className={`py-1.5 px-2 text-right ${r.bold ? 'font-semibold' : ''}`}>{r.value !== null ? `${formatMoney(r.value)}₮` : ''}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {renderTable(f2Rows)}
     </div>
   );
 }
