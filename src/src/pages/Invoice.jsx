@@ -287,7 +287,7 @@ export default function Invoice() {
         const ownerParkingUuid = !matchedUnit && o.has_grid_parking && Array.isArray(o.grid_parkings) && o.grid_parkings.length > 0 ? extractGridItemUuid(o.grid_parkings[0]?.id) : null;
         const ownerStorageUuid = !matchedUnit && !ownerParkingUuid && o.has_grid_storage && Array.isArray(o.grid_storages) && o.grid_storages.length > 0 ? extractGridItemUuid(o.grid_storages[0]?.id) : null;
         rows.push({
-          target_type: 'owner', target_id: matchedUnit?.id || ownerParkingUuid || ownerStorageUuid || o.id,
+          target_type: 'owner', target_id: matchedUnit?.id || ownerParkingUuid || ownerStorageUuid || o.id, isUnit: !!matchedUnit,
           name: ownerName, sub: ownerSub,
           items: lineItems, total: lineItems.reduce((s, li) => s + li.amount, 0),
         });
@@ -344,7 +344,7 @@ export default function Invoice() {
     setSaving(true);
     try {
       let created = 0, skipped = 0, failed = 0;
-      let ownerReceivableTotal = 0, clientReceivableTotal = 0;
+      let unitReceivableTotal = 0, spotOnlyReceivableTotal = 0, clientReceivableTotal = 0;
       for (const row of previewRows) {
         const { data: inv, error } = await supabase.from('invoices')
           .insert({ tenant_id: hoaId, target_type: row.target_type, target_id: row.target_id, period_year: year, period_month: month, total_amount: row.total, status: 'sent', sent_at: new Date().toISOString() })
@@ -367,13 +367,19 @@ export default function Invoice() {
         }
         created++;
         if (row.target_type === 'client') clientReceivableTotal += Number(row.total) || 0;
-        else ownerReceivableTotal += Number(row.total) || 0;
+        else if (row.isUnit) unitReceivableTotal += Number(row.total) || 0;
+        else spotOnlyReceivableTotal += Number(row.total) || 0;
       }
-      // Орлого хүлээн зөвшөөрөх журналын бичилт (Дт Авлага / Кт Орлого)
+      // Орлого хүлээн зөвшөөрөх журналын бичилт (Дт Авлага / Кт Орлого).
+      // 2026-09-23 (77): Сууц өмчлөгч (1210), Зогсоол/агуулах дангаар
+      // өмчлөгч (1240 — "Бусад авлага"), Талбай өмчлөгч (1220) 3
+      // тусдаа авлагын данс руу зөв ангилна (өмнө нь дан
+      // зогсоол/агуулах өмчлөгч буруу 1210-д ордог байв).
       const journalLines = [];
-      if (ownerReceivableTotal > 0) journalLines.push({ account_code: '1210', debit: ownerReceivableTotal, credit: 0 });
+      if (unitReceivableTotal > 0) journalLines.push({ account_code: '1210', debit: unitReceivableTotal, credit: 0 });
+      if (spotOnlyReceivableTotal > 0) journalLines.push({ account_code: '1240', debit: spotOnlyReceivableTotal, credit: 0 });
       if (clientReceivableTotal > 0) journalLines.push({ account_code: '1220', debit: clientReceivableTotal, credit: 0 });
-      const totalIncome = ownerReceivableTotal + clientReceivableTotal;
+      const totalIncome = unitReceivableTotal + spotOnlyReceivableTotal + clientReceivableTotal;
       if (journalLines.length > 0 && totalIncome > 0) {
         journalLines.push({ account_code: '5110', debit: 0, credit: totalIncome });
         const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({

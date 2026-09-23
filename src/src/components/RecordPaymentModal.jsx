@@ -3,7 +3,7 @@ import Modal from './Modal';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatMoney } from '../lib/format';
-import { computeOwnerTargetId, computeClientTargetId } from '../lib/stableTargetId';
+import { computeOwnerTargetId, computeClientTargetId, isOwnerUnit } from '../lib/stableTargetId';
 import { useAuth } from '../lib/AuthContext';
 
 // 2026-09-20 (61, 2-р үе шат): "Төлбөр бүртгэх" товч ОДОО ХҮРТЭЛ
@@ -60,7 +60,10 @@ export default function RecordPaymentModal({ open, onClose, hoaId, targetType, r
       const { error: updateErr } = await supabase.from('invoices').update({ status: 'paid' }).in('id', ids);
       if (updateErr) { setError(updateErr.message); return; }
 
-      const receivableAccount = targetType === 'client' ? '1220' : '1210';
+      // 2026-09-23 (77): Зогсоол/агуулах дангаар өмчлөгчийг Сууц
+      // өмчлөгчтэй (1210) андуурч байсныг олов — үүнийг isOwnerUnit()
+      // (Rule of two, Invoice.jsx-тэй ЯГ ИЖИЛ логик)-оор ялгав.
+      const receivableAccount = targetType === 'client' ? '1220' : (isOwnerUnit(record, unitLayouts) ? '1210' : '1240');
       const periods = [...new Set(selectedInvoices.map((i) => `${i.period_year}.${i.period_month}`))].join(', ');
       const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
         tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),

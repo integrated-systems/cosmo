@@ -22,6 +22,18 @@ export function computeOwnerTargetId(owner, unitLayouts) {
   return owner.id;
 }
 
+// 2026-09-23 (77): НББ үлдэгдэл засвар — Зогсоол/агуулах дангаар
+// өмчлөгчдийн авлагыг Сууц өмчлөгчдийн авлагатай (1210) андуурч
+// байсныг олов. Энэ функц (Invoice.jsx, RecordPaymentModal.jsx хоёр
+// газарт ХЭРЭГТЭЙ болсон — Rule of two) тухайн owner мөр бодит СУУЦ
+// (unit_layouts-тай тохирсон) эсэхийг заана — үгүй бол дан зогсоол/
+// агуулах өмчлөгч гэсэн үг, receivable-ийг 1240 (Бусад авлага) руу
+// чиглүүлэх ёстой.
+export function isOwnerUnit(owner, unitLayouts) {
+  if (!owner.building_no) return false;
+  return !!(unitLayouts || []).find((u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no);
+}
+
 // Талбай өмчлөгч (client)-ийн тогтвортой target_id: (1) талбайн
 // полигон (grid_land_plots) тохирвол ТЭР UUID, (2) үгүй бол зогсоол,
 // (3) үгүй бол агуулах, (4) үгүй бол raw id.
