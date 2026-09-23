@@ -20,7 +20,7 @@ function useAllJournalLines(hoaId) {
     setLoading(true);
     fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id, entry_date)').eq('journal_entries.tenant_id', hoaId)).then(({ data }) => {
       // 2026-09-23 (74): НББ үлдэгдэл засвар (5-р зүйл) — Харьцуулсан
-      // (eмнөх жилийн) багана. entry_date-ийг мөрт шууд гарган тавьж,
+      // (өмнөх жилийн) багана. entry_date-ийг мөрт шууд гарган тавьж,
       // OfficialFormsTab үүнийг үеийн cutoff шүүлтэд ашиглана.
       setLines((data || []).map((l) => ({ ...l, entry_date: l.journal_entries?.entry_date })));
       setLoading(false);
@@ -549,8 +549,8 @@ function officialRow(no, label, value, priorValue, opts) {
 }
 
 // 2026-09-23 (74): НББ үлдэгдэл засвар (5-р зүйл) — Харьцуулсан
-// (eмнөх жилийн) багана. Ф1/Ф2-ийн БүХ тооцооллыг НЭГ функцэд
-// нэгтгэж, "энэ жил" (бүх lines) БОЛОН "eмнөх жил" (зөвхөн eмнөх
+// (өмнөх жилийн) багана. Ф1/Ф2-ийн БүХ тооцооллыг НЭГ функцэд
+// нэгтгэж, "энэ жил" (бүх lines) БОЛОН "өмнөх жил" (зөвхөн өмнөх
 // жилийн 12-р сарын 31 хүртэлх lines) гэсэн 2 ТУСДАА dataset дээр
 // ЯГ ИЖИЛ логикоор дуудна (Rule of two — давхардал байхгүй).
 function computeF1F2Snapshot(accounts, lines) {
@@ -612,6 +612,54 @@ function computeF1F2Snapshot(accounts, lines) {
     salaryExpense, socialInsuranceExpense, maintenanceExpense, depreciationExpense, badDebtExpense, otherExpenseExplicit, operatingExpenseTotal,
     operatingResult,
   };
+}
+
+// 2026-09-23 (75): В маягт (Мөнгөн гүйлгээний тайлан) — "шууд
+// арга" (CashFlowStatementTab-тай ЯГ ИЖИЛ логик, Rule of two), гэхдээ
+// үр дүнг ерөнхий 3 бүлэг (үйл ажиллагаа/хөрөнгө оруулалт/санхүүжилт)
+// биш, харин ТУХАЙН ЭСРЭГ ДАНСНЫ КОДООР дэд мөрүүдэд задалж өгнө.
+function computeOfficialCashFlow(accounts, lines) {
+  const accountByCode = {};
+  accounts.forEach((a) => { accountByCode[a.code] = a; });
+
+  const linesByEntry = {};
+  lines.forEach((l) => {
+    if (!linesByEntry[l.entry_id]) linesByEntry[l.entry_id] = [];
+    linesByEntry[l.entry_id].push(l);
+  });
+
+  let membershipCash = 0, rentCash = 0, otherCash = 0;
+  let salaryCash = 0, socialInsuranceCash = 0, operatingExpenseCash = 0;
+  let investingCash = 0, financingCash = 0;
+
+  Object.values(linesByEntry).forEach((entryLines) => {
+    const cashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category === 'cash');
+    const nonCashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category !== 'cash');
+    if (cashLines.length === 0) return;
+    const cashNet = cashLines.reduce((s, l) => s + Number(l.debit) - Number(l.credit), 0);
+    const contraTotal = nonCashLines.reduce((s, l) => s + Number(l.debit) + Number(l.credit), 0);
+    if (contraTotal === 0) return;
+    nonCashLines.forEach((l) => {
+      const acc = accountByCode[l.account_code];
+      const cat = acc?.category;
+      const code = l.account_code;
+      const weight = (Number(l.debit) + Number(l.credit)) / contraTotal;
+      const share = cashNet * weight;
+      if (cat === 'fixed_asset') { investingCash += share; return; }
+      if (cat === 'equity') { financingCash += share; return; }
+      if (code === '5110' || code === '1210' || code === '1220') { membershipCash += share; return; }
+      if (code === '5410') { rentCash += share; return; }
+      if (code === '7010' || code === '3130') { salaryCash += share; return; }
+      if (code === '7020' || code === '3110' || code === '3120') { socialInsuranceCash += share; return; }
+      if (['7030', '7040', '7050', '7060'].includes(code)) { operatingExpenseCash += share; return; }
+      otherCash += share;
+    });
+  });
+
+  const operatingCashTotal = membershipCash + rentCash + otherCash + salaryCash + socialInsuranceCash + operatingExpenseCash;
+  const totalCashNet = operatingCashTotal + investingCash + financingCash;
+
+  return { membershipCash, rentCash, otherCash, salaryCash, socialInsuranceCash, operatingExpenseCash, operatingCashTotal, investingCash, financingCash, totalCashNet };
 }
 
 function OfficialFormsTab({ hoaId }) {
@@ -706,6 +754,50 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('41', 'Тайлант үеийн цэвэр үр дүн', cur.operatingResult, prior.operatingResult, { bold: true }),
   ];
 
+  // 2026-09-23 (75): НББ үлдэгдэл засвар (6-р, сүүлийн зүйл) — В
+  // маягт (Мөнгөн гүйлгээний тайлан) БОЛОН Г маягт (Цэвэр хөрэнгийн
+  // eөрчлөлтийн тайлан) — 386 тушаалын ЯГ мөрийн бүтцээр. Мөнгөн
+  // гүйлгээг CashFlowStatementTab-тай ЯГ ИЖИЛ "шууд арга" (per-entry
+  // contra ангилал/данс)-аар тооцоолж, дэд мөрүүдэд (Гишүүдийн
+  // татвар, Түрээс, Цалин, НДШ, Ашиглалтын зардал г.м) харгалзуулна.
+  const cf = computeOfficialCashFlow(accounts, lines);
+  const cfPrior = computeOfficialCashFlow(accounts, priorLines);
+
+  const f3Rows = [
+    officialRow('1', 'Үндсэн үйл ажиллагааны мөнгөн гүйлгээ', null, null, { bold: true }),
+    officialRow('1.1', 'Мөнгөн орлогын дүн (+)', null, null, { bold: true }),
+    officialRow('(а)', 'Гишүүдийн татвараас орсон мөнгө', cf.membershipCash, cfPrior.membershipCash),
+    officialRow('(б)', 'Төсөл, хөтөлбөрөөс орсон мөнгө', 0, 0),
+    officialRow('(в)', 'Бэлэг, хандив, тусламж', 0, 0),
+    officialRow('(г)', 'Түрээсийн орлогод хүлээн авсан мөнгө', cf.rentCash, cfPrior.rentCash),
+    officialRow('(д)', 'Бусад', cf.otherCash > 0 ? cf.otherCash : 0, cfPrior.otherCash > 0 ? cfPrior.otherCash : 0),
+    officialRow('1.2', 'Мөнгөн зарлагын дүн (-)', null, null, { bold: true }),
+    officialRow('(а)', 'Ажиллагчдад төлсөн', cf.salaryCash, cfPrior.salaryCash),
+    officialRow('(б)', 'Нийгмийн даатгалын байгууллагад төлсөн', cf.socialInsuranceCash, cfPrior.socialInsuranceCash),
+    officialRow('(в)', 'Бараа материал худалдан авахад төлсөн', 0, 0),
+    officialRow('(г)', 'Ашиглалтын зардалд төлсэн', cf.operatingExpenseCash, cfPrior.operatingExpenseCash),
+    officialRow('(д)', 'Түлш шатахуун, тээврийн хөлс, сэлбэг хэрэгсэлд төлсөн', 0, 0),
+    officialRow('(е)', 'Бэлтгэн нийлүүлэгчдэд төлсөн бусад мөнгө', cf.otherCash < 0 ? cf.otherCash : 0, cfPrior.otherCash < 0 ? cfPrior.otherCash : 0),
+    officialRow('(ё)', 'Хүүний төлбөрт төлсэн', 0, 0),
+    officialRow('(ж)', 'Татварын байгууллагад төлсэн', 0, 0),
+    officialRow('(з)', 'Даатгалын төлбөрт төлсэн', 0, 0),
+    officialRow('1.3', 'Үндсэн үйл ажиллагааны цэвэр мөнгөн гүйлгээний дүн', cf.operatingCashTotal, cfPrior.operatingCashTotal, { bold: true }),
+    officialRow('2', 'Хөрэнгө оруулалтын үйл ажиллагааны мөнгөн гүйлгээ', null, null, { bold: true }),
+    officialRow('2.2', 'Хөрэнгө оруулалтын үйл ажиллагааны цэвэр мөнгөн гүйлгээний дүн', cf.investingCash, cfPrior.investingCash, { bold: true }),
+    officialRow('3', 'Санхүүгийн үйл ажиллагааны мөнгөн гүйлгээ', null, null, { bold: true }),
+    officialRow('3.2', 'Санхүүгийн үйл ажиллагааны цэвэр мөнгөн гүйлгээний дүн', cf.financingCash, cfPrior.financingCash, { bold: true }),
+    officialRow('4', 'Бүх цэвэр мөнгөн гүйлгээ', cf.totalCashNet, cfPrior.totalCashNet, { bold: true }),
+    officialRow('5', 'Мөнгө, түүнтэй адилтгах хөрэнгийн эхний үлдэгдэл', 0, 0),
+    officialRow('6', 'Мөнгө, түүнтэй адилтгах хөрэнгийн эцсийн үлдэгдэл', cur.cash, prior.cash, { bold: true }),
+  ];
+
+  const f4Rows = [
+    officialRow('1', 'Үеийн эхний үлдэгдэл', 0, 0, { bold: true }),
+    officialRow('8', 'Тайлант үеийн цэвэр үр дүн', cur.netResult, prior.netResult),
+    officialRow('9', 'Үеийн эцсийн үлдэгдэл', cur.netAssetsTotal, prior.netAssetsTotal, { bold: true }),
+  ];
+
+
   const renderTable = (rows) => (
     <div className="ds-card p-3">
       <table className="ds-table w-full">
@@ -747,6 +839,18 @@ function OfficialFormsTab({ hoaId }) {
         ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Гишүүдийн татварыг (2-р мөр) тусад нь ялгаж хөтлөдөг боловч, зарим бусад дэд ангиллыг (Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
       </div>
       {renderTable(f2Rows)}
+
+      <div className="text-[13px] font-semibold mt-6 mb-1">В МАЯГТ — МӨНГӨН ГҮЙЛГЭЭНИЙ ТАЙЛАН</div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        ЯГ адил тушаалын "Мөнгөн гүйлгээний тайлан" хэсгийн мөрийн дугаараар. "Шууд арга"-аар (direct method): journal_entries бүрийг үзэж, тухайн бичилт доторх Мөнгөн хөрөнгийн цэвэр eөрчлөлтийг эсрэг дансны кодоор нь харгалзах дэд мөрт хуваарилна. Манай систем зарим дэд мөрийг (Төсөл/хөтөлбөр, Бэлэг хандив, Хөрөнгө оруулалтын дэлгэрэнгүй, Санхүүгийн зээл/хүү) тусад нь хөтлөдэггүй тул 0 гэж үнэн зөвөөр харагдана.
+      </div>
+      {renderTable(f3Rows)}
+
+      <div className="text-[13px] font-semibold mt-6 mb-1">Г МАЯГТ — ЦЭВЭР ХӨРӨНГИЙН ӨӨРЧЛӨЛТИЙН ТАЙЛАН (энгийн хувилбар)</div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        Албан ёсны маягт 6 багана (Хязгаарлалтгүй нөөц, Хязгаарлалттай нөөц, Дахин үнэлгээний нэмэгдэл, Гадаад валютын хөрвүүлэлтийн нөөц, Хуримтлагдсан үр дүн, Нийт дүн)-тай ч, манай систем зөвхөн "Хуримтлалын сан" (Хязгаарлалтгүй нөөц) БОЛОН тайлант үеийн үр дүнг л хөтлөдэг тул, энгийн болгож 2 мөрт нэгтгэв. Бусад 3 багана (Хязгаарлалттай нөөц гэх мэт) манай tenant-үүдэд хараахан ашиглагдаагүй.
+      </div>
+      {renderTable(f4Rows)}
     </div>
   );
 }
