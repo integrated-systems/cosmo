@@ -12,6 +12,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import { useDepreciationPostings } from '../hooks/useDepreciationPostings';
 import { useAssetRepairs } from '../hooks/useAssetRepairs';
 import { useInventoryCount } from '../hooks/useInventoryCount';
+import { useAuth } from '../lib/AuthContext';
 import { buildLabelPngBlob, shareOrDownloadLabel, buildAssetDeepLink } from '../lib/labelPrint';
 import TabButton from '../components/TabButton';
 import FixedAssetsToolbar from '../components/FixedAssetsToolbar';
@@ -71,6 +72,7 @@ const TABS = [
 ];
 
 export default function FixedAssets() {
+  const { user } = useAuth();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { can } = useAccessRules(hoaId);
@@ -286,6 +288,27 @@ export default function FixedAssets() {
       const { data, error } = await supabase.from('fixed_assets').insert(payload).select(selectClause).single();
       if (error) { window.alert(error.message); return; }
       setRows((prev) => [data, ...prev]);
+
+      // 2026-09-23 (80): НББ үлдэгдэл засвар — БүРЭН ТЕСТЭЭР олдсон
+      // цоорхой: шинэ хөрөнгe үүсгэхэд ХЭЗЭЭ Ч худалдан авалтын
+      // журналын бичилт үүсгэдэггүй байсныг олов ("2010 үндсэн
+      // хөрэнгe" данс үргэлж 0-ийн ойролцоо, зөвхөн капитал засварын
+      // нэмэлт л агуулж байв). Төлбөрийг ХОЖИМ тусад нь төлөх (eглөг
+      // үүсгэх) зарчмаар (RepairModal-ийн капитал засвартай ЯГ ИЖИЛ —
+      // Rule of two) Дт 2010 / Кт 3310 бичилт нэмэв.
+      const purchasePriceNum = Number(payload.purchase_price) || 0;
+      if (purchasePriceNum > 0) {
+        const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+          tenant_id: hoaId, entry_date: payload.acquired_date || new Date().toISOString().slice(0, 10),
+          description: `Хөрөнгe худалдан авав: ${payload.name}`, source_type: 'manual', created_by: user?.id,
+        }).select().single();
+        if (!entryErr && entry) {
+          await supabase.from('journal_entry_lines').insert([
+            { entry_id: entry.id, account_code: '2010', debit: purchasePriceNum, credit: 0 },
+            { entry_id: entry.id, account_code: '3310', debit: 0, credit: purchasePriceNum },
+          ]);
+        }
+      }
     }
     setEditing(null);
     setAdding(false);
