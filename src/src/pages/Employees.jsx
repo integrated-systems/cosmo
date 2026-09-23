@@ -373,7 +373,13 @@ async function postPayrollJournal(hoaId, rows, additionsByCode, userId, period) 
       const totalForTax = t.employeeAmount + t.employerAmount;
       if (totalForTax) addCredit(t.liability_account, totalForTax);
     });
-    addCredit('3030', calc.netPay);
+    // 2026-09-23 (79): БүРЭН ТЕСТЭЭР олдсон АЛДАА ЗАСАВ — МОФ-386
+    // рэнумбер (0139 migration)-ийн дараа "Цалингийн eглөг" данс
+    // 3030-аас 3130 болж eeрчлөгдсөн ч, ЭНЭ МӨР шинэчлэгдээгүй
+    // хэвээр үлдэж, journal_entry_lines.account_code дээр ГАДААД
+    // ТүЛХүүР (FK) байхгүй тул алдаа ГАРАЛГүй, ЧИМЭЭГүй БүХ тайланд
+    // харагдахаа больж, "алга болох" байсан.
+    addCredit('3130', calc.netPay);
   });
 
   const { data: entry, error: entryError } = await supabase.from('journal_entries').insert({
