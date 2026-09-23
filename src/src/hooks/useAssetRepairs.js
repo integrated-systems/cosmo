@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { useAuth } from '../lib/AuthContext';
 
 // "Засвар, үйлчилгээ" таб (FixedAssets.jsx)-ийн өгөгдөл+үйлдэл.
 // 2026-09-08 (2): repair_date -> start_date, end_date шинээр нэмэв.
@@ -10,6 +11,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 // (хөрөнгэ тус бүрийн нийт зарцуулсан дүн) нэмэв — Засвар үйлчилгээний
 // хүснэгэлийн "НИЙТ ЗАРЦУУЛСАН" баганад ашиглана.
 export function useAssetRepairs(hoaId) {
+  const { user } = useAuth();
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +58,27 @@ export function useAssetRepairs(hoaId) {
         }).eq('id', assetId);
         if (updateErr) throw updateErr;
       }
+    }
+
+    // 2026-09-23 (78): НББ үлдэгдэл засвар — засварын зардал (isCapitalized
+    // vv үгүй vv-гээс үл хамааран) ХЭЗЭЭ Ч journal_entries рүү
+    // ОРДОГГүй байсныг олов. Капитал засвар бол Дт 2010 (үндсэн
+    // хөрэнгe) / Кт 3310 (Бусад eглөг), үгүй бол Дт 7030 (Засвар
+    // үйлчилгээний зардал) / Кт 3310 — төлбөрийг ХОЖИМ тусад нь
+    // төлөх (eглөг үүсгэх) хэвшмэл зарчмаар (Employees.jsx-ийн
+    // цалингийн журналтай ЯГ ИЖИЛ — Rule of two).
+    if (amountNum > 0) {
+      const debitAccount = isCapitalized ? '2010' : '7030';
+      const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: startDate,
+        description: isCapitalized ? `Капитал засвар: ${description || 'тайлбаргүй'}` : `Засвар үйлчилгээ: ${description || 'тайлбаргүй'}`,
+        source_type: 'manual', created_by: user?.id,
+      }).select().single();
+      if (entryErr) throw entryErr;
+      await supabase.from('journal_entry_lines').insert([
+        { entry_id: entry.id, account_code: debitAccount, debit: amountNum, credit: 0 },
+        { entry_id: entry.id, account_code: '3310', debit: 0, credit: amountNum },
+      ]);
     }
 
     await load();
