@@ -624,15 +624,17 @@ function OfficialFormsTab({ hoaId }) {
 
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + netAssetsTotal)) < 1;
 
-  // 2026-09-22 (67, үргэлжлүүлэлт): Б маягт (үр дүнгийн тайлан) — ЯГ
-  // адил албан ёсны 3-р хавсралтын мөрийн дугаараар (1-41). Манай
-  // тодорхой дансуудыг (5410 Түрээс→5-р мөр, 5610 Бусад орлого→7-р
-  // мөр, 7010 Цалин→17-р мөр, 7020 НДШ→18-р мөр, 7030 Засвар→19-р
-  // мөр) харгалзах мөрт нь тавьж, үлдсэн БҮХ орлого/зардлыг "Бусад"
+  // 2026-09-22 (67, үргэлжлүүлэлт; 72-т 5110 Гишүүдийн татвар нэмэв):
+  // Б маягт (үр дүнгийн тайлан) — ЯГ адил албан ёсны 3-р хавсралтын
+  // мөрийн дугаараар (1-41). Манай тодорхой дансуудыг (5110 Гишүүдийн
+  // татвар→2-р мөр, 5410 Түрээс→5-р мөр, 5610 Бусад орлого→7-р мөр,
+  // 7010 Цалин→17-р мөр, 7020 НДШ→18-р мөр, 7030 Засвар→19-р мөр)
+  // харгалзах мөрт нь тавьж, үлдсэн БҮХ орлого/зардлыг "Бусад"
   // (7-р/31-р мөр)-т нэгтгэнэ.
+  const membershipDues = sumByCode('5110');
   const rentIncome = sumByCode('5410');
-  const otherIncomeExplicit = sumByCategory('income') - rentIncome;
-  const operatingIncomeTotal = rentIncome + otherIncomeExplicit;
+  const otherIncomeExplicit = sumByCategory('income') - membershipDues - rentIncome;
+  const operatingIncomeTotal = membershipDues + rentIncome + otherIncomeExplicit;
 
   const salaryExpense = sumByCode('7010');
   const socialInsuranceExpense = sumByCode('7020');
@@ -646,7 +648,7 @@ function OfficialFormsTab({ hoaId }) {
 
   const f2Rows = [
     officialRow('1', 'Үндсэн үйл ажиллагааны орлого', null, { bold: true }),
-    officialRow('2', 'Гишүүдийн татвар', 0),
+    officialRow('2', 'Гишүүдийн татвар', membershipDues),
     officialRow('3', 'Хөтөлбөр, төслийн орлого', 0),
     officialRow('4', 'Бэлэг, хандив, тусламжийн орлого', 0),
     officialRow('5', 'Түрээсийн орлого', rentIncome),
@@ -713,7 +715,7 @@ function OfficialFormsTab({ hoaId }) {
 
       <div className="text-[13px] font-semibold mt-6 mb-1">Б МАЯГТ — ҮР ДҮНГИЙН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Манай систем зарим дэд ангиллыг (Гишүүдийн татвар, Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
+        ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Гишүүдийн татварыг (2-р мөр) тусад нь ялгаж хөтлөдөг боловч, зарим бусад дэд ангиллыг (Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
       </div>
       <div className="ds-card p-3">
         <table className="ds-table w-full">
