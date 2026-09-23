@@ -559,6 +559,8 @@ function OfficialFormsTab({ hoaId }) {
   const cash = sumByCategory('cash');
   const shortTermInvestment = sumByCategory('short_term_investment');
   const receivable = sumByCategory('receivable');
+  const badDebtAllowance = sumByCode('1290');
+  const receivableGross = receivable - badDebtAllowance;
   const inventory = sumByCategory('inventory');
   const prepaidExpense = sumByCategory('prepaid_expense');
   const currentAssetsTotal = cash + shortTermInvestment + receivable + inventory + prepaidExpense;
@@ -587,8 +589,8 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('1.1', 'Эргэлтийн хөрэнгө', null, { bold: true }),
     officialRow('1.1.1', 'Мөнгө, түүнтэй адилтгах хөрэнгө', cash),
     officialRow('1.1.2', 'Богино хугацаат хөрэнгө оруулалт', shortTermInvestment),
-    officialRow('1.1.3', 'Дансны авлага', receivable),
-    officialRow('1.1.4', 'Найдваргүй авлагын хасагдуулга', 0),
+    officialRow('1.1.3', 'Дансны авлага', receivableGross),
+    officialRow('1.1.4', 'Найдваргүй авлагын хасагдуулга', badDebtAllowance),
     officialRow('1.1.5', 'Бараа материал', inventory),
     officialRow('1.1.6', 'Урьдчилж төлсэн зардал/тооцоо', prepaidExpense),
     officialRow('1.1.7', 'Бусад эргэлтийн хөрэнгө', 0),
@@ -640,8 +642,9 @@ function OfficialFormsTab({ hoaId }) {
   const socialInsuranceExpense = sumByCode('7020');
   const maintenanceExpense = sumByCode('7030');
   const depreciationExpense = sumByCode('7070');
-  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense - depreciationExpense;
-  const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + depreciationExpense + otherExpenseExplicit;
+  const badDebtExpense = sumByCode('7080');
+  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense - depreciationExpense - badDebtExpense;
+  const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + depreciationExpense + badDebtExpense + otherExpenseExplicit;
 
   const operatingResult = operatingIncomeTotal - operatingExpenseTotal;
   const netResultF2 = operatingResult;
@@ -671,7 +674,7 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('25', 'Зар сурталчилгааны зардал', 0),
     officialRow('26', 'Шуудан холбооны зардал', 0),
     officialRow('27', 'Шатахууны зардал', 0),
-    officialRow('28', 'Найдваргүй авлагын зардал', 0),
+    officialRow('28', 'Найдваргүй авлагын зардал', badDebtExpense),
     officialRow('29', 'Шагнал, урамшууллын зардал', 0),
     officialRow('30', 'Зээлийн хүүгийн зардал', 0),
     officialRow('31', 'Бусад зардал', otherExpenseExplicit),
@@ -977,6 +980,114 @@ function NotesTab({ hoaId }) {
   );
 }
 
+// 2026-09-23 (73): НББ үлдэгдэл засвар (4-р зүйл) — Найдваргүй
+// авлага. PaymentBadges/Owners-ийн "эрсдэлтэй" (at_risk) төлөвтэй,
+// хараахан журналд тооцогдоогүй нэхэмжлэхүүдийг жагсааж, сонгосон
+// нэхэмжлэхүүдийг НЭГ журналын бичилтэд (Дт 7080 Найдваргүй авлагын
+// зардал / Кт 1290 Найдваргүй авлагын хасагдуулга) нэгтгэж үүсгэнэ.
+// Идэмпотент — bad_debt_provisions хүснэгэлд бүртгэгдсэн нэхэмжлэх
+// дахин жагсаалтад орохгүй.
+function BadDebtTab({ hoaId }) {
+  const { user } = useAuth();
+  const [invoices, setInvoices] = useState([]);
+  const [atRiskDays, setAtRiskDays] = useState(180);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(new Set());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function load() {
+    if (!hoaId) return;
+    setLoading(true);
+    setError('');
+    const [{ data: settingsRow }, { data: invRows }, { data: provRows }] = await Promise.all([
+      supabase.from('fin_settings').select('at_risk_days').eq('tenant_id', hoaId).maybeSingle(),
+      fetchAllRows(() => supabase.from('invoices').select('id, target_type, target_id, total_amount, status, sent_at, period_year, period_month').eq('tenant_id', hoaId).in('status', ['sent', 'overdue'])),
+      fetchAllRows(() => supabase.from('bad_debt_provisions').select('invoice_id').eq('tenant_id', hoaId)),
+    ]);
+    const riskDays = settingsRow?.at_risk_days ?? 180;
+    setAtRiskDays(riskDays);
+    const provisionedIds = new Set((provRows || []).map((p) => p.invoice_id));
+    const now = new Date();
+    const atRisk = (invRows || []).filter((inv) => {
+      if (provisionedIds.has(inv.id)) return false;
+      if (!inv.sent_at) return false;
+      const days = Math.floor((now - new Date(inv.sent_at)) / 86400000);
+      return days > riskDays;
+    });
+    setInvoices(atRisk);
+    setSelected(new Set(atRisk.map((i) => i.id)));
+    setLoading(false);
+  }
+  useEffect(() => { load(); }, [hoaId]);
+
+  function toggle(id) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  const selectedInvoices = invoices.filter((i) => selected.has(i.id));
+  const totalAmount = selectedInvoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
+  const canSave = selectedInvoices.length > 0 && !saving;
+
+  async function handleProvision() {
+    if (!canSave) return;
+    setSaving(true);
+    setError('');
+    try {
+      const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
+        description: `Найдваргүй авлагын тооцоолол (${selectedInvoices.length} нэхэмжлэх)`, source_type: 'manual', created_by: user?.id,
+      }).select().single();
+      if (entryErr) { setError(entryErr.message); return; }
+      const { error: linesErr } = await supabase.from('journal_entry_lines').insert([
+        { entry_id: entry.id, account_code: '7080', debit: totalAmount, credit: 0 },
+        { entry_id: entry.id, account_code: '1290', debit: 0, credit: totalAmount },
+      ]);
+      if (linesErr) { setError(linesErr.message); return; }
+      const { error: provErr } = await supabase.from('bad_debt_provisions').insert(
+        selectedInvoices.map((i) => ({ tenant_id: hoaId, invoice_id: i.id, amount: i.total_amount, journal_entry_id: entry.id, created_by: user?.id }))
+      );
+      if (provErr) { setError(provErr.message); return; }
+      load();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="text-[12px] text-mutedtext mb-3">
+        "Санхүү тохиргоо &gt; НББ &gt; Төлбөрийн хоцрогдол"-д тохируулсан эрсдэлтэй хугацаа ({atRiskDays} хоног)-аас хэтэрсэн, хараахан журналд тооцогдоогүй нэхэмжлэхүүд. Сонгосон нэхэмжлэхүүдийг Найдваргүй авлага гэж тооцож, журналын бичилт (Дт "Найдваргүй авлагын зардал" / Кт "Найдваргүй авлагын хасагдуулга") үүсгэнэ.
+      </div>
+      {loading ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>
+      ) : invoices.length === 0 ? (
+        <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Эрсдэлтэй, хараахан тооцогдоогүй нэхэмжлэх алга</div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 mb-3">
+            {invoices.map((inv) => (
+              <label key={inv.id} className="ds-card p-3 flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={selected.has(inv.id)} onChange={() => toggle(inv.id)} />
+                <span className="flex-1">{inv.target_type === 'client' ? 'Талбай өмчлөгч' : 'Өмчлөгч'} — {inv.period_year} оны {inv.period_month}-р сар</span>
+                <span className="font-medium">{formatMoney(inv.total_amount)}₮</span>
+              </label>
+            ))}
+          </div>
+          <button className="ds-btn-primary" onClick={handleProvision} disabled={!canSave}>
+            {saving ? 'Хадгалж байна...' : `Найдваргүй гэж тооцох (${formatMoney(totalAmount)}₮)`}
+          </button>
+        </>
+      )}
+      {error && <div className="text-[12px] text-customRed mt-2">{error}</div>}
+    </div>
+  );
+}
+
 function ClosedPeriodsTab({ hoaId }) {
   const [periods, setPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1063,6 +1174,7 @@ export default function Accounting() {
         <TabButton active={tab === 'equity'} onClick={() => setTab('equity')}>Эздийн эрхийн өөрчлөлт</TabButton>
         <TabButton active={tab === 'official'} onClick={() => setTab('official')}>Албан ёсны А/Б маягт</TabButton>
         <TabButton active={tab === 'notes'} onClick={() => setTab('notes')}>Тайлангийн тодруулга</TabButton>
+        <TabButton active={tab === 'baddebt'} onClick={() => setTab('baddebt')}>Найдваргүй авлага</TabButton>
         <TabButton active={tab === 'periods'} onClick={() => setTab('periods')}>Тайлант үеийн хаалт</TabButton>
       </div>
       {tab === 'coa' && <ChartOfAccountsTab hoaId={hoaId} />}
@@ -1074,6 +1186,7 @@ export default function Accounting() {
       {tab === 'equity' && <EquityChangesTab hoaId={hoaId} />}
       {tab === 'official' && <OfficialFormsTab hoaId={hoaId} />}
       {tab === 'notes' && <NotesTab hoaId={hoaId} />}
+      {tab === 'baddebt' && <BadDebtTab hoaId={hoaId} />}
       {tab === 'periods' && <ClosedPeriodsTab hoaId={hoaId} />}
     </div>
   );
