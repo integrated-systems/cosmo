@@ -553,52 +553,75 @@ function officialRow(no, label, value, priorValue, opts) {
 // нэгтгэж, "энэ жил" (бүх lines) БОЛОН "өмнөх жил" (зөвхөн өмнөх
 // жилийн 12-р сарын 31 хүртэлх lines) гэсэн 2 ТУСДАА dataset дээр
 // ЯГ ИЖИЛ логикоор дуудна (Rule of two — давхардал байхгүй).
-function computeF1F2Snapshot(accounts, lines) {
-  const sumByCategory = (cat) => accounts.filter((a) => a.category === cat).reduce((s, acc) => s + accountBalance(acc, lines).balance, 0);
-  const sumByCode = (code) => {
+// 2026-09-23 (76): НББ үлдэгдэл засвар (ЧУХАЛ АЛДАА ЗАСАВ) — Б
+// маягт (үр дүнгийн тайлан) БОЛОН В маягт (Мөнгөн гүйлгээ)-ийн
+// "Энэ жил" багана үнэн хэрэгтээ СИСТЕМ ЭХЭЛСЭН ЦАГААС ХОЙШИХ БүХ
+// цагийн нийлбэр байсныг олов (ЗӨВХӨН тухайн жилийн орлого/зардал
+// БИШ). Үр дүнгийн тайлан бол "үеийн" (нэг жилийн) тайлан тул, зөвхөн
+// ТУХАЙН ЖИЛИЙН гүйлгээгээр тооцоолох ёстой — Санхүүгийн байдлын
+// тайлан (Тэнцэл) харин үргэлж (систем эхэлсэн цагаас
+// хойших) хуримтлагдсан үлдэгдлээр тооцоологдох ёстой (Активуудын
+// үлдэгдэл үргэлж хуримтлагдсан тул, тэнцлийг барихын тулд Эздийн
+// эрх дэх хуримтлагдсан үр дүн ч мөн адил хуримтлагдсан байх ёстой).
+// Иймд энэ функц эдгээр хоёрыг (cumLines: тэнцлийн мөрүүдэд,
+// yearLines: үр дүнгийн тайлангийн мөрүүдэд) ялгамжтайгаар авна.
+function computeF1F2Snapshot(accounts, cumLines, yearLines) {
+  const sumByCategoryCum = (cat) => accounts.filter((a) => a.category === cat).reduce((s, acc) => s + accountBalance(acc, cumLines).balance, 0);
+  const sumByCodeCum = (code) => {
     const acc = accounts.find((a) => a.code === code);
-    return acc ? accountBalance(acc, lines).balance : 0;
+    return acc ? accountBalance(acc, cumLines).balance : 0;
+  };
+  const sumByCategoryYear = (cat) => accounts.filter((a) => a.category === cat).reduce((s, acc) => s + accountBalance(acc, yearLines).balance, 0);
+  const sumByCodeYear = (code) => {
+    const acc = accounts.find((a) => a.code === code);
+    return acc ? accountBalance(acc, yearLines).balance : 0;
   };
 
-  const cash = sumByCategory('cash');
-  const shortTermInvestment = sumByCategory('short_term_investment');
-  const receivable = sumByCategory('receivable');
-  const badDebtAllowance = sumByCode('1290');
+  const cash = sumByCategoryCum('cash');
+  const shortTermInvestment = sumByCategoryCum('short_term_investment');
+  const receivable = sumByCategoryCum('receivable');
+  const badDebtAllowance = sumByCodeCum('1290');
   const receivableGross = receivable - badDebtAllowance;
-  const inventory = sumByCategory('inventory');
-  const prepaidExpense = sumByCategory('prepaid_expense');
+  const inventory = sumByCategoryCum('inventory');
+  const prepaidExpense = sumByCategoryCum('prepaid_expense');
   const currentAssetsTotal = cash + shortTermInvestment + receivable + inventory + prepaidExpense;
 
-  const fixedAssetGross = sumByCode('2010');
-  const accumulatedDepreciation = sumByCode('2020');
-  const nonCurrentAssetsTotal = sumByCategory('fixed_asset');
+  const fixedAssetGross = sumByCodeCum('2010');
+  const accumulatedDepreciation = sumByCodeCum('2020');
+  const nonCurrentAssetsTotal = sumByCategoryCum('fixed_asset');
   const totalAssets = currentAssetsTotal + nonCurrentAssetsTotal;
 
-  const salaryPayable = sumByCode('3130');
-  const taxPayable = sumByCode('3110') + sumByCode('3120');
-  const deferredIncome = sumByCode('3210');
-  const otherPayable = sumByCode('3310');
-  const accountsPayable = sumByCategory('payable') - salaryPayable - taxPayable - deferredIncome - otherPayable;
+  const salaryPayable = sumByCodeCum('3130');
+  const taxPayable = sumByCodeCum('3110') + sumByCodeCum('3120');
+  const deferredIncome = sumByCodeCum('3210');
+  const otherPayable = sumByCodeCum('3310');
+  const accountsPayable = sumByCategoryCum('payable') - salaryPayable - taxPayable - deferredIncome - otherPayable;
   const currentLiabTotal = accountsPayable + salaryPayable + taxPayable + deferredIncome + otherPayable;
   const totalLiabilities = currentLiabTotal;
 
-  const incomeTotal = sumByCategory('income');
-  const expenseTotal = sumByCategory('expense');
-  const netResult = incomeTotal - expenseTotal;
-  const reserveUnrestricted = sumByCategory('equity');
-  const netAssetsTotal = reserveUnrestricted + netResult;
+  // "2.3.5 Хуримтлагдсан үр дүн" (Тэнцэл) — үргэлж ХУРИМТЛАГДСАН
+  // (системийн эхнээс хойших) байх ёстой, учир нь Активууд/өр
+  // төлбөр хоёул үргэлж хуримтлагдсан тул, тэнцэл барихын тулд
+  // ЭНЭ мөр ч мөн адил байх ёстой.
+  const incomeTotalCum = sumByCategoryCum('income');
+  const expenseTotalCum = sumByCategoryCum('expense');
+  const netResultCumulative = incomeTotalCum - expenseTotalCum;
+  const reserveUnrestricted = sumByCategoryCum('equity');
+  const netAssetsTotal = reserveUnrestricted + netResultCumulative;
 
-  const membershipDues = sumByCode('5110');
-  const rentIncome = sumByCode('5410');
-  const otherIncomeExplicit = sumByCategory('income') - membershipDues - rentIncome;
+  // Б маягтын (үр дүнгийн тайлан) мөрүүд — ЗӨВХӨН тайлант жилийн
+  // (yearLines) гүйлгээгээр тооцоолно.
+  const membershipDues = sumByCodeYear('5110');
+  const rentIncome = sumByCodeYear('5410');
+  const otherIncomeExplicit = sumByCategoryYear('income') - membershipDues - rentIncome;
   const operatingIncomeTotal = membershipDues + rentIncome + otherIncomeExplicit;
 
-  const salaryExpense = sumByCode('7010');
-  const socialInsuranceExpense = sumByCode('7020');
-  const maintenanceExpense = sumByCode('7030');
-  const depreciationExpense = sumByCode('7070');
-  const badDebtExpense = sumByCode('7080');
-  const otherExpenseExplicit = sumByCategory('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense - depreciationExpense - badDebtExpense;
+  const salaryExpense = sumByCodeYear('7010');
+  const socialInsuranceExpense = sumByCodeYear('7020');
+  const maintenanceExpense = sumByCodeYear('7030');
+  const depreciationExpense = sumByCodeYear('7070');
+  const badDebtExpense = sumByCodeYear('7080');
+  const otherExpenseExplicit = sumByCategoryYear('expense') - salaryExpense - socialInsuranceExpense - maintenanceExpense - depreciationExpense - badDebtExpense;
   const operatingExpenseTotal = salaryExpense + socialInsuranceExpense + maintenanceExpense + depreciationExpense + badDebtExpense + otherExpenseExplicit;
 
   const operatingResult = operatingIncomeTotal - operatingExpenseTotal;
@@ -607,7 +630,7 @@ function computeF1F2Snapshot(accounts, lines) {
     cash, shortTermInvestment, receivableGross, badDebtAllowance, inventory, prepaidExpense, currentAssetsTotal,
     fixedAssetGross, accumulatedDepreciation, nonCurrentAssetsTotal, totalAssets,
     accountsPayable, salaryPayable, taxPayable, deferredIncome, otherPayable, currentLiabTotal, totalLiabilities,
-    reserveUnrestricted, netResult, netAssetsTotal,
+    reserveUnrestricted, netResultCumulative, netAssetsTotal,
     membershipDues, rentIncome, otherIncomeExplicit, operatingIncomeTotal,
     salaryExpense, socialInsuranceExpense, maintenanceExpense, depreciationExpense, badDebtExpense, otherExpenseExplicit, operatingExpenseTotal,
     operatingResult,
@@ -669,11 +692,21 @@ function OfficialFormsTab({ hoaId }) {
   if (loading || accountsLoading) return <div className="ds-card p-6 text-center text-mutedtext text-[12px]">Ачаалж байна...</div>;
 
   const now = new Date();
+  const currentYearStartStr = `${now.getFullYear()}-01-01`;
+  const priorYearStartStr = `${now.getFullYear() - 1}-01-01`;
   const priorYearEndStr = `${now.getFullYear() - 1}-12-31`;
-  const priorLines = lines.filter((l) => l.entry_date && l.entry_date <= priorYearEndStr);
 
-  const cur = computeF1F2Snapshot(accounts, lines);
-  const prior = computeF1F2Snapshot(accounts, priorLines);
+  // Тэнцлийн (А маягт) мөрүүдэд — үргэлж ХУРИМТЛАГДСАН (систем
+  // эхэлсэн цагаас хойших) үлдэгдэл; үр дүнгийн тайлан (Б маягт) БОЛОН
+  // Мөнгөн гүйлгээ (В маягт)-ийн мөрүүдэд — ЗӨВХӨН тайлант ЖИЛИЙН
+  // (үөийн) гүйлгээ.
+  const cumLines = lines;
+  const cumPriorLines = lines.filter((l) => l.entry_date && l.entry_date <= priorYearEndStr);
+  const yearLines = lines.filter((l) => l.entry_date && l.entry_date >= currentYearStartStr);
+  const yearPriorLines = lines.filter((l) => l.entry_date && l.entry_date >= priorYearStartStr && l.entry_date <= priorYearEndStr);
+
+  const cur = computeF1F2Snapshot(accounts, cumLines, yearLines);
+  const prior = computeF1F2Snapshot(accounts, cumPriorLines, yearPriorLines);
 
   const f1Rows = [
     officialRow('1', 'ХӨРӨНГӨ', null, null, { bold: true }),
@@ -710,7 +743,7 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('2.3.1', 'Нөөц: а) хязгаарлалтгүй', cur.reserveUnrestricted, prior.reserveUnrestricted),
     officialRow('2.3.2', 'б) хязгаарлалттай', 0, 0),
     officialRow('2.3.3', 'Дахин үнэлгээний нэмэгдэл', 0, 0),
-    officialRow('2.3.5', 'Хуримтлагдсан үр дүн (тайлант үеийн)', cur.netResult, prior.netResult),
+    officialRow('2.3.5', 'Хуримтлагдсан үр дүн', cur.netResultCumulative, prior.netResultCumulative),
     officialRow('2.3.6', 'Цэвэр хөрөнгийн дүн', cur.netAssetsTotal, prior.netAssetsTotal, { bold: true }),
     officialRow('2.4', 'ӨР ТӨЛБӨР БА ЦЭВЭР ХӨРӨНГИЙН ДҮН', cur.totalLiabilities + cur.netAssetsTotal, prior.totalLiabilities + prior.netAssetsTotal, { bold: true }),
   ];
@@ -760,8 +793,8 @@ function OfficialFormsTab({ hoaId }) {
   // гүйлгээг CashFlowStatementTab-тай ЯГ ИЖИЛ "шууд арга" (per-entry
   // contra ангилал/данс)-аар тооцоолж, дэд мөрүүдэд (Гишүүдийн
   // татвар, Түрээс, Цалин, НДШ, Ашиглалтын зардал г.м) харгалзуулна.
-  const cf = computeOfficialCashFlow(accounts, lines);
-  const cfPrior = computeOfficialCashFlow(accounts, priorLines);
+  const cf = computeOfficialCashFlow(accounts, yearLines);
+  const cfPrior = computeOfficialCashFlow(accounts, yearPriorLines);
 
   const f3Rows = [
     officialRow('1', 'Үндсэн үйл ажиллагааны мөнгөн гүйлгээ', null, null, { bold: true }),
@@ -791,9 +824,17 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('6', 'Мөнгө, түүнтэй адилтгах хөрэнгийн эцсийн үлдэгдэл', cur.cash, prior.cash, { bold: true }),
   ];
 
+  // Г маягт (Цэвэр хөрэнгийн eөрчлөлт) — реконсайл: Үөийн эхний
+  // үлдэгдэл (өмнөх жилийн эцсийн, cumulative) + Хуримтлалын санд
+  // шууд орсон eөрчлөлт + Тайлант үөийн (зөвхөн ЭНЭ жилийн) цэвэр
+  // үр дүн = Үөийн эцсийн үлдэгдэл (cumulative) — тоон утгаараа
+  // яг зөв тэнцдэг.
+  const reserveMovement = cur.reserveUnrestricted - prior.reserveUnrestricted;
+
   const f4Rows = [
-    officialRow('1', 'Үеийн эхний үлдэгдэл', 0, 0, { bold: true }),
-    officialRow('8', 'Тайлант үеийн цэвэр үр дүн', cur.netResult, prior.netResult),
+    officialRow('1', 'Үеийн эхний үлдэгдэл', prior.netAssetsTotal, 0, { bold: true }),
+    officialRow('4', 'Хуримтлалын санд гарсан өөрчлөлт', reserveMovement, 0),
+    officialRow('8', 'Тайлант үеийн цэвэр үр дүн', cur.operatingResult, prior.operatingResult),
     officialRow('9', 'Үеийн эцсийн үлдэгдэл', cur.netAssetsTotal, prior.netAssetsTotal, { bold: true }),
   ];
 
@@ -836,19 +877,19 @@ function OfficialFormsTab({ hoaId }) {
 
       <div className="text-[13px] font-semibold mt-6 mb-1">Б МАЯГТ — ҮР ДҮНГИЙН ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). Гишүүдийн татварыг (2-р мөр) тусад нь ялгаж хөтлөдөг боловч, зарим бусад дэд ангиллыг (Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтлөдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
+        ЯГ адил тушаалын "үр дүнгийн тайлан" хэсгийн мөрийн дугаараар (1-41). "Энэ жил"/"Eмнөх жил" баганууд нь ЗӨВХӨН тухайн жилийн (1-р сарын 1-нээс) гүйлгээгээр тооцоологдоно (систем эхэлсэн цагаас хойших хуримтлагдсан нийлбэр биш). Гишүүдийн татварыг (2-р мөр) тусад нь ялгаж хөтөлдөг боловч, зарим бусад дэд ангиллыг (Хөтөлбөр орлого, Тохижилт/Цэвэрлэгээ зэрэг тусгай зардал) тусад нь ялгаж хөтөлдөггүй тул "Бусад орлого"/"Бусад зардал" мөрүүдэд нэгтгэсэн болно.
       </div>
       {renderTable(f2Rows)}
 
       <div className="text-[13px] font-semibold mt-6 mb-1">В МАЯГТ — МӨНГӨН ГҮЙЛГЭЭНИЙ ТАЙЛАН</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        ЯГ адил тушаалын "Мөнгөн гүйлгээний тайлан" хэсгийн мөрийн дугаараар. "Шууд арга"-аар (direct method): journal_entries бүрийг үзэж, тухайн бичилт доторх Мөнгөн хөрөнгийн цэвэр eөрчлөлтийг эсрэг дансны кодоор нь харгалзах дэд мөрт хуваарилна. Манай систем зарим дэд мөрийг (Төсөл/хөтөлбөр, Бэлэг хандив, Хөрөнгө оруулалтын дэлгэрэнгүй, Санхүүгийн зээл/хүү) тусад нь хөтлөдэггүй тул 0 гэж үнэн зөвөөр харагдана.
+        ЯГ адил тушаалын "Мөнгөн гүйлгээний тайлан" хэсгийн мөрийн дугаараар. "Энэ жил"/"Өмнөх жил" баганууд нь ЗӨВХӨН тухайн жилийн (1-р сарын 1-нээс) гүйлгээгээр тооцоологдоно (5, 6-р мөр л цаг хугацааны хязгаарлалтгүй, хуримтлагдсан данс үлдэгдэл хэвээрээ). "Шууд арга"-аар (direct method): journal_entries бүрийг үзэж, тухайн бичилт доторх Мөнгөн хөрөнгийн цэвэр өөрчлөлтийг эсрэг дансны кодоор нь харгалзах дэд мөрт хуваарилна. Манай систем зарим дэд мөрийг (Төсөл/хөтөлбөр, Бэлэг хандив, Хөрөнгө оруулалтын дэлгэрэнгүй, Санхүүгийн зээл/хүү) тусад нь хөтлөдөггүй тул 0 гэж үнэн зөвөөр харагдана.
       </div>
       {renderTable(f3Rows)}
 
       <div className="text-[13px] font-semibold mt-6 mb-1">Г МАЯГТ — ЦЭВЭР ХӨРӨНГИЙН ӨӨРЧЛӨЛТИЙН ТАЙЛАН (энгийн хувилбар)</div>
       <div className="text-[12px] text-mutedtext mb-3">
-        Албан ёсны маягт 6 багана (Хязгаарлалтгүй нөөц, Хязгаарлалттай нөөц, Дахин үнэлгээний нэмэгдэл, Гадаад валютын хөрвүүлэлтийн нөөц, Хуримтлагдсан үр дүн, Нийт дүн)-тай ч, манай систем зөвхөн "Хуримтлалын сан" (Хязгаарлалтгүй нөөц) БОЛОН тайлант үеийн үр дүнг л хөтлөдэг тул, энгийн болгож 2 мөрт нэгтгэв. Бусад 3 багана (Хязгаарлалттай нөөц гэх мэт) манай tenant-үүдэд хараахан ашиглагдаагүй.
+        Албан ёсны маягт 6 багана (Хязгаарлалтгүй нөөц, Хязгаарлалттай нөөц, Дахин үнэлгээний нэмэгдэл, Гадаад валютын хөрвүүлэлтийн нөөц, Хуримтлагдсан үр дүн, Нийт дүн)-тай ч, манай систем зөвхөн "Хуримтлалын сан" (Хязгаарлалтгүй нөөц) БОЛОН тайлант үеийн үр дүнг л хөтлөдэг тул, энгийн болгож 4 мөрт нэгтгэв (Үеийн эхний үлдэгдэл → Хуримтлалын санд гарсан шууд өөрчлөлт → Тайлант үеийн (зөвхөн энэ жилийн) цэвэр үр дүн → Үеийн эцсийн үлдэгдэл). Бусад 3 багана (Хязгаарлалттай нөөц гэх мэт) манай tenant-үүдэд хараахан ашиглагдаагүй.
       </div>
       {renderTable(f4Rows)}
     </div>
