@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { formatMoney, formatDate } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
@@ -49,6 +50,12 @@ export default function Dashboard() {
   const STATUS_LABEL = { paid: 'Төлсөн', pending: 'Хүлээлттэй', overdue: 'Хугацаа хэтэрсэн', at_risk: 'Эрсдэлтэй' };
   const STATUS_COLOR = { paid: 'text-customGreen', pending: 'text-slate-900 dark:text-white', overdue: 'text-customYellow', at_risk: 'text-customRed' };
   const maxMonthlyValue = Math.max(1, ...(fin ? [...fin.monthlyIncome, ...fin.monthlyExpense] : [1]));
+  const [debtorSort, setDebtorSort] = useState('amount');
+  const displayedDebtors = fin
+    ? [...fin.topDebtors]
+        .sort((a, b) => (debtorSort === 'months' ? (b.monthsOverdue - a.monthsOverdue || b.amount - a.amount) : (b.amount - a.amount)))
+        .slice(0, 8)
+    : [];
 
   return (
     <>
@@ -109,11 +116,11 @@ export default function Dashboard() {
               const expenseH = Math.max(2, Math.round((expense / maxMonthlyValue) * 100));
               return (
                 <div key={m} className="w-full h-full flex flex-col items-center justify-end gap-0.5" title={`${m}: орлого ${formatMoney(income)}₮, зарлага ${formatMoney(expense)}₮`}>
-                  <div className="w-full flex items-end justify-center gap-0.5" style={{ height: '100%' }}>
+                  <div className="w-full flex-1 min-h-0 flex items-end justify-center gap-0.5">
                     <div className="w-1/2 bg-customBlue rounded-t" style={{ height: `${incomeH}%` }} />
                     <div className="w-1/2 bg-customGreen rounded-t" style={{ height: `${expenseH}%` }} />
                   </div>
-                  <span className="text-[9px] text-darktext">{m}</span>
+                  <span className="text-[9px] text-darktext shrink-0">{m}</span>
                 </div>
               );
             })}
@@ -134,7 +141,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center"><span>Хугацаа хэтэрсэн</span><span className="text-customYellow font-medium">{fin?.paymentProgress?.overdueCount ?? '—'}</span></div>
             <div className="flex justify-between items-center"><span>Эрсдэлтэй</span><span className="text-customRed font-medium">{fin?.paymentProgress?.atRiskCount ?? '—'}</span></div>
             <div className="border-t border-slate-200 dark:border-bordercol pt-2 flex justify-between items-center"><span>Энэ сарын төлбөрийн явц</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.progressPct ?? 0}%</span></div>
-            <div className="flex justify-between items-center"><span>Энэ сарын eр авлагын харьцаа</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.debtRatioPct ?? 0}%</span></div>
+            <div className="flex justify-between items-center"><span>Энэ сарын өр авлагын харьцаа</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.debtRatioPct ?? 0}%</span></div>
           </div>
         </div>
       </div>
@@ -144,7 +151,6 @@ export default function Dashboard() {
         <div className="ds-card p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Сүүлийн гүйлгээ</div>
-            <a href="#" className="text-xs text-blue-500 hover:underline">Бүгдийг харах →</a>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-500 dark:text-mutedtext">
@@ -175,8 +181,9 @@ export default function Dashboard() {
         <div className="ds-card p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">Төлбөрийн өртэй</div>
-            <select className="ds-select">
-              <option>Дүнгээр</option>
+            <select className="ds-select" value={debtorSort} onChange={(e) => setDebtorSort(e.target.value)}>
+              <option value="amount">Дүнгээр</option>
+              <option value="months">Сараар</option>
             </select>
           </div>
           <div className="overflow-x-auto">
@@ -190,9 +197,9 @@ export default function Dashboard() {
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
                 {finLoading ? (
                   <tr><td colSpan={4} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
-                ) : !fin || fin.topDebtors.length === 0 ? (
-                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Eр авлагагүй</td></tr>
-                ) : fin.topDebtors.map((d, i) => (
+                ) : !fin || displayedDebtors.length === 0 ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Өр авлагагүй</td></tr>
+                ) : displayedDebtors.map((d, i) => (
                   <tr key={`${d.name}-${i}`}>
                     <td className="py-2 text-slate-900 dark:text-white font-medium">{d.name}</td>
                     <td className={`py-2 ${STATUS_COLOR[d.status] || ''}`}>{d.sub}{d.sub ? ' · ' : ''}{STATUS_LABEL[d.status] || d.status}</td>

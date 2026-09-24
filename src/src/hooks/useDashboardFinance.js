@@ -4,8 +4,8 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { buildPayerNameMap } from '../lib/stableTargetId';
 
 // 2026-09-23 (81): "Хянах самбар" (Dashboard.jsx)-ын 6 санхүүгийн
-// картыг (Энэ сарын орлого, Нийт eр авлага, Сарын орлого/зарлага,
-// Төлбөрийн явц, Сүүлийн гүйлгээ, Төлбөрийн eртэй) НББ бүрэн
+// картыг (Энэ сарын орлого, Нийт өр авлага, Сарын орлого/зарлага,
+// Төлбөрийн явц, Сүүлийн гүйлгээ, Төлбөрийн өртэй) НББ бүрэн
 // ажиллагаатай болсонтой холбож, БҮГДИЙГ ЭНЭ НЭГ hook-оор тооцоолно.
 // Дундын dataг (invoices, owners, clientele, unit_layouts, journal)
 // НЭГ л удаа татаж, 6 гаралт руу задална — Rule of two/three, олон
@@ -84,7 +84,7 @@ export function useDashboardFinance(hoaId) {
         unit: incomeByBucket.unit, spot: incomeByBucket.spot, client: incomeByBucket.client,
       };
 
-      // ---- 2. Нийт eр авлага: бүх цагийн, төлөгдeeгүй invoice бүгд.
+      // ---- 2. Нийт өр авлага: бүх цагийн, төлөгдeeгүй invoice бүгд.
       const debtByBucket = { unit: { amount: 0, count: 0, total: 0 }, spot: { amount: 0, count: 0, total: 0 }, client: { amount: 0, count: 0, total: 0 } };
       (invoices || []).forEach((inv) => {
         const b = bucketOf(inv);
@@ -155,8 +155,10 @@ export function useDashboardFinance(hoaId) {
           };
         });
 
-      // ---- 6. Төлбөрийн eртэй: төлөгдeeгүй invoice-үүдийг дүнгээр
-      // их→бага эрэмбэлж, өмчлөгчийн нэрийг холбоно.
+      // ---- 6. Төлбөрийн өртэй: төлөгдөөгүй invoice-үүдийг өмчлөгчийн
+      // нэртэй болгоно. Эрэмблэлт (дүнгээр/сараар)-ийг Dashboard.jsx
+      // дээр dropdown-оор сонгодог тул энд БҮХ жагсаалтыг (хайчлахгүй)
+      // буцаана.
       const topDebtors = (invoices || [])
         .filter((inv) => inv.status !== 'paid')
         .map((inv) => {
@@ -165,9 +167,7 @@ export function useDashboardFinance(hoaId) {
           const sentDate = inv.sent_at ? new Date(inv.sent_at) : (inv.created_at ? new Date(inv.created_at) : null);
           const monthsOverdue = sentDate ? Math.max(1, Math.round((Date.now() - sentDate.getTime()) / (30 * 86400000))) : 1;
           return { ...payer, amount: Number(inv.total_amount || 0), status, monthsOverdue };
-        })
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 8);
+        });
 
       setData({ currentMonthIncome, totalDebt, monthlyIncome, monthlyExpense, paymentProgress, recentTransactions, topDebtors });
       setLoading(false);
