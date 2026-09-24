@@ -15,12 +15,19 @@
 // мэдэхгүй, зөвхөн ирсэн 'paid'|'pending'|'overdue'|'at_risk'|'none'
 // үнэ цэнийг л зурна.
 
+// 2026-09-24 (6-р шинэчлэл): хэрэглэгчийн заасны дагуу ТУРШИЛТ —
+// background/текст ХАМТАД төлбөрийн eнгeeр солигдож байсан нь "хэт
+// эрээн мяраан" харагдуулж байсан тул, ОДОО ЗӨВХӨН хүрээ л (border)
+// төлбөрийн eнгeeр тодруулагдана — background, текст үргэлж
+// НЕЙТРАЛЬ хэвээр үлдэнэ.
 const COLOR_CLASSES = {
-  customYellow: { bg: 'bg-[#f8f23d1a]', border: 'border-[#f8f23d66]', text: 'text-customYellow', hoverBorder: 'hover:border-customYellow' },
-  customRed: { bg: 'bg-red-500/[0.12]', border: 'border-red-500/40', text: 'text-customRed', hoverBorder: 'hover:border-customRed' },
-  customBlue: { bg: 'bg-blue-500/[0.12]', border: 'border-blue-500/40', text: 'text-customBlue', hoverBorder: 'hover:border-customBlue' },
-  customGreen: { bg: 'bg-emerald-500/[0.12]', border: 'border-emerald-500/40', text: 'text-customGreen', hoverBorder: 'hover:border-customGreen' },
+  customYellow: { border: 'border-[#f8f23d99]' },
+  customRed: { border: 'border-red-500/70' },
+  customBlue: { border: 'border-blue-500/70' },
+  customGreen: { border: 'border-emerald-500/70' },
 };
+const NEUTRAL_CLASS = 'bg-slate-500/[0.10] text-slate-400 dark:text-mutedtext hover:border-slate-400';
+const NEUTRAL_BORDER = 'border-slate-500/30';
 
 export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default', paidColor = 'customGreen' }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
@@ -52,15 +59,13 @@ export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow
                         {items.map((it, idx) => {
                           const status = it.vacant ? 'none' : (it.paymentStatus || 'none');
                           const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : status === 'paid' ? paidColor : null;
-                          const colorClass = colorKey && colorKey !== 'default' && COLOR_CLASSES[colorKey]
-                            ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].border} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].hoverBorder}`
-                            : 'bg-slate-500/[0.10] border-slate-500/30 text-slate-400 dark:text-mutedtext hover:border-slate-400';
+                          const borderClass = colorKey && colorKey !== 'default' && COLOR_CLASSES[colorKey] ? COLOR_CLASSES[colorKey].border : NEUTRAL_BORDER;
                           return (
                             <button
                               key={it.id}
                               onClick={it.onClick}
                               style={{ width: '58px', height: '44px' }}
-                              className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${colorClass}`}
+                              className={`rounded flex flex-col items-center justify-center border-2 shrink-0 transition-colors ${NEUTRAL_CLASS} ${borderClass}`}
                             >
                               <div className="text-[10px] font-semibold leading-tight">{it.code}</div>
                               {it.area && <div className="text-[8px] opacity-80 leading-tight">{it.area}м²</div>}
