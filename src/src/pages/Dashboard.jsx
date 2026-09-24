@@ -95,7 +95,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
         <div className="ds-card p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">Сарын орлого / зарлага</div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">Орлого, зарлага (сараар)</div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-mutedtext">
                 <span className="w-2.5 h-2.5 rounded-full bg-customBlue inline-block" /> Орлого

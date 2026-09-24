@@ -12,7 +12,7 @@ import { buildPayerNameMap } from '../lib/stableTargetId';
 // давхар давхардсан query-гээс зайлсхийв.
 
 // useInvoicePayments.js-тэй ЯГ ИЖИЛ статус тооцооллын логик (Rule of
-// two) — sent_at-аас хойш eнгөрсөн хоногоор paid/pending/overdue/
+// two) — sent_at-аас хойш өнгөрсөн хоногоор paid/pending/overdue/
 // at_risk гэж ангилна.
 function computeInvoiceStatus(inv, overdueDays, atRiskDays) {
   if (inv.status === 'paid') return 'paid';
@@ -84,7 +84,7 @@ export function useDashboardFinance(hoaId) {
         unit: incomeByBucket.unit, spot: incomeByBucket.spot, client: incomeByBucket.client,
       };
 
-      // ---- 2. Нийт өр авлага: бүх цагийн, төлөгдeeгүй invoice бүгд.
+      // ---- 2. Нийт өр авлага: бүх цагийн, төлөгдөөгүй invoice бүгд.
       const debtByBucket = { unit: { amount: 0, count: 0, total: 0 }, spot: { amount: 0, count: 0, total: 0 }, client: { amount: 0, count: 0, total: 0 } };
       (invoices || []).forEach((inv) => {
         const b = bucketOf(inv);
@@ -99,22 +99,49 @@ export function useDashboardFinance(hoaId) {
         unit: debtByBucket.unit, spot: debtByBucket.spot, client: debtByBucket.client,
       };
 
-      // ---- 3. Сарын орлого/зарлага: энэ жилийн 12 сарыг journal-ийн
-      // income/expense ангиллын мөрүүдээс entry_date-ээр бүлэглэнэ.
+      // ---- 3. Орлого, зарлага (сараар): CASH-BASIS — өөрөөр хэлбэл
+      // мөнгө БОДИТООР орж ирсэн/гарсан үеэр тооцоолно (2026-09-24
+      // хэрэглэгчийн зөв ажигласнаар: category='income' шүүлт нь
+      // ЗӨВХӨН нэхэмжлэх үүсгэх үеийн (accrual) хүлээн зөвшөөрөлтийг
+      // барьдаг байсан — бодит мөнгө орж ирэхэд контра нь Авлага
+      // байдаг тул ОГТ баригддаггүй байв). Одоо computeOfficialCashFlow
+      // (Accounting.jsx)-тай ЯГ ИЖИЛ "шууд арга" (per-entry contra
+      // attribution)-аар: тухайн бичилтийн Мөнгө мврийн цэвэр
+      // eөрчлөлтийг эсрэг дансны ангиллаар (Авлага/Орлого →
+      // "Орлого", Eглөг/Зардал → "Зарлага") жинлэж хуваарилна.
+      // үндсэн хөрэнгө/Эздийн эрх (капитал/санхүүжилт) орохгүй.
       const accountByCode = {};
       (accounts || []).forEach((a) => { accountByCode[a.code] = a; });
       const monthlyIncome = Array(12).fill(0);
       const monthlyExpense = Array(12).fill(0);
+      const linesByEntry = {};
       (lines || []).forEach((l) => {
-        const entryDate = l.journal_entries?.entry_date;
+        if (!l.entry_id) return;
+        if (!linesByEntry[l.entry_id]) linesByEntry[l.entry_id] = [];
+        linesByEntry[l.entry_id].push(l);
+      });
+      Object.values(linesByEntry).forEach((entryLines) => {
+        const entryDate = entryLines[0]?.journal_entries?.entry_date;
         if (!entryDate) return;
         const d = new Date(entryDate);
         if (d.getFullYear() !== year) return;
-        const acc = accountByCode[l.account_code];
-        if (!acc) return;
         const mIdx = d.getMonth();
-        if (acc.category === 'income') monthlyIncome[mIdx] += Number(l.credit) - Number(l.debit);
-        else if (acc.category === 'expense') monthlyExpense[mIdx] += Number(l.debit) - Number(l.credit);
+
+        const cashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category === 'cash');
+        const nonCashLines = entryLines.filter((l) => accountByCode[l.account_code]?.category !== 'cash');
+        if (cashLines.length === 0) return;
+        const cashNet = cashLines.reduce((s, l) => s + Number(l.debit) - Number(l.credit), 0);
+        const contraTotal = nonCashLines.reduce((s, l) => s + Number(l.debit) + Number(l.credit), 0);
+        if (contraTotal === 0) return;
+
+        nonCashLines.forEach((l) => {
+          const cat = accountByCode[l.account_code]?.category;
+          if (cat !== 'receivable' && cat !== 'income' && cat !== 'payable' && cat !== 'expense') return;
+          const weight = (Number(l.debit) + Number(l.credit)) / contraTotal;
+          const share = cashNet * weight;
+          if (cat === 'receivable' || cat === 'income') monthlyIncome[mIdx] += share;
+          else monthlyExpense[mIdx] += -share;
+        });
       });
 
       // ---- 4. Төлбөрийн явц: энэ сарын paid/pending/overdue/at_risk.
