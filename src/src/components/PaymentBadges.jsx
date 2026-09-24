@@ -3,11 +3,11 @@
 // хүснэгэлд мөр бүрд (хэдэн зуун удаа) ашиглагддаг тул НЭГ газар
 // засварлавал хаа сайгүй нэгэн зэрэг шинэчлэгдэнэ.
 //
-// 2026-09-20 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн заасны дагуу 4 төлөвт
-// (paid/pending/overdue/at_risk/none) болгов. Хэрэглэгчийн тодорхой
-// заасны дагуу: PAID (болон pending, none) — АНХДАГЧ текстийн eнгe
-// (тодруулгагүй), OVERDUE/AT_RISK л Санхүү тохиргооноос сонгосон
-// eнгeeр тодруулагдана.
+// 2026-09-24 (82): "Хугацаандаа" (paid) мөр хэрэглэгчийн шинэ, тодорхой
+// хүсэлтээр өөрчлөгддөг (Санхүү тохиргоо > НББ > Төлбөрийн хоцрогдол)
+// болов — өмнөх сессид "PAID үргэлж анхдагч өнгө" гэсэн шийдвэрийг
+// хэрэглэгч энэ удаад эргүүлэн, 4 төлөв (paid/pending/overdue/
+// at_risk) БҮГД тохируулах боломжтой өнгөтэй болов.
 const MONTHS_SHORT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 // 2026-09-20: overdueColor/atRiskColor нь fin_settings-ээс ирэх
@@ -26,14 +26,14 @@ export const EXAMPLE_PAYMENT_ROWS = [
   { monthStatuses: Array.from({ length: 12 }, () => 'none') },
 ];
 
-export default function PaymentBadges({ monthStatuses, currentMonth, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default' }) {
+export default function PaymentBadges({ monthStatuses, currentMonth, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default', paidColor = 'customGreen' }) {
   const cm = currentMonth ?? (new Date().getMonth() + 1);
   const statuses = monthStatuses || EXAMPLE_PAYMENT_ROWS[0].monthStatuses;
   return (
     <div className="flex gap-[2px]">
       {MONTHS_SHORT.map((m) => {
         const status = m <= cm ? statuses[m - 1] : 'none';
-        const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : null;
+        const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : status === 'paid' ? paidColor : null;
         const cls = colorKey && colorKey !== 'default' && COLOR_CLASSES[colorKey] ? `${COLOR_CLASSES[colorKey].bg} ${COLOR_CLASSES[colorKey].text} ${COLOR_CLASSES[colorKey].border}` : DEFAULT_CLASS;
         return (
           <span

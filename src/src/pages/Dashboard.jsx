@@ -48,7 +48,19 @@ export default function Dashboard() {
   const marketSeries12 = deriveMarketSeries(last12Rows);
   const months12 = last12Rows.map((r) => r.month);
   const STATUS_LABEL = { paid: 'Төлсөн', pending: 'Хүлээлттэй', overdue: 'Хугацаа хэтэрсэн', at_risk: 'Эрсдэлтэй' };
-  const STATUS_COLOR = { paid: 'text-customGreen', pending: 'text-slate-900 dark:text-white', overdue: 'text-customYellow', at_risk: 'text-customRed' };
+  // 2026-09-24 (82): Төлбөрийн явц/өртэй картны 4 төлөвийн өнгийг
+  // Санхүү тохиргоо > НББ > Төлбөрийн хоцрогдол-оос АВТОМАТААР уншина
+  // (PaymentBadges.jsx-тэй ЯГ ИЖИЛ дансны нэр — Rule of two/three) —
+  // Owners/Clientele/Property хуудасны индикатор/слоттой ЯГ ИЖИЛ
+  // өнгө харагдана.
+  const COLOR_KEY_TO_TEXT_CLASS = { customYellow: 'text-customYellow', customRed: 'text-customRed', customBlue: 'text-customBlue', customGreen: 'text-customGreen' };
+  const colorKeyToTextClass = (key) => (key && key !== 'default' && COLOR_KEY_TO_TEXT_CLASS[key]) || 'text-slate-900 dark:text-white';
+  const STATUS_COLOR = fin ? {
+    paid: colorKeyToTextClass(fin.statusColors.paid),
+    pending: colorKeyToTextClass(fin.statusColors.pending),
+    overdue: colorKeyToTextClass(fin.statusColors.overdue),
+    at_risk: colorKeyToTextClass(fin.statusColors.atRisk),
+  } : { paid: 'text-customGreen', pending: 'text-slate-900 dark:text-white', overdue: 'text-customYellow', at_risk: 'text-customRed' };
   const maxMonthlyValue = Math.max(1, ...(fin ? [...fin.monthlyIncome, ...fin.monthlyExpense] : [1]));
   const [debtorSort, setDebtorSort] = useState('amount');
   const displayedDebtors = fin
@@ -136,10 +148,10 @@ export default function Dashboard() {
           </div>
           <div className="space-y-3 text-xs text-slate-500 dark:text-mutedtext">
             <div className="flex justify-between items-center"><span>Нийт төлбөр төлөгч тоо</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.totalPayers ?? '—'}</span></div>
-            <div className="flex justify-between items-center"><span>Төлбөр төлсөн</span><span className="text-customGreen font-medium">{fin?.paymentProgress?.paidCount ?? '—'}</span></div>
-            <div className="flex justify-between items-center"><span>Хүлээлттэй</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.pendingCount ?? '—'}</span></div>
-            <div className="flex justify-between items-center"><span>Хугацаа хэтэрсэн</span><span className="text-customYellow font-medium">{fin?.paymentProgress?.overdueCount ?? '—'}</span></div>
-            <div className="flex justify-between items-center"><span>Эрсдэлтэй</span><span className="text-customRed font-medium">{fin?.paymentProgress?.atRiskCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Төлбөр төлсөн</span><span className={`${STATUS_COLOR.paid} font-medium`}>{fin?.paymentProgress?.paidCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Хүлээлттэй</span><span className={`${STATUS_COLOR.pending} font-medium`}>{fin?.paymentProgress?.pendingCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Хугацаа хэтэрсэн</span><span className={`${STATUS_COLOR.overdue} font-medium`}>{fin?.paymentProgress?.overdueCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Эрсдэлтэй</span><span className={`${STATUS_COLOR.at_risk} font-medium`}>{fin?.paymentProgress?.atRiskCount ?? '—'}</span></div>
             <div className="border-t border-slate-200 dark:border-bordercol pt-2 flex justify-between items-center"><span>Энэ сарын төлбөрийн явц</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.progressPct ?? 0}%</span></div>
             <div className="flex justify-between items-center"><span>Энэ сарын өр авлагын харьцаа</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.debtRatioPct ?? 0}%</span></div>
           </div>

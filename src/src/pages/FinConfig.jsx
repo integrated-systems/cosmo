@@ -16,7 +16,7 @@ import { useChartOfAccounts } from '../hooks/useChartOfAccounts';
 // тохиргоо" (paymentconfig) 2 меню нэгтгэгдэж энэ 1 хуудас болов
 // (Тариф ба НББ хоорондын нягт холбоо — Төлбөрийн урсгал: Тариф ->
 // Нэхэмжлэл -> Төлбөр -> НББ журнал -> Тайлан - шийдвэрийн үндэслэл).
-// UX-ийн үүднээс 8 таб (4+4) шугаман биш, 2 ТОМ БүЛЭГ (Тариф/НББ),
+// UX-ийн үүднээс 8 таб (4+4) шугаман биш, 2 ТОМ БҮЛЭГ (Тариф/НББ),
 // тус бүрийн дотор дэд таб гэсэн 2 давхаргатай зохион байгуулалттай.
 //
 // 2026-09-04 (2): Хэрэглэгчийн шийдвэрээр "Хүримтлалын сан" дэд табыг
@@ -341,7 +341,7 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
         <p className="mb-2">Эндээс тохируулсан нэрс нь зөвхөн "Гүйлгээ бүртгэл — Орлого — Орлого нэмэх" модалийн "Дэд ангилал" dropdown жагсаалтад харагдана. Энэ жагсаалт нь ямар нэг тодорхой дансанд шууд заагдаагүй, чөлөөт текст шинж чанартай.</p>
         <p className="mb-2"><b>НББ-ийн дансанд хэрхэн тусгагдах вэ:</b> Та дээрх жагсаалтаас аль нь сонгосон ч, гүйлгээ бүр яг ижил нэг данс — 5610 "Бусад орлого"-нд бичигдэнэ (дэд ангиллын нэрээс үл хамаарна). өөрөөр хэлбэл, "Банкны хүүгийн орлого" эсвэл "Зогсоолын хураамж" аль алийг сонгосон ч, журналын бичилт адилхан 5610 дансанд орно — зөвхөн гүйлгээний тайлбар (сар, зорилго) л ялгаатай харагдана.</p>
         <p className="mb-2"><b>Тэгэхээр яагаад энэ тохиргоо хэрэгтэй вэ:</b> Дансанд нөлөөгүй ч, СӨХ-ны дотоод санхүүгийн бүртгэлийг цэгцтэй, ойлгомжтой байлгах зорилготой (жиш нь тайлан, жагсаалт харахад "юу вэ" гэдгийг тодорхой ялгах). Нэр солих, нэмэх, устгах, дараалал өөрчлөх нь Нягтлан бодох бүртгэлийн модульд хамааралтай.</p>
-        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГүй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хөлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зөвлөдөггүй.</p>
+        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГҮй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хөлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зөвлөдөггүй.</p>
       </div>
       <ConfirmDialog />
     </div>
@@ -396,7 +396,7 @@ function ReserveFundCard({ hoaId }) {
 
 function OverdueCard({ hoaId }) {
   const { settings, loading, save } = useFinSettings(hoaId);
-  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '', overdue_color: 'customYellow', at_risk_color: 'customRed', pending_color: 'default' });
+  const [form, setForm] = useState({ overdue_penalty_pct: '', overdue_days: '', at_risk_days: '', overdue_color: 'customYellow', at_risk_color: 'customRed', pending_color: 'default', paid_color: 'customGreen' });
   useEffect(() => {
     if (settings) setForm({
       overdue_penalty_pct: settings.overdue_penalty_pct ?? 0,
@@ -405,6 +405,7 @@ function OverdueCard({ hoaId }) {
       overdue_color: settings.overdue_color || 'customYellow',
       at_risk_color: settings.at_risk_color || 'customRed',
       pending_color: settings.pending_color || 'default',
+      paid_color: settings.paid_color || 'customGreen',
     });
   }, [settings]);
   if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
@@ -453,7 +454,7 @@ function OverdueCard({ hoaId }) {
 
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">Хугацаандаа буюу {overdueDaysNum} хоног дотор төлбөрөө төлсөн:</span>
-        <ColorSwatchPicker value={null} onChange={() => {}} disabled />
+        <ColorSwatchPicker value={form.paid_color} onChange={(c) => setForm((f) => ({ ...f, paid_color: c }))} />
       </div>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[12px] text-slate-700 dark:text-mutedtext flex-1">"Хүлээлттэй" буюу {overdueDaysNum} хоногоос хэтрээгүй байгаа:</span>
@@ -475,6 +476,7 @@ function OverdueCard({ hoaId }) {
         overdue_color: form.overdue_color,
         at_risk_color: form.at_risk_color,
         pending_color: form.pending_color,
+        paid_color: form.paid_color,
       })}>Хадгалах</button>
     </div>
   );
@@ -484,9 +486,10 @@ function OverdueCard({ hoaId }) {
 // Хүлээлттэй/Хугацаа хэтэрсэн/Эрсдэлтэй) өнгийг сонгоход ашиглана.
 // tailwind.config.js-ийн customYellow/customGreen/customBlue/
 // customRed-тэй ЯГ ИЖИЛ hex код (динамик Tailwind класс үүсгэхгүй,
-// зөвхөн inline style ашиглана). "Хугацаандаа" (paid) мөр ЗАСВАРЛАХ
-// БОЛОМЖГүй (disabled) — учир нь энэ төлөв үргэлж анхдагч текст
-// өнгөтэй байх ёстой, сонголт байхгүй.
+// зөвхөн inline style ашиглана). 2026-09-24 (82): "Хугацаандаа"
+// (paid) мөрийг хэрэглэгчийн шинэ, тодорхой хүсэлтээр (өмнөх
+// "үргэлж анхдагч, сонголт үгүй" шийдвэрийг эргүүлэн) БУСАД 3 мөртэй
+// адил ЗАСВАРЛАХ БОЛОМЖТОЙ болгов.
 const SWATCH_OPTIONS = [
   { key: 'customYellow', hex: '#f8f23d' },
   { key: 'customRed', hex: '#ef5555' },
@@ -634,7 +637,7 @@ function MonthlyReportScheduleCard({ hoaId }) {
         value={form.monthly_report_day} onChange={(v) => setForm((f) => ({ ...f, monthly_report_day: v }))}
       />
       <div className="text-[11.5px] text-mutedtext leading-relaxed mb-4" style={{ maxWidth: 420 }}>
-        Энд тохиргоог идэвхтэй төлөвт шилжүүлж календарийн сарын eдрийг
+        Энд тохиргоог идэвхтэй төлөвт шилжүүлж календарийн сарын өдрийг
         тохируулбал тухайн тохируулсан календарийн өдөр "Мэдээ, мэдээлэл"
         хуудаст өмнөх сарын орлого, зарлагын тайланг автоматаар мэдээ
         болгон нийтлэх ба уг тайланд дуудагдах өгөгдлүүд нь автоматаар

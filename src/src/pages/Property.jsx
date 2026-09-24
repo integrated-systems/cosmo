@@ -43,9 +43,9 @@ export default function Property() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const monthOptions = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
-  const { getMonthStatus, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'owner');
+  const { getMonthStatus, earliestYear, overdueColor, atRiskColor, pendingColor, paidColor } = useInvoicePayments(hoaId, 'owner');
   // 2026-09-20 (2-р шинэчлэл): "Зогсоол, Агуулах, Талбай" таб-ын слот/
-  // полигоны хүрээний eнгийг эзэмшигчийн төлбөр төлөлттэй уялдуулав.
+  // полигоны хүрээний өнгийг эзэмшигчийн төлбөр төлөлттэй уялдуулав.
   // Талбайн полигон нь owner-т ч, client-т ч харьяалагдаж болдог
   // тул, client-ийн invoice payments-ийг ч тусад нь дуудна.
   const { getMonthStatus: getClientMonthStatus } = useInvoicePayments(hoaId, 'client');
@@ -76,13 +76,12 @@ export default function Property() {
   // ашиглана (PaymentBadges.jsx/UnitGridCard.jsx-тэй ижил зарчим).
   const STATUS_COLOR_HEX = { customYellow: '#f8f23d', customRed: '#ef5555', customGreen: '#10b981', customBlue: '#3b82f6' };
 
-  // Хэрэглэгчтэй зөвлөлдсөний дагуу: "paid" үед хүрээний өнгийг ОГТ
-  // өөрчлөхгүй (одоогийн анхдагч эсвэл админы гараар тохируулсан
-  // өнгө хэвээр үлдэнэ) — "pending"/"overdue"/"at_risk" үед л
-  // тохируулсан өнгөөр ДАВХЦУУЛЖ тодруулна (2026-09-20 (3-р
-  // шинэчлэл): хэрэглэгчийн заасны дагуу "Хүлээлттэй" (pending)
-  // өнгийг ч мөн адил "Төлбөрийн хоцрогдол"-оос холбов — "default"
-  // (тодруулгагүй) сонгосон бол л өөрчлөхгүй).
+  // 2026-09-24 (82): Хэрэглэгчийн шинэ, тодорхой хүсэлтээр (өмнөх
+  // "paid үед хүрээ eөрчлөхгүй" шийдвэрийг эргүүлэн): "Хугацаандаа"
+  // (paid) төлөв ч мөн Санхүү тохиргооноос сонгосон өнгөөр хүрээг
+  // тодруулна — Owners/Clientele/OwnersSpotOnly хүснэгэлийн "Төлбөр
+  // (сараар)" индикатор БОЛОН "Тоот" таб-ын слоттой ЯГ ИЖИЛ өнгө
+  // ижилхэн харагдахын тулд.
   function getLinkBorderColor(link) {
     if (!link) return null;
     const now = new Date();
@@ -105,7 +104,7 @@ export default function Property() {
     } else {
       return null;
     }
-    const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : null;
+    const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : status === 'paid' ? paidColor : null;
     return colorKey && colorKey !== 'default' ? (STATUS_COLOR_HEX[colorKey] || null) : null;
   }
 
@@ -329,7 +328,7 @@ export default function Property() {
       ) : (
         <>
           {tab === 'household' && (
-            <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} />
+            <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} paidColor={paidColor} />
           )}
           {tab === 'gridSpots' && (
             <GridSpotsViewer

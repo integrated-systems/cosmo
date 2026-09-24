@@ -19,7 +19,7 @@ import { useInvoicePayments } from '../hooks/useInvoicePayments';
 // 2026-08-15: Supabase-тай холбогдов — EXAMPLE_OWNERS mock массив
 // арилж, "owners" хүснэгэлээс бодитоор унших/бичих боллоо. "Төлөв"
 // (өмчлөгч/түрээслэгч) талбарыг хэрэглэгчийн тодорхой заасны дагуу
-// БүРЭН устгасан. Хүснэгэл/түүлбэр/Инфо модалийг тусдаа дахин ашиглагдах
+// БҮРЭН устгасан. Хүснэгэл/түүлбэр/Инфо модалийг тусдаа дахин ашиглагдах
 // компонент (OwnersTable/OwnersToolbar/OwnerInfoModal) болгож задлав —
 // Rule of two, ирээдүйд бусад хүснэгэлт хуудсанд дахин ашиглана.
 //
@@ -45,7 +45,7 @@ export default function Owners() {
   const [buildingFilter, setBuildingFilter] = useState('');
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const { getYearSummary, earliestYear, overdueColor, atRiskColor, pendingColor } = useInvoicePayments(hoaId, 'owner');
+  const { getYearSummary, earliestYear, overdueColor, atRiskColor, pendingColor, paidColor } = useInvoicePayments(hoaId, 'owner');
   const yearOptions = Array.from({ length: Math.max(1, now.getFullYear() - earliestYear + 1) }, (_, i) => earliestYear + i);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -146,7 +146,7 @@ export default function Owners() {
 
   // 2026-09-13: "Зогсоол, агуулах дангаар өмчлөгч" табны хадгалалт —
   // building_no/floor/door_no/sqm/property_no/own_date/
-  // people_count/child_0_5/child_6_18 БүГДИЙГ NULL/0 болгож,
+  // people_count/child_0_5/child_6_18 БҮГДИЙГ NULL/0 болгож,
   // зөвхөн зогсоол/агуулах/машин/хувийн мэдээллийг л хадгална.
   async function handleSaveSpotOnly(form) {
     const payload = {
@@ -233,6 +233,7 @@ export default function Owners() {
           overdueColor={overdueColor}
           atRiskColor={atRiskColor}
           pendingColor={pendingColor}
+          paidColor={paidColor}
         />
       ) : (
         <OwnersSpotOnlyTable
@@ -250,6 +251,7 @@ export default function Owners() {
           overdueColor={overdueColor}
           atRiskColor={atRiskColor}
           pendingColor={pendingColor}
+          paidColor={paidColor}
         />
       )}
 
@@ -272,7 +274,7 @@ export default function Owners() {
           хадгалаагүй өөрчлөлт үлдэж үлддэг) бүгд НЭГ л үндсэн шалтгаанаас
           үүдэлтэй байв: "Нэмэх" модаль (key огт байхгүй) БОЛОН "Засах"
           модаль (key зөвхөн өмчлөгч солигдоход л өөрчлөгддөг) хоёул
-          НЭЭГДЭХ БүРТ дахин mount хийгддэггүй тул, дотоод (typed, гэхдээ
+          НЭЭГДЭХ БҮРТ дахин mount хийгддэггүй тул, дотоод (typed, гэхдээ
           хадгалаагүй) form state нь дараагийн НЭЭЛТ хүртэл үлдэж, шинэ
           DB dataгаар шинэчлэгддэггүй байв. Одоо "нээгдэх бүрт eeр key"
           болгож, ЯГ ТЭР ГАНЦ өмчлөгчийг дахин нээсэн ч (жиш хадгалаагүй

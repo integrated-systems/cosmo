@@ -50,7 +50,7 @@ export function useDashboardFinance(hoaId) {
         fetchAllRows(() => supabase.from('owners').select('id, firstname, lastname, building_no, floor, door_no, has_grid_parking, grid_parkings, has_grid_storage, grid_storages').eq('tenant_id', hoaId)),
         fetchAllRows(() => supabase.from('clientele').select('id, legal_entity_name, has_grid_land, grid_land_plots, has_grid_parking, grid_parkings, has_grid_storage, grid_storages').eq('tenant_id', hoaId)),
         fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId)),
-        supabase.from('fin_settings').select('overdue_days, at_risk_days').eq('tenant_id', hoaId).maybeSingle(),
+        supabase.from('fin_settings').select('overdue_days, at_risk_days, overdue_color, at_risk_color, pending_color, paid_color').eq('tenant_id', hoaId).maybeSingle(),
         fetchAllRows(() => supabase.from('chart_of_accounts').select('code, category').eq('tenant_id', hoaId)),
         fetchAllRows(() => supabase.from('journal_entry_lines').select('*, journal_entries!inner(tenant_id, entry_date, source_type, source_ref, description)').eq('journal_entries.tenant_id', hoaId)),
       ]);
@@ -58,6 +58,17 @@ export function useDashboardFinance(hoaId) {
 
       const overdueDays = finSettings?.overdue_days ?? 30;
       const atRiskDays = finSettings?.at_risk_days ?? 180;
+      // 2026-09-24 (82): "Төлбөрийн явц" картны 4 мөрийн өнгийг Санхүү
+      // тохиргоо > НББ > Төлбөрийн хоцрогдол-оос уншиж, Owners/
+      // Clientele/Property-гийн "Төлбөр (сараар)" индикатор БОЛОН
+      // "Тоот" слоттой ЯГ ИЖИЛ өнгө харагдана (PaymentBadges.jsx-тэй
+      // ЯГ ИЖИЛ дансны нэр — Rule of two/three).
+      const statusColors = {
+        overdue: finSettings?.overdue_color || 'customYellow',
+        atRisk: finSettings?.at_risk_color || 'customRed',
+        pending: finSettings?.pending_color || 'default',
+        paid: finSettings?.paid_color || 'customGreen',
+      };
       const payerNames = buildPayerNameMap(owners, clientele, unitLayouts);
       const unitIds = new Set((unitLayouts || []).map((u) => u.id));
       const invoiceById = new Map((invoices || []).map((i) => [i.id, i]));
@@ -106,7 +117,7 @@ export function useDashboardFinance(hoaId) {
       // барьдаг байсан — бодит мөнгө орж ирэхэд контра нь Авлага
       // байдаг тул ОГТ баригддаггүй байв). Одоо computeOfficialCashFlow
       // (Accounting.jsx)-тай ЯГ ИЖИЛ "шууд арга" (per-entry contra
-      // attribution)-аар: тухайн бичилтийн Мөнгө мврийн цэвэр
+      // attribution)-аар: тухайн бичилтийн Мөнгө мөрийн цэвэр
       // eөрчлөлтийг эсрэг дансны ангиллаар (Авлага/Орлого →
       // "Орлого", Eглөг/Зардал → "Зарлага") жинлэж хуваарилна.
       // үндсэн хөрэнгө/Эздийн эрх (капитал/санхүүжилт) орохгүй.
@@ -196,7 +207,7 @@ export function useDashboardFinance(hoaId) {
           return { ...payer, amount: Number(inv.total_amount || 0), status, monthsOverdue };
         });
 
-      setData({ currentMonthIncome, totalDebt, monthlyIncome, monthlyExpense, paymentProgress, recentTransactions, topDebtors });
+      setData({ currentMonthIncome, totalDebt, monthlyIncome, monthlyExpense, paymentProgress, recentTransactions, topDebtors, statusColors });
       setLoading(false);
     })();
     return () => { cancelled = true; };
