@@ -19,6 +19,14 @@
 // Төлөвлөгөe/Тайлан) бүрмөсөн устгав — App.jsx-ийн route-той
 // (харгалзах компонент байгаа эсэх) БОЛОН PageInProgress.jsx-ийн
 // эргэн орлуулагч байдгийг тус тус баталгаажуулсны дараа.
+//
+// 2026-09-24 (2-р зассан): "УДИРДАХ ЗӨВЛӨЛ ПОРТАЛ" бүлгийн цорын
+// ганц 2 бодит (хуудастай) модулийг зүүвэрлэв — "Үндсэн хөрэнгэ
+// бүртгэл" БҮРТГЭЛ бүлгийн "Тоот, Зогсоол, Агуулах"-ын дараа, "Түр
+// зогсоол бүртгэл"-ийн OMHO; "Сонгууль, санал асуулга" ҮНДСЭН бүлгийн
+// "Зарын самбар"-ын дараа. Зүүвэрлэсний дараа хоосон үлдсэн "УДИРДАХ
+// ЗӨВЛӨЛ ПОРТАЛ" бүлгийг бүрмөсөн устгав (hoaboard groupKey eeр
+// хаана ч ашиглагддаггүйг баталгаажуулсны дараа).
 export const MENU_SECTIONS = [
   {
     title: 'ҮНДСЭН',
@@ -29,6 +37,7 @@ export const MENU_SECTIONS = [
       { key: 'msgr', label: 'Мессенжер', path: '/msgr' },
       { key: 'emails', label: 'Имэйл', path: '/emails' },
       { key: 'classifieds', label: 'Зарын самбар', path: '/classifieds' },
+      { key: 'voting', label: 'Сонгууль, санал асуулга', path: '/voting' },
     ],
   },
   {
@@ -38,6 +47,7 @@ export const MENU_SECTIONS = [
       { key: 'owners', label: 'Сууц өмчлөгч бүртгэл', path: '/owners' },
       { key: 'clientele', label: 'Талбай өмчлөгч бүртгэл', path: '/clientele' },
       { key: 'property', label: 'Тоот, Зогсоол, Агуулах', path: '/property' },
+      { key: 'fixedassets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
       { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
       { key: 'nfcgate', label: 'Хаалт удирдлага', path: '/nfcgate' },
       { key: 'nfcent', label: 'Чип удирдлага', path: '/nfcent' },
@@ -60,14 +70,6 @@ export const MENU_SECTIONS = [
       { key: 'accounting', label: 'Нягтлан бодох бүртгэл', path: '/accounting' },
       { key: 'repinner', label: 'Дотоод тайлан', path: '/repinner' },
       { key: 'invoice', label: 'Нэхэмжлэх', path: '/invoice' },
-    ],
-  },
-  {
-    title: 'УДИРДАХ ЗӨВЛӨЛ ПОРТАЛ',
-    groupKey: 'hoaboard',
-    items: [
-      { key: 'fixedassets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
-      { key: 'voting', label: 'Сонгууль, санал асуулга', path: '/voting' },
     ],
   },
   {
