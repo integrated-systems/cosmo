@@ -11,6 +11,14 @@
 // рүү шилжүүлж, үлдсэн 8 модуль(Хяналтын камер/Дохиоллын удирдлага/
 // Гэрэлтүүлэг/Ус шавхах-шахах насос/Агааржуулалт/Нөөцийн генератор/
 // AirCond)-ийг түүнд харгалзах бүлгийн нэрийн хамт бүрэн устгав.
+//
+// 2026-09-24 хэрэглэгчийн заавраар: хараахан ямар ч агуулгагүй
+// (PageInProgress) хэвээр байсан 10 модуль (Дуудлага бүртгэл/Засвар
+// үйлчилгээ/Тохижилт үйлчилгээ/Цэвэрлэгээ үйлчилгээ/Гүйцэтгэл/
+// Санхүү, татварын тайлан/Цалин бодолт/Харилцахын гүйлгээ/
+// Төлөвлөгөe/Тайлан) бүрмөсөн устгав — App.jsx-ийн route-той
+// (харгалзах компонент байгаа эсэх) БОЛОН PageInProgress.jsx-ийн
+// эргэн орлуулагч байдгийг тус тус баталгаажуулсны дараа.
 export const MENU_SECTIONS = [
   {
     title: 'ҮНДСЭН',
@@ -31,7 +39,6 @@ export const MENU_SECTIONS = [
       { key: 'clientele', label: 'Талбай өмчлөгч бүртгэл', path: '/clientele' },
       { key: 'property', label: 'Тоот, Зогсоол, Агуулах', path: '/property' },
       { key: 'parking', label: 'Түр зогсоол бүртгэл', path: '/parking' },
-      { key: 'dispatcher', label: 'Дуудлага бүртгэл', path: '/dispatcher' },
       { key: 'nfcgate', label: 'Хаалт удирдлага', path: '/nfcgate' },
       { key: 'nfcent', label: 'Чип удирдлага', path: '/nfcent' },
       { key: 'lift', label: 'Лифт удирдлага', path: '/lift' },
@@ -43,10 +50,6 @@ export const MENU_SECTIONS = [
     items: [
       { key: 'hrm', label: 'Ажилтны бүртгэл', path: '/hrm' },
       { key: 't&a', label: 'Цаг бүртгэл', path: '/ta' },
-      { key: 'repairs', label: 'Засвар үйлчилгээ', path: '/repairs' },
-      { key: 'maintenances', label: 'Тохижилт үйлчилгээ', path: '/maintenances' },
-      { key: 'sanitations', label: 'Цэвэрлэгээ үйлчилгээ', path: '/sanitations' },
-      { key: 'performance', label: 'Гүйцэтгэл', path: '/performance' },
       { key: 'providers', label: 'Харилцагчийн бүртгэл', path: '/providers' },
     ],
   },
@@ -55,11 +58,8 @@ export const MENU_SECTIONS = [
     groupKey: 'hoatreasurer',
     items: [
       { key: 'accounting', label: 'Нягтлан бодох бүртгэл', path: '/accounting' },
-      { key: 'repfintax', label: 'Санхүү, татварын тайлан', path: '/repfintax' },
       { key: 'repinner', label: 'Дотоод тайлан', path: '/repinner' },
-      { key: 'payrollacc', label: 'Цалин бодолт', path: '/payrollacc' },
       { key: 'invoice', label: 'Нэхэмжлэх', path: '/invoice' },
-      { key: 'transactions', label: 'Харилцахын гүйлгээ', path: '/transactions' },
     ],
   },
   {
@@ -68,8 +68,6 @@ export const MENU_SECTIONS = [
     items: [
       { key: 'fixedassets', label: 'Үндсэн хөрөнгө бүртгэл', path: '/fixedassets' },
       { key: 'voting', label: 'Сонгууль, санал асуулга', path: '/voting' },
-      { key: 'planing', label: 'Төлөвлөгөө', path: '/planing' },
-      { key: 'repboard', label: 'Тайлан', path: '/repboard' },
     ],
   },
   {
