@@ -34,6 +34,28 @@ export function isOwnerUnit(owner, unitLayouts) {
   return !!(unitLayouts || []).find((u) => u.building_no === owner.building_no && u.floor === owner.floor && u.door_no === owner.door_no);
 }
 
+// 2026-09-23 (81): Хянах самбарын "Сүүлийн гүйлгээ"/"Төлбөрийн eртэй"
+// картуудад invoices.target_id-ыг ЭРГүүлж (reverse) харгалзах өмчлөгч/
+// талбайн нэр рүү буцаах шаардлагатай болов. computeOwnerTargetId()/
+// computeClientTargetId() нь owner→id чиглэлээр ажилладаг тул, энд
+// БүХ owners/clientele-ийг тойрч, target_id → {name, sub} map үүсгэнэ
+// (Rule of two — Invoice.jsx-ийн matchedUnit логиктой нийцүүлэв).
+export function buildPayerNameMap(owners, clientele, unitLayouts) {
+  const map = new Map();
+  (owners || []).forEach((o) => {
+    const targetId = computeOwnerTargetId(o, unitLayouts);
+    const isUnit = isOwnerUnit(o, unitLayouts);
+    const name = `${o.lastname || ''} ${o.firstname || ''}`.trim() || 'Нэргүй';
+    const sub = isUnit ? `${o.building_no}-${o.floor}-${o.door_no}` : 'Зогсоол/агуулах';
+    map.set(targetId, { name, sub, kind: isUnit ? 'unit' : 'spot' });
+  });
+  (clientele || []).forEach((c) => {
+    const targetId = computeClientTargetId(c);
+    map.set(targetId, { name: c.legal_entity_name || 'Нэргүй', sub: 'Талбай өмчлөгч', kind: 'client' });
+  });
+  return map;
+}
+
 // Талбай өмчлөгч (client)-ийн тогтвортой target_id: (1) талбайн
 // полигон (grid_land_plots) тохирвол ТЭР UUID, (2) үгүй бол зогсоол,
 // (3) үгүй бол агуулах, (4) үгүй бол raw id.

@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { formatMoney } from '../lib/format';
+import { formatMoney, formatDate } from '../lib/format';
 import MarketValuationChart, { MarketValuationLegend } from '../components/MarketValuationChart';
 import { deriveMarketSeries } from '../data/realEstateMarket';
 import { useMarketRows } from '../hooks/useMarketRows';
 import { useTenantStats } from '../hooks/useTenantStats';
 import { useTopUsageAssets } from '../hooks/useTopUsageAssets';
 import { useCurrentMonthInvoiced } from '../hooks/useCurrentMonthInvoiced';
+import { useDashboardFinance } from '../hooks/useDashboardFinance';
 import UsageProgressBar from '../components/UsageProgressBar';
 
 // "Real Estate market" (/restmarket) хуудасны сүүлийн 2 сарын утгаас
@@ -21,17 +22,6 @@ function computeChangePct(data) {
 
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// TODO: backend холбогдоход эдгээрийг useEffect+API дуудлагаар сольно.
-// Энэ бол зδвхδн дизайны жишээ мδр (projectcosmo.html-ийн эх дизайнтай
-// ижил, algorithmic биш, гараар бичсэн 5 мөр).
-const DEBTORS_EXAMPLE = [
-  { name: 'Tous Les Jours', type: 'Талбай өмчлөгч', months: '2 сар', amount: 4400000 },
-  { name: 'Эрхий Мэргэн Цэцэрлэг', type: 'Талбай өмчлөгч', months: '2 сар', amount: 4000000 },
-  { name: 'BlackBull carwash', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1800000 },
-  { name: 'Ace Esport', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1400000 },
-  { name: 'Cafe Fonte', type: 'Талбай өмчлөгч', months: '2 сар', amount: 1260000 },
-];
 
 function StatCard({ label, value, valueColor, detail }) {
   return (
@@ -51,10 +41,14 @@ export default function Dashboard() {
   const { stats: tenantStats } = useTenantStats(hoaId);
   const topUsageAssets = useTopUsageAssets(hoaId, 5);
   const { stats: invoicedStats } = useCurrentMonthInvoiced(hoaId);
+  const { data: fin, loading: finLoading } = useDashboardFinance(hoaId);
   const marketSeries = deriveMarketSeries(rows);
   const last12Rows = rows.slice(-12);
   const marketSeries12 = deriveMarketSeries(last12Rows);
   const months12 = last12Rows.map((r) => r.month);
+  const STATUS_LABEL = { paid: 'Төлсөн', pending: 'Хүлээлттэй', overdue: 'Хугацаа хэтэрсэн', at_risk: 'Эрсдэлтэй' };
+  const STATUS_COLOR = { paid: 'text-customGreen', pending: 'text-slate-900 dark:text-white', overdue: 'text-customYellow', at_risk: 'text-customRed' };
+  const maxMonthlyValue = Math.max(1, ...(fin ? [...fin.monthlyIncome, ...fin.monthlyExpense] : [1]));
 
   return (
     <>
@@ -65,7 +59,7 @@ export default function Dashboard() {
             (useCurrentMonthInvoiced hook) динамик болгов. Картын
             css/дизайн (StatCard компонент) огт хөндөгүй, зөвхөн
             дамжуулж буй value/detail props-ыг л бодит болгов. Мөн
-            "Зогсоол, агуулах дангаар өмчлөгч" мвр нэмэв (нэхэмжилсэн
+            "Зогсоол, агуулах дангаар өмчлөгч" мөр нэмэв (нэхэмжилсэн
             дүнг бүлэглэж үзүүлж байгаа тул 3 дахь бүлэг ч хамрагдах
             ёстой). */}
         <StatCard label="ЭНЭ САРД НЭХЭМЖИЛСЭН" value={`${formatMoney(invoicedStats?.total || 0)}₮`} valueColor="text-customBlue"
@@ -74,10 +68,18 @@ export default function Dashboard() {
             `Зогсоол, агуулах дангаар өмчлөгч - ${formatMoney(invoicedStats?.spotOnlyTotal || 0)}₮`,
             `Талбай өмчлөгч - ${formatMoney(invoicedStats?.clientTotal || 0)}₮`,
           ]} />
-        <StatCard label="ЭНЭ САРЫН ОРЛОГО" value={`${formatMoney(0)}₮`} valueColor="text-customGreen"
-          detail={['Сууц өмчлөгч - 0/18', 'Зогсоол, агуулах дангаар өмчлөгч - 0/3', 'Талбай өмчлөгч - 0/36']} />
-        <StatCard label="НИЙТ ӨР АВЛАГА" value={`${formatMoney(28770000)}₮`} valueColor="text-customRed"
-          detail={['Сууц өмчлөгч - 18/18', 'Зогсоол, агуулах дангаар өмчлөгч - 3/3', 'Талбай өмчлөгч - 36/36']} />
+        <StatCard label="ЭНЭ САРЫН ОРЛОГО" value={`${formatMoney(fin?.currentMonthIncome?.total || 0)}₮`} valueColor="text-customGreen"
+          detail={fin ? [
+            `Сууц өмчлөгч - ${fin.currentMonthIncome.unit.paidCount}/${fin.currentMonthIncome.unit.count}`,
+            `Зогсоол, агуулах дангаар өмчлөгч - ${fin.currentMonthIncome.spot.paidCount}/${fin.currentMonthIncome.spot.count}`,
+            `Талбай өмчлөгч - ${fin.currentMonthIncome.client.paidCount}/${fin.currentMonthIncome.client.count}`,
+          ] : []} />
+        <StatCard label="НИЙТ ӨР АВЛАГА" value={`${formatMoney(fin?.totalDebt?.total || 0)}₮`} valueColor="text-customRed"
+          detail={fin ? [
+            `Сууц өмчлөгч - ${fin.totalDebt.unit.count}/${fin.totalDebt.unit.total}`,
+            `Зогсоол, агуулах дангаар өмчлөгч - ${fin.totalDebt.spot.count}/${fin.totalDebt.spot.total}`,
+            `Талбай өмчлөгч - ${fin.totalDebt.client.count}/${fin.totalDebt.client.total}`,
+          ] : []} />
         <StatCard label="НИЙТ ОРШИН СУУГЧ" value={tenantStats ? String(tenantStats.residentCount) : '—'} valueColor="text-slate-900 dark:text-text"
           detail={tenantStats ? [`0-6 насны хүүхэд - ${tenantStats.child05}`, `6-18 насны хүүхэд - ${tenantStats.child618}`] : []} />
       </div>
@@ -100,11 +102,21 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="h-36 flex items-end justify-between gap-1 pt-4 px-2 border-b border-slate-200 dark:border-bordercol">
-            {MONTHS.map((m) => (
-              <div key={m} className="w-full bg-slate-100 dark:bg-bordercol/30 h-full rounded-t flex items-end justify-center pb-1">
-                <span className="text-[9px] text-darktext">{m}</span>
-              </div>
-            ))}
+            {MONTHS.map((m, i) => {
+              const income = fin?.monthlyIncome?.[i] || 0;
+              const expense = fin?.monthlyExpense?.[i] || 0;
+              const incomeH = Math.max(2, Math.round((income / maxMonthlyValue) * 100));
+              const expenseH = Math.max(2, Math.round((expense / maxMonthlyValue) * 100));
+              return (
+                <div key={m} className="w-full h-full flex flex-col items-center justify-end gap-0.5" title={`${m}: орлого ${formatMoney(income)}₮, зарлага ${formatMoney(expense)}₮`}>
+                  <div className="w-full flex items-end justify-center gap-0.5" style={{ height: '100%' }}>
+                    <div className="w-1/2 bg-customBlue rounded-t" style={{ height: `${incomeH}%` }} />
+                    <div className="w-1/2 bg-customGreen rounded-t" style={{ height: `${expenseH}%` }} />
+                  </div>
+                  <span className="text-[9px] text-darktext">{m}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -116,13 +128,13 @@ export default function Dashboard() {
             </select>
           </div>
           <div className="space-y-3 text-xs text-slate-500 dark:text-mutedtext">
-            <div className="flex justify-between items-center"><span>Нийт төлбөр төлөгч тоо</span><span className="text-slate-900 dark:text-white font-medium">54</span></div>
-            <div className="flex justify-between items-center"><span>Төлбөр төлсөн</span><span className="text-customGreen font-medium">0</span></div>
-            <div className="flex justify-between items-center"><span>Хүлээлттэй</span><span className="text-slate-900 dark:text-white font-medium">0</span></div>
-            <div className="flex justify-between items-center"><span>Хугацаа хэтэрсэн</span><span className="text-customRed font-medium">54</span></div>
-            <div className="flex justify-between items-center"><span>Эрсдэлтэй</span><span className="text-slate-900 dark:text-white font-medium">0</span></div>
-            <div className="border-t border-slate-200 dark:border-bordercol pt-2 flex justify-between items-center"><span>Энэ сарын төлбөрийн явц</span><span className="text-slate-900 dark:text-white font-medium">0%</span></div>
-            <div className="flex justify-between items-center"><span>Энэ сарын өр авлагын харьцаа</span><span className="text-slate-900 dark:text-white font-medium">0%</span></div>
+            <div className="flex justify-between items-center"><span>Нийт төлбөр төлөгч тоо</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.totalPayers ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Төлбөр төлсөн</span><span className="text-customGreen font-medium">{fin?.paymentProgress?.paidCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Хүлээлттэй</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.pendingCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Хугацаа хэтэрсэн</span><span className="text-customYellow font-medium">{fin?.paymentProgress?.overdueCount ?? '—'}</span></div>
+            <div className="flex justify-between items-center"><span>Эрсдэлтэй</span><span className="text-customRed font-medium">{fin?.paymentProgress?.atRiskCount ?? '—'}</span></div>
+            <div className="border-t border-slate-200 dark:border-bordercol pt-2 flex justify-between items-center"><span>Энэ сарын төлбөрийн явц</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.progressPct ?? 0}%</span></div>
+            <div className="flex justify-between items-center"><span>Энэ сарын eр авлагын харьцаа</span><span className="text-slate-900 dark:text-white font-medium">{fin?.paymentProgress?.debtRatioPct ?? 0}%</span></div>
           </div>
         </div>
       </div>
@@ -143,7 +155,18 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                <tr><td colSpan={4} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+                {finLoading ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+                ) : !fin || fin.recentTransactions.length === 0 ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+                ) : fin.recentTransactions.map((t) => (
+                  <tr key={t.id} className="border-b border-slate-100 dark:border-bordercol/30 last:border-0">
+                    <td className="py-2 text-slate-900 dark:text-white font-medium">{t.name}{t.sub ? <span className="text-darktext font-normal"> · {t.sub}</span> : null}</td>
+                    <td className="py-2 text-customGreen font-medium">{formatMoney(t.amount)}₮</td>
+                    <td className="py-2">Төлбөр хүлээн авав</td>
+                    <td className="py-2 text-right">{formatDate(t.date)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -165,11 +188,15 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
-                {DEBTORS_EXAMPLE.map((d) => (
-                  <tr key={d.name}>
+                {finLoading ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+                ) : !fin || fin.topDebtors.length === 0 ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-darktext">Eр авлагагүй</td></tr>
+                ) : fin.topDebtors.map((d, i) => (
+                  <tr key={`${d.name}-${i}`}>
                     <td className="py-2 text-slate-900 dark:text-white font-medium">{d.name}</td>
-                    <td className="py-2">{d.type}</td>
-                    <td className="py-2">{d.months}</td>
+                    <td className={`py-2 ${STATUS_COLOR[d.status] || ''}`}>{d.sub}{d.sub ? ' · ' : ''}{STATUS_LABEL[d.status] || d.status}</td>
+                    <td className="py-2">{d.monthsOverdue} сар</td>
                     <td className="py-2 text-right text-customRed font-medium">{formatMoney(d.amount)}₮</td>
                   </tr>
                 ))}
