@@ -109,6 +109,10 @@ export default function Owners() {
   });
 
   async function handleSave(form) {
+    // 2026-09-25 (85): "Тэжээвэр амьтан" (pet_count) шинэ талбар нэмэх
+    // явцад, "Ам бүл" (people_count) талбар ЭНЭ хадгалалтад ОГТ
+    // орохгүй байсан бодит алдааг олж (Property.jsx-ийн засварт л
+    // хадгалагддаг байсан), хамт нь засав.
     const payload = {
       tenant_id: hoaId,
       building_no: form.buildingNo || null,
@@ -120,8 +124,10 @@ export default function Owners() {
       regno: form.regno || null,
       own_date: form.ownDate || null,
       property_no: form.propertyNo || null,
+      people_count: form.people !== '' ? Number(form.people) : null,
       child_0_5: form.child1 !== '' ? Number(form.child1) : 0,
       child_6_18: form.child2 !== '' ? Number(form.child2) : 0,
+      pet_count: form.petCount !== '' ? Number(form.petCount) : 0,
       has_grid_parking: form.hasGridParking,
       grid_parkings: form.gridParkings,
       has_grid_storage: form.hasGridStorage,
@@ -162,6 +168,7 @@ export default function Owners() {
       property_no: null,
       child_0_5: 0,
       child_6_18: 0,
+      pet_count: 0,
       has_grid_parking: form.hasGridParking,
       grid_parkings: form.gridParkings,
       has_grid_storage: form.hasGridStorage,

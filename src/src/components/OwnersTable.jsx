@@ -53,6 +53,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
               <th className="py-2.5 px-3 w-[70px]">АМ БҮЛ</th>
               <th className="py-2.5 px-3 w-[70px]">0-6 НАС</th>
               <th className="py-2.5 px-3 w-[70px]">6-18 НАС</th>
+              <th className="py-2.5 px-3 w-[70px]">АМЬТАН</th>
               <th className="py-2.5 px-3 w-[80px]">ЗОГСООЛ</th>
               <th className="py-2.5 px-3 w-[90px]">АГУУЛАХ</th>
               <th className="py-2.5 px-3 w-[100px]">МАШИН</th>
@@ -63,13 +64,13 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
             {loading && (
-              <tr><td colSpan={21} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
+              <tr><td colSpan={22} className="py-8 text-center text-darktext">Ачаалж байна...</td></tr>
             )}
             {!loading && loadError && (
-              <tr><td colSpan={21} className="py-8 text-center text-customRed">{loadError}</td></tr>
+              <tr><td colSpan={22} className="py-8 text-center text-customRed">{loadError}</td></tr>
             )}
             {!loading && !loadError && rows.length === 0 && (
-              <tr><td colSpan={21} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
+              <tr><td colSpan={22} className="py-8 text-center text-darktext">Мэдээлэл олдсонгүй</td></tr>
             )}
             {!loading && !loadError && sortedRows.map((r, idx) => {
               const layoutRow = findLayoutRow(unitLayouts, r);
@@ -95,6 +96,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
                 <td className="py-2.5 px-3">{r.people_count ?? '—'}</td>
                 <td className="py-2.5 px-3">{r.child_0_5 ?? 0}</td>
                 <td className="py-2.5 px-3">{r.child_6_18 ?? 0}</td>
+                <td className="py-2.5 px-3">{r.pet_count ?? 0}</td>
                 <td className="py-2.5 px-3">{[summarizeSpots(r.parkings), summarizeGridSpots(r.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{[summarizeSpots(r.storages), summarizeGridSpots(r.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</td>
                 <td className="py-2.5 px-3">{summarizeVehicles(r.vehicles)}</td>

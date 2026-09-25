@@ -10,13 +10,20 @@ import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useAlert } from '../hooks/useAlert';
 import { useAuth } from '../lib/AuthContext';
 
-// "Нэхэмжлэх" (/invoice, САНХүү бүлэг) — 2026-09-07 (17): Хэрэглэгчийн
+// "Нэхэмжлэх" (/invoice, САНХҮҮ бүлэг) — 2026-09-07 (17): Хэрэглэгчийн
 // зурган хүсэлтээр 2 үе шаттай урсгал болгож бүрэн дахин зохион
 // байгуулав: (1) "Нэхэмжлэх үүсгэх" - зөвхөн ТООЦООЛОХ (юу ч
 // бичихгүй), (2) "үүсгэсэн нэхэмжлэхийг хадгалах" - тэр тооцооллыг
 // шалгасны дараа л бодитоор бичнэ. ҮҮгээр Хүннү супермаркетийн
 // жишээ шиг тооцооллын алдааг ХАДГАЛАХААС ӨМНӨ олж засах боломжтой.
 const FIXED_NAMES = ['СӨХ-ны төлбөр', 'Зогсоол', 'Агуулах'];
+// 2026-09-25 (85): "Гэрийн тэжээвэр амьтны хураамж" — FIXED_NAMES-д
+// ОРОХГҮй (тенант СөХ идэвхтэй/идэвхгүй товчоор чөлeeтэй унтраах
+// боломжтой байх ёстой тул), гэхдээ ЭНГИЙН (тогтмол) хураамжийн
+// адилаар БИШ, харин owner.pet_count-аар үржүүлж тооцоологдох ёстой
+// тул тусгай нэрээр танина (Rule of two — calcOwnerItems доторх
+// нэг л газар).
+const PET_FEE_NAME = 'Гэрийн тэжээвэр амьтны хураамж';
 const BREAKDOWN_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef5555', '#0a428f', '#ec4899', '#14b8a6'];
 // 2026-09-13: module-level тогтмол болгосон — computePreview() (эрт),
 // info карт тооцоолол (хожим), 2 хэсэгт хоёуланд нь ашиглагдана.
@@ -50,6 +57,9 @@ function calcOwnerItems(owner, tariffItems, gridStorageSpots) {
           items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
         }
       }
+    } else if (t.name === PET_FEE_NAME) {
+      const qty = owner.pet_count || 0;
+      if (qty > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: qty, unit_price: t.amount, amount: qty * t.amount });
     } else if (t.name === 'СӨХ-ны төлбөр' && t.calc_method === 'area') {
       const sqm = owner.sqm || 0;
       if (sqm > 0) items.push({ tariff_item_id: t.id, description: t.name, quantity: sqm, unit_price: t.amount, amount: sqm * t.amount });
@@ -119,7 +129,7 @@ function sortItems(items) {
 
 // 2026-09-07 (19->20): Хэрэглэгчийн заасны дагуу - "давхар+тоот" формат
 // нь Хаягжилт тохиргоо (Constructor)-ийн АНХДАГЧ ЭХ СУРВАЛЖ форматтай
-// ЯГ ТОХИРОХ ёстой тул, өөрөө дахин зохион БИЧИХГүй, src/lib/
+// ЯГ ТОХИРОХ ёстой тул, өөрөө дахин зохион БИЧИХГҮй, src/lib/
 // ownersFormat.js-ийн formatUnitCode()-ыг шууд дуудна (EditOwnerModal-
 // ийн dropdown, useUnitLayouts.js-тэй Rule of two).
 
@@ -510,7 +520,7 @@ export default function Invoice() {
           <div className="text-[19px] font-bold">{clientCount}</div>
         </div>
         {/* 2026-09-13: Хэрэглэгчийн заасны дагуу — м2/дата дутуу тул
-            тариф ТООЦООГүйгээр үлдсэн өмчлөгчийг (буруу таамагласан
+            тариф ТООЦООГҮйгээр үлдсэн өмчлөгчийг (буруу таамагласан
             дүнгээр нэхэмжлэхээс зайлсхийхийн тулд) "Дутуу мэдээлэлтэй"
             гэсэн тусад нь тоолуур, доор жагсаалттайгаар тодорхой
             харуулна — үүгээр ямар ч анхааруулгагүй "невроор алга"

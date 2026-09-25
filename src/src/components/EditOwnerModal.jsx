@@ -91,6 +91,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     people: owner?.people_count ?? '',
     child1: owner?.child_0_5 ?? '',
     child2: owner?.child_6_18 ?? '',
+    petCount: owner?.pet_count ?? '',
     hasGridParking: owner?.has_grid_parking || (!owner && initialGridSpot?.kind === 'parking') || false,
     gridParkings: owner?.grid_parkings || (!owner && initialGridSpot?.kind === 'parking' ? [initialGridSpot.item] : []),
     hasGridStorage: owner?.has_grid_storage || (!owner && initialGridSpot?.kind === 'storage') || false,
@@ -107,7 +108,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
     if (owner || layoutsLoading || takenLoading || buildings.length === 0 || form.buildingNo !== '') return;
     // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — эхний СУЛ (эзэмшигдээгүй) байр+тоотыг
     // хайж сонгоно (eмнe нь unitOptions[0]-ыг үргүйгээр сонгодог байсан
-    // тул, эзэмшигдсэн тоот АНХДАГЧААР сонгогдож, шинэ эмчлэгч давхар
+    // тул, эзэмшигдсэн тоот АНХДАГЧААР сонгогдож, шинэ өмчлөгч давхар
     // бүртгэгдэх эрсдэлтэй байв).
     let picked = null;
     for (const b of buildings) {
@@ -228,7 +229,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
       <SimpleListField label="Утасны дугаар" items={form.phones} onChange={(v) => set('phones', v)} placeholder="99001122" />
       <SimpleListField label="Имэйл" items={form.emails} onChange={(v) => set('emails', v)} placeholder="email@example.com" />
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-4 gap-2 mb-4">
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Ам бүл</label>
           <input type="number" className="ds-input w-full" value={form.people} onChange={(e) => set('people', e.target.value)} />
@@ -240,6 +241,10 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">6-18 насны хүүхэд</label>
           <input type="number" className="ds-input w-full" value={form.child2} onChange={(e) => set('child2', e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Тэжээвэр амьтан</label>
+          <input type="number" className="ds-input w-full" value={form.petCount} onChange={(e) => set('petCount', e.target.value)} />
         </div>
       </div>
 
