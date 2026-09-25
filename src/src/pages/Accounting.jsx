@@ -1141,7 +1141,7 @@ function CashFlowStatementTab({ hoaId }) {
       </div>
       <div className="flex flex-col gap-3">
         <div className="ds-card p-3">
-          <div className="flex justify-between text-[12.5px] py-0.5"><span>үйл ажиллагааны гүйлгээ</span><span>{formatMoney(operatingFlow)}₮</span></div>
+          <div className="flex justify-between text-[12.5px] py-0.5"><span>Үйл ажиллагааны гүйлгээ</span><span>{formatMoney(operatingFlow)}₮</span></div>
           <div className="flex justify-between text-[12.5px] py-0.5"><span>Хөрөнгө оруулалтын гүйлгээ</span><span>{formatMoney(investingFlow)}₮</span></div>
           <div className="flex justify-between text-[12.5px] py-0.5"><span>Санхүүжилтийн гүйлгээ</span><span>{formatMoney(financingFlow)}₮</span></div>
           {otherFlow !== 0 && <div className="flex justify-between text-[12.5px] py-0.5"><span>Бусад</span><span>{formatMoney(otherFlow)}₮</span></div>}
