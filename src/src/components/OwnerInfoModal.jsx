@@ -84,6 +84,7 @@ export default function OwnerInfoModal({ owner, unitLayouts = [], onClose, onEdi
           <div className="ds-detail-row"><span className="ds-detail-label">өмчлөх огноо</span><span className="ds-detail-value">{owner.own_date ? formatDate(owner.own_date) : '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Ам бүл</span><span className="ds-detail-value">{owner.people_count ?? '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">0-6 / 6-18 нас</span><span className="ds-detail-value">{owner.child_0_5 ?? 0} / {owner.child_6_18 ?? 0}</span></div>
+          <div className="ds-detail-row"><span className="ds-detail-label">Гэрийн тэжээвэр амьтан</span><span className="ds-detail-value">{owner.pet_count ?? 0}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Зогсоол</span><span className="ds-detail-value">{[summarizeSpots(owner.parkings), summarizeGridSpots(owner.grid_parkings, gridParkingSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Агуулах</span><span className="ds-detail-value">{[summarizeSpots(owner.storages), summarizeGridSpots(owner.grid_storages, gridStorageSpots)].filter((s) => s !== '—').join(', ') || '—'}</span></div>
           <div className="ds-detail-row"><span className="ds-detail-label">Машин</span><span className="ds-detail-value">{summarizeVehicles(owner.vehicles)}</span></div>
