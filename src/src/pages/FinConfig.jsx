@@ -5,6 +5,7 @@ import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { CUSTOM_COLORS } from '../lib/customColors';
 import { useConfirm } from '../hooks/useConfirm';
+import { useAuth } from '../lib/AuthContext';
 import { DeleteIcon, EditIcon } from '../components/icons/Icons';
 import { formatMoney } from '../lib/format';
 import TabButton from '../components/TabButton';
@@ -464,6 +465,7 @@ function useReserveFundCategories(hoaId) {
 }
 
 function ReserveFundCard({ hoaId }) {
+  const { user } = useAuth();
   const { rows, loading, reload } = useReserveFundCategories(hoaId);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -472,8 +474,46 @@ function ReserveFundCard({ hoaId }) {
   const [newName, setNewName] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const { confirm, ConfirmDialog } = useConfirm();
+  const [posting, setPosting] = useState(false);
+  const [postError, setPostError] = useState('');
+  const [postedThisMonth, setPostedThisMonth] = useState(null); // null=шалгаж байна, true/false
 
   const total = rows.reduce((s, r) => s + Number(r.monthly_amount || 0), 0);
+
+  // 2026-09-25 (87): "Энэ сарын хуваарилалт хийх" товч — Дт 4110
+  // (Хязгаарлалтгүй нeeц) / Кт 4120 (Хязгаарлалттай нeeц) журналын
+  // бичилт үүсгэнэ. ЭНЭ САР аль хэдийн posted эсэхийг шалгаж (source_
+  // type='reserve_allocation'), давхар бичихээс сэргийлнэ.
+  useEffect(() => {
+    if (!hoaId) return;
+    const monthStart = new Date().toISOString().slice(0, 7) + '-01';
+    supabase.from('journal_entries').select('id').eq('tenant_id', hoaId).eq('source_type', 'reserve_allocation').gte('entry_date', monthStart).limit(1).then(({ data }) => setPostedThisMonth((data || []).length > 0));
+  }, [hoaId]);
+
+  async function postMonthlyAllocation() {
+    if (total <= 0) { setPostError('Нийт дүн 0-ээс их байх ёстой'); return; }
+    setPosting(true);
+    setPostError('');
+    try {
+      const period = new Date().toLocaleDateString('mn-MN', { year: 'numeric', month: 'long' });
+      const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: new Date().toISOString().slice(0, 10),
+        description: `${period} сарын хуримтлалын сангийн хуваарилалт`,
+        source_type: 'reserve_allocation', created_by: user?.id,
+      }).select().single();
+      if (entryErr) throw entryErr;
+      const { error: linesErr } = await supabase.from('journal_entry_lines').insert([
+        { entry_id: entry.id, account_code: '4110', debit: total, credit: 0 },
+        { entry_id: entry.id, account_code: '4120', debit: 0, credit: total },
+      ]);
+      if (linesErr) throw linesErr;
+      setPostedThisMonth(true);
+    } catch (e) {
+      setPostError(e.message || 'Алдаа гарлаа');
+    } finally {
+      setPosting(false);
+    }
+  }
 
   function startEdit(row) {
     setEditingId(row.id);
@@ -558,11 +598,19 @@ function ReserveFundCard({ hoaId }) {
             </tfoot>
           </table>
         )}
+        {!loading && rows.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol flex items-center gap-3">
+            <button className="ds-btn-primary" onClick={postMonthlyAllocation} disabled={posting || postedThisMonth === true}>
+              {posting ? 'Бичиж байна...' : postedThisMonth === true ? 'Энэ сар аль хэдийн хуваарилагдсан ✓' : 'Энэ сарын хуваарилалт хийх'}
+            </button>
+            {postError && <span className="text-[11px] text-customRed">{postError}</span>}
+          </div>
+        )}
       </div>
       <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed" style={{ maxWidth: 560 }}>
-        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг, юу хийдэггүй вэ</div>
-        <p className="mb-2">ҮҮнд бүртгэсэн зориулалт бүр СөХ-ийн дотоод санхүүгийн зорилтот хуваарилалт (жиш нь их засвар/лифт засварт хэдэн төгрөг зориулах eeд байгааг тодорхойлох) — гэхдээ <b>сар бүр орлогоос АВТОМАТААР ТАТАГДДАГГҮй, ямар ч журналын бичилт үүсгэдэггүй.</b> Зөвхөн ТӨЛӨВЛӨГӨӨ, ТООЦООЛОЛ хийхэд ашиглана уу.</p>
-        <p>Хэрэв үүнийг БОДИТООР сар бүр орлогоос автоматаар суутгаж, тусгай журналын бичилт үүсгэдэг болгохыг хүсвэл — тодорхой хэлээрэй, үүнд нэмэлт ажил шаардлагатай.</p>
+        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
+        <p className="mb-2">Үүнд бүртгэсэн зориулалт бүр СөХ-ийн дотоод санхүүгийн зорилтот хуваарилалт. "Энэ сарын хуваарилалт хийх" товч дарахад, <b>СөХ-ны орлогод НЭМЭЛТЭЭР ХҮРДЭГГҮй, зөвхөн эздийн эрхийн дотоод шилжүүлэг</b> (Дт 4110 Хязгаарлалтгүй нөөц / Кт 4120 Хязгаарлалттай нөөц) үүснэ — нийт Эздийн эрхийн дүн өөрчлөгдөхгүй, зөвхөн "энэ хэсгийг зориулалттайгаар тусгаарлав" гэсэн тэмдэглэгээ бөгөөд, Ф1 (А маягт)-ийн "2.3.2 б) хязгаарлалттай" мөрт харагдана.</p>
+        <p>Сар бүр л 1 удаа дарж болно (давхар бичихээс хамгаалагдсан). Өмчлөгчийн төлбөрт (нэхэмжлэлд) ЭНЭ дүн НЭМЭГДЭХГҮй.</p>
       </div>
       <ConfirmDialog />
     </div>

@@ -721,8 +721,16 @@ function computeF1F2Snapshot(accounts, cumLines, yearLines) {
   const incomeTotalCum = sumByCategoryCum('income');
   const expenseTotalCum = sumByCategoryCum('expense');
   const netResultCumulative = incomeTotalCum - expenseTotalCum;
-  const reserveUnrestricted = sumByCategoryCum('equity');
-  const netAssetsTotal = reserveUnrestricted + netResultCumulative;
+  // 2026-09-25 (87): "4120 Хязгаарлалттай нeeц" (тодорхой зориулалтад
+  // (Ариутгал/Их засвар/Лифт засвар г.м) дотооддоо тусгаарласан
+  // хэсэг) шинээр нэмэгдсэн тул, "2.3.1 Хязгаарлалтгүй"/"2.3.2
+  // Хязгаарлалттай" 2 мврт ХОЁУУЛААР давхардуулахгүйгээр задална —
+  // netAssetsTotal тооцооллоо ЯГ ижил "нийт equity" (equityTotal)
+  // ашиглана (Дт 4110/Кт 4120 шилжүүлэг ЭНЭ нийт дүнг eeрчлөхгүй).
+  const equityTotal = sumByCategoryCum('equity');
+  const reserveRestricted = sumByCodeCum('4120');
+  const reserveUnrestricted = equityTotal - reserveRestricted;
+  const netAssetsTotal = equityTotal + netResultCumulative;
 
   // Б маягтын (үр дүнгийн тайлан) мөрүүд — ЗӨВХӨН тайлант жилийн
   // (yearLines) гүйлгээгээр тооцоолно.
@@ -745,7 +753,7 @@ function computeF1F2Snapshot(accounts, cumLines, yearLines) {
     cash, shortTermInvestment, receivableGross, badDebtAllowance, inventory, prepaidExpense, currentAssetsTotal,
     fixedAssetGross, accumulatedDepreciation, nonCurrentAssetsTotal, totalAssets,
     accountsPayable, salaryPayable, taxPayable, deferredIncome, otherPayable, currentLiabTotal, totalLiabilities,
-    reserveUnrestricted, netResultCumulative, netAssetsTotal,
+    equityTotal, reserveUnrestricted, reserveRestricted, netResultCumulative, netAssetsTotal,
     membershipDues, rentIncome, otherIncomeExplicit, operatingIncomeTotal,
     salaryExpense, socialInsuranceExpense, maintenanceExpense, depreciationExpense, badDebtExpense, otherExpenseExplicit, operatingExpenseTotal,
     operatingResult,
@@ -856,7 +864,7 @@ function OfficialFormsTab({ hoaId }) {
     officialRow('2.2', 'Өр төлбөрийн нийт дүн', cur.totalLiabilities, prior.totalLiabilities, { bold: true }),
     officialRow('2.3', 'Цэвэр хөрөнгө', null, null, { bold: true }),
     officialRow('2.3.1', 'Нөөц: а) хязгаарлалтгүй', cur.reserveUnrestricted, prior.reserveUnrestricted),
-    officialRow('2.3.2', 'б) хязгаарлалттай', 0, 0),
+    officialRow('2.3.2', 'б) хязгаарлалттай', cur.reserveRestricted, prior.reserveRestricted),
     officialRow('2.3.3', 'Дахин үнэлгээний нэмэгдэл', 0, 0),
     officialRow('2.3.5', 'Хуримтлагдсан үр дүн', cur.netResultCumulative, prior.netResultCumulative),
     officialRow('2.3.6', 'Цэвэр хөрөнгийн дүн', cur.netAssetsTotal, prior.netAssetsTotal, { bold: true }),
@@ -944,7 +952,7 @@ function OfficialFormsTab({ hoaId }) {
   // шууд орсон eөрчлөлт + Тайлант үөийн (зөвхөн ЭНЭ жилийн) цэвэр
   // үр дүн = Үөийн эцсийн үлдэгдэл (cumulative) — тоон утгаараа
   // яг зөв тэнцдэг.
-  const reserveMovement = cur.reserveUnrestricted - prior.reserveUnrestricted;
+  const reserveMovement = cur.equityTotal - prior.equityTotal;
 
   const f4Rows = [
     officialRow('1', 'Үеийн эхний үлдэгдэл', prior.netAssetsTotal, 0, { bold: true }),
