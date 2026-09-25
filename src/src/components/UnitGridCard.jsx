@@ -23,9 +23,15 @@
 // өмнө border-2, opacity 70% байсан.)
 const COLOR_CLASSES = {
   customYellow: { border: 'border-[#f8f23d]' },
+  customOrange: { border: 'border-customOrange' },
   customRed: { border: 'border-red-500' },
+  customPink: { border: 'border-customPink' },
+  customPurple: { border: 'border-customPurple' },
+  customIndigo: { border: 'border-customIndigo' },
   customBlue: { border: 'border-blue-500' },
+  customSkyBlue: { border: 'border-customSkyBlue' },
   customGreen: { border: 'border-emerald-500' },
+  customBlack: { border: 'border-customBlack' },
 };
 const NEUTRAL_CLASS = 'bg-slate-500/[0.10] text-slate-400 dark:text-mutedtext hover:border-slate-400';
 const NEUTRAL_BORDER = 'border-slate-500/30';

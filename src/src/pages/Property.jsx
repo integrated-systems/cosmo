@@ -16,6 +16,7 @@ import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
 import { extractGridItemUuid } from '../lib/spotVehicleFormat';
 import { useInvoicePayments } from '../hooks/useInvoicePayments';
+import { customColorHex } from '../lib/customColors';
 
 // "Тоот, Зогсоол, Агуулах" (/property) хуудас — Тоот таб: менежерийн
 // зорилготой визуал grid (төлбөрийн үлдэгдэлтэй эсэхээр өнгө хувирна,
@@ -74,7 +75,10 @@ export default function Property() {
   // customGreen/customBlue-тэй ЯГ ИЖИЛ hex код — SVG-ийн stroke/CSS
   // border inline style-д динамик Tailwind класс үүсгэлгүйгээр шууд
   // ашиглана (PaymentBadges.jsx/UnitGridCard.jsx-тэй ижил зарчим).
-  const STATUS_COLOR_HEX = { customYellow: '#f8f23d', customRed: '#ef5555', customGreen: '#10b981', customBlue: '#3b82f6' };
+  // 2026-09-24: customColors.js-ийн НЭГДСЭН жагсаалтаас (10 eнгe) шууд
+  // уншина — FinConfig.jsx-ийн сонгогч ЭНД байхгүй eнгe санал болгохоос
+  // сэргийлнэ (Rule of two/three).
+  const STATUS_COLOR_HEX = (colorKey) => customColorHex(colorKey);
 
   // 2026-09-24 (82): Хэрэглэгчийн шинэ, тодорхой хүсэлтээр (өмнөх
   // "paid үед хүрээ eөрчлөхгүй" шийдвэрийг эргүүлэн): "Хугацаандаа"
@@ -105,7 +109,7 @@ export default function Property() {
       return null;
     }
     const colorKey = status === 'overdue' ? overdueColor : status === 'at_risk' ? atRiskColor : status === 'pending' ? pendingColor : status === 'paid' ? paidColor : null;
-    return colorKey && colorKey !== 'default' ? (STATUS_COLOR_HEX[colorKey] || null) : null;
+    return colorKey && colorKey !== 'default' ? (STATUS_COLOR_HEX(colorKey) || null) : null;
   }
 
   function resolveGridLink(floorKey, itemId, field) {

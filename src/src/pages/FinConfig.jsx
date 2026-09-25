@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { CUSTOM_COLORS } from '../lib/customColors';
 import { useConfirm } from '../hooks/useConfirm';
 import { DeleteIcon, EditIcon } from '../components/icons/Icons';
 import { formatMoney } from '../lib/format';
@@ -490,26 +491,61 @@ function OverdueCard({ hoaId }) {
 // (paid) мөрийг хэрэглэгчийн шинэ, тодорхой хүсэлтээр (өмнөх
 // "үргэлж анхдагч, сонголт үгүй" шийдвэрийг эргүүлэн) БУСАД 3 мөртэй
 // адил ЗАСВАРЛАХ БОЛОМЖТОЙ болгов.
-const SWATCH_OPTIONS = [
-  { key: 'customYellow', hex: '#f8f23d' },
-  { key: 'customRed', hex: '#ef5555' },
-  { key: 'customGreen', hex: '#10b981' },
-  { key: 'customBlue', hex: '#3b82f6' },
-];
+// 2026-09-24 (2): Хэрэглэгчийн хүсэлтээр — 4 eнгeeс сонгодог байсныг
+// tailwind.config.js дэх БүХ 10 custom eнгeeр (customColors.js-ийн
+// НЭГДСЭН жагсаалтаас) сонгодог болгов. Дугуй цуваа хэлбэрээр 10
+// eнгe хэт зай эзлэх тул, зургийн программ шиг DROPDOWN (сонгосон
+// eнгийг товч дээр харуулж, дарахад жагсаалт нээгддэг) болгож
+// eeрчлөв.
 function ColorSwatchPicker({ value, onChange, disabled }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selected = CUSTOM_COLORS.find((c) => c.key === value);
+
   return (
-    <div className="flex items-center gap-1.5">
-      {SWATCH_OPTIONS.map((c) => (
-        <button
-          key={c.key}
-          type="button"
-          disabled={disabled}
-          onClick={() => !disabled && onChange(c.key)}
-          title={c.key}
-          className={`w-5 h-5 rounded-full border-2${disabled ? ' opacity-40 cursor-default' : ''}`}
-          style={{ background: c.hex, borderColor: !disabled && value === c.key ? '#fff' : 'transparent', boxShadow: !disabled && value === c.key ? `0 0 0 1.5px ${c.hex}` : 'none' }}
-        />
-      ))}
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={`flex items-center gap-1.5 px-2 py-1 rounded border border-slate-300 dark:border-bordercol${disabled ? ' opacity-40 cursor-default' : ' hover:border-slate-400 dark:hover:border-mutedtext'}`}
+      >
+        <span className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ background: selected?.hex || 'transparent' }} />
+        <span className="text-[11px] text-slate-700 dark:text-mutedtext whitespace-nowrap">{selected?.label || 'Анхдагч (eнгөгүй)'}</span>
+        <span className="text-[9px] text-mutedtext">▾</span>
+      </button>
+      {open && !disabled && (
+        <div className="absolute right-0 z-20 mt-1 w-40 max-h-64 overflow-y-auto ds-card p-1 shadow-lg">
+          <button
+            type="button"
+            onClick={() => { onChange('default'); setOpen(false); }}
+            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] text-left hover:bg-slate-100 dark:hover:bg-white/5 ${(!value || value === 'default') ? 'bg-slate-100 dark:bg-white/5' : ''}`}
+          >
+            <span className="w-4 h-4 rounded-full border border-dashed border-slate-400 shrink-0" />
+            <span className="text-slate-700 dark:text-mutedtext">Анхдагч (eнгөгүй)</span>
+          </button>
+          {CUSTOM_COLORS.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => { onChange(c.key); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] text-left hover:bg-slate-100 dark:hover:bg-white/5 ${value === c.key ? 'bg-slate-100 dark:bg-white/5' : ''}`}
+            >
+              <span className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ background: c.hex }} />
+              <span className="text-slate-700 dark:text-mutedtext">{c.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
