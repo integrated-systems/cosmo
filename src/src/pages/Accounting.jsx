@@ -233,9 +233,11 @@ function JournalEntriesTab({ hoaId }) {
         <div className="text-[12px] text-mutedtext">
           Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, "+ Орлого/Зарлага бүртгэх" (ангилал сонгоод шууд бичигддэг, Дт/Кт мэдэх шаардлагагүй) БОЛОН "+ Шинэ гүйлгээ бүртгэх" (гараар Дт/Кт) товчоор оруулсан журналын бичилтүүд харагдана. НББ стандартын дагуу, бичигдсэн бичилтийг шууд засах/устгах боломжгүй — зөвхөн "Буцаах" товчоор алдааг залруулна.
         </div>
-        <button className="ds-btn-secondary shrink-0 ml-3" onClick={() => setQuickKind('income')}>+ Орлого бүртгэх</button>
-        <button className="ds-btn-secondary shrink-0 ml-2" onClick={() => setQuickKind('expense')}>+ Зарлага бүртгэх</button>
-        <button className="ds-btn-primary shrink-0 ml-2" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <button className="ds-btn-secondary" onClick={() => setQuickKind('income')}>+ Орлого бүртгэх</button>
+          <button className="ds-btn-secondary" onClick={() => setQuickKind('expense')}>+ Зарлага бүртгэх</button>
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         {loading ? (
