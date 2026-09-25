@@ -77,6 +77,107 @@ function ChartOfAccountsTab({ hoaId }) {
   );
 }
 
+// 2026-09-25 (84): Хэрэглэгчийн хүсэлтээр — "Орлогын ангилал"/
+// "Зарлагын ангилал" (FinConfig.jsx)-ыг БОДИТООР ажиллуулах цорын
+// ганц дутуу холбоос. Энэ модаль нь Дт/Кт мэдэхгүй ажилтанд зориулсан
+// ХЯЛБАРШУУЛСАН орц (ангилал сонгоход, тухайн ангиллын ХОЛБОГДСОН
+// данс руу автоматаар давхар бичилт үүснэ — эсрэг тал нь үргэлж
+// Мөнгe (1010 Касс эсвэл 1020 Харилцах, хэрэглэгч сонгоно)).
+function QuickTransactionModal({ open, onClose, hoaId, kind, accounts, onSaved }) {
+  const { user } = useAuth();
+  const table = kind === 'income' ? 'income_subcategories' : 'expense_subcategories';
+  const [categories, setCategories] = useState([]);
+  const [categoryId, setCategoryId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [description, setDescription] = useState('');
+  const [cashAccount, setCashAccount] = useState('1020');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open || !hoaId) return;
+    setCategoryId(''); setAmount(''); setDescription(''); setError('');
+    setDate(new Date().toISOString().slice(0, 10));
+    supabase.from(table).select('*').eq('tenant_id', hoaId).order('sort_order').then(({ data }) => setCategories(data || []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, hoaId, kind]);
+
+  const cashAccounts = accounts.filter((a) => a.category === 'cash');
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+
+  async function handleSave() {
+    setError('');
+    if (!categoryId) { setError('Ангилал сонгоно уу'); return; }
+    if (!selectedCategory?.account_code) { setError('Энэ ангилал ямар ч данстай холбогдоогүй байна — Санхүү тохиргоо > НББ хуудаснаас эхлээд данс холбоно уу'); return; }
+    const amountNum = Number(amount);
+    if (!amountNum || amountNum <= 0) { setError('Дүнг зөв оруулна уу'); return; }
+    setSaving(true);
+    try {
+      const label = kind === 'income' ? 'Орлого' : 'Зарлага';
+      const { data: entry, error: entryErr } = await supabase.from('journal_entries').insert({
+        tenant_id: hoaId, entry_date: date,
+        description: `${label}: ${selectedCategory.name}${description.trim() ? ' — ' + description.trim() : ''}`,
+        source_type: 'manual', created_by: user?.id,
+      }).select().single();
+      if (entryErr) throw entryErr;
+      const lines = kind === 'income'
+        ? [{ entry_id: entry.id, account_code: cashAccount, debit: amountNum, credit: 0 }, { entry_id: entry.id, account_code: selectedCategory.account_code, debit: 0, credit: amountNum }]
+        : [{ entry_id: entry.id, account_code: selectedCategory.account_code, debit: amountNum, credit: 0 }, { entry_id: entry.id, account_code: cashAccount, debit: 0, credit: amountNum }];
+      const { error: linesErr } = await supabase.from('journal_entry_lines').insert(lines);
+      if (linesErr) throw linesErr;
+      onSaved();
+    } catch (e) {
+      setError(e.message || 'Алдаа гарлаа');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={kind === 'income' ? 'Орлого бүртгэх' : 'Зарлага бүртгэх'} size="sm"
+      footer={<>
+        <button className="ds-btn-secondary" onClick={onClose} disabled={saving}>Цуцлах</button>
+        <button className="ds-btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Хадгалж байна...' : 'Хадгалах'}</button>
+      </>}
+    >
+      <div className="space-y-3">
+        <div>
+          <label className="block text-[11px] text-mutedtext mb-1">Ангилал</label>
+          <select className="ds-input w-full" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">— Сонгох —</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {selectedCategory && (
+            <div className="text-[10.5px] text-mutedtext mt-1">
+              Холбогдсон данс: {selectedCategory.account_code ? (accounts.find((a) => a.code === selectedCategory.account_code)?.name || selectedCategory.account_code) : '— Холбоогүй (Санхүү тохиргоо > НББ-с холбоно уу) —'}
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="block text-[11px] text-mutedtext mb-1">Дүн (₮)</label>
+          <input type="number" min={0} className="ds-input w-full" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-mutedtext mb-1">Огноо</label>
+          <input type="date" className="ds-input w-full" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-mutedtext mb-1">{kind === 'income' ? 'Хүлээн авсан данс' : 'Төлсөн данс'}</label>
+          <select className="ds-input w-full" value={cashAccount} onChange={(e) => setCashAccount(e.target.value)}>
+            {cashAccounts.map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] text-mutedtext mb-1">Тайлбар (заавал биш)</label>
+          <input className="ds-input w-full" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        {error && <div className="text-[11px] text-customRed">{error}</div>}
+      </div>
+    </Modal>
+  );
+}
+
 function JournalEntriesTab({ hoaId }) {
   const { user } = useAuth();
   const { accounts, accountLabel } = useChartOfAccounts(hoaId);
@@ -86,6 +187,7 @@ function JournalEntriesTab({ hoaId }) {
   const [expanded, setExpanded] = useState(null);
   const [adding, setAdding] = useState(false);
   const [reversing, setReversing] = useState(null);
+  const [quickKind, setQuickKind] = useState(null); // 'income' | 'expense' | null
 
   async function load() {
     if (!hoaId) return;
@@ -129,9 +231,11 @@ function JournalEntriesTab({ hoaId }) {
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="text-[12px] text-mutedtext">
-          Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, мөн "+ Шинэ гүйлгээ бүртгэх" товчоор гараар оруулсан журналын бичилтүүд харагдана. НББ стандартын дагуу, бичигдсэн бичилтийг шууд засах/устгах боломжгүй — зөвхөн "Буцаах" товчоор алдааг залруулна.
+          Энд "Ажилтны бүртгэл → Цалингийн тооцоолол → Цалин төлөх" дарахад автоматаар үүссэн, "+ Орлого/Зарлага бүртгэх" (ангилал сонгоод шууд бичигддэг, Дт/Кт мэдэх шаардлагагүй) БОЛОН "+ Шинэ гүйлгээ бүртгэх" (гараар Дт/Кт) товчоор оруулсан журналын бичилтүүд харагдана. НББ стандартын дагуу, бичигдсэн бичилтийг шууд засах/устгах боломжгүй — зөвхөн "Буцаах" товчоор алдааг залруулна.
         </div>
-        <button className="ds-btn-primary shrink-0 ml-3" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
+        <button className="ds-btn-secondary shrink-0 ml-3" onClick={() => setQuickKind('income')}>+ Орлого бүртгэх</button>
+        <button className="ds-btn-secondary shrink-0 ml-2" onClick={() => setQuickKind('expense')}>+ Зарлага бүртгэх</button>
+        <button className="ds-btn-primary shrink-0 ml-2" onClick={() => setAdding(true)}>+ Шинэ гүйлгээ бүртгэх</button>
       </div>
       <div className="flex flex-col gap-2">
         {loading ? (
@@ -194,6 +298,15 @@ function JournalEntriesTab({ hoaId }) {
         hoaId={hoaId}
         accounts={accounts}
         onSaved={() => { setAdding(false); load(); }}
+      />
+      <QuickTransactionModal
+        key={quickKind ? `quick-${quickKind}` : 'quick-closed'}
+        open={!!quickKind}
+        onClose={() => setQuickKind(null)}
+        hoaId={hoaId}
+        kind={quickKind}
+        accounts={accounts}
+        onSaved={() => { setQuickKind(null); load(); }}
       />
     </div>
   );
