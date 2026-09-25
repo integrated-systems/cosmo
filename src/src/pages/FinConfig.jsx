@@ -218,16 +218,19 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
 // хамт). Ангилал бүр яг ТОДОРХОЙ данстай холбогдож, ирээдүйд
 // "Гүйлгээ бүртгэл" модаль баригдахад тэр данс руу л шууд бичигдэнэ.
 const INCOME_CATEGORIES = [
-  'Айл, эрх, зогсоол, агуулах',
-  'Аж ахуйн нэгж',
-  'Антены, лифтний самбарын түрээс',
-  'Банкны хүүгийн орлого',
-  'Зогсоолын хураамж',
-  'Чипний орлого',
-  'Ажилчдаас авах авлага',
-  'Хохирлын нөхөн төлбөр',
-  'Бусад',
-  'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр',
+  { name: 'Гишүүдийн татвар', account_code: '5110' },
+  { name: 'Түрээсийн орлого', account_code: '5410' },
+  { name: 'Бусад орлого', account_code: '5610' },
+  { name: 'Айл, эрх, зогсоол, агуулах', account_code: '5610' },
+  { name: 'Аж ахуйн нэгж', account_code: '5610' },
+  { name: 'Антены, лифтний самбарын түрээс', account_code: '5610' },
+  { name: 'Банкны хүүгийн орлого', account_code: '5610' },
+  { name: 'Зогсоолын хураамж', account_code: '5610' },
+  { name: 'Чипний орлого', account_code: '5610' },
+  { name: 'Ажилчдаас авах авлага', account_code: '5610' },
+  { name: 'Хохирлын нөхөн төлбөр', account_code: '5610' },
+  { name: 'Бусад', account_code: '5610' },
+  { name: 'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр', account_code: '5610' },
 ];
 // 2026-09-24 (83): Шинэ "Зарлагын ангилал" — үндсэн 8 зардлын
 // дансыг (7010-7080) яг тэдгээрийн нэрээр урьдчилан холбож үрждэнэ
@@ -300,7 +303,7 @@ function CategoryManagerTab({ hoaId, table, accountCategory, title, defaultSeed,
     reload();
   }
   async function handleDelete(row) {
-    const ok = await confirm({ title: 'Ангилал устгах', message: `"${row.name}" ангиллыг устгах уу?` });
+    const ok = await confirm(`"${row.name}" ангиллыг устгах уу?`);
     if (!ok) return;
     await supabase.from(table).delete().eq('id', row.id);
     reload();
@@ -389,7 +392,7 @@ function IncomeCategoriesTab({ hoaId }) {
   return (
     <CategoryManagerTab
       hoaId={hoaId} table="income_subcategories" accountCategory="income" title="Орлогын ангилал"
-      defaultSeed={INCOME_CATEGORIES.map((name) => ({ name, account_code: '5610' }))}
+      defaultSeed={INCOME_CATEGORIES}
       noteBody={<>
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
         <p className="mb-2">Ангилал бүр НЭГ тодорхой ДАНСАНД (жиш нь 5110 "Гишүүдийн татвар", 5410 "Түрээсийн орлого", 5610 "Бусад орлого") холбогдоно. "Санхүү → Нягтлан бодох бүртгэл → Журналын бичилт" таб дээрх "+ Орлого бүртгэх" товчоор энэ ангиллыг сонгоход, журналын бичилт ЯГ ХОЛБОГДСОН данс руу шууд бичигдэнэ.</p>
@@ -527,7 +530,7 @@ function ReserveFundCard({ hoaId }) {
     reload();
   }
   async function handleDelete(row) {
-    const ok = await confirm({ title: 'Зориулалт устгах', message: `"${row.name}" зориулалтыг устгах уу?` });
+    const ok = await confirm(`"${row.name}" зориулалтыг устгах уу?`);
     if (!ok) return;
     await supabase.from('reserve_fund_categories').delete().eq('id', row.id);
     reload();
