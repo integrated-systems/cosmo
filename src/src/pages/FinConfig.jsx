@@ -210,16 +210,12 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
 }
 
 
-// 2026-09-04 (4): "Орлогын дэд ангилал" - НББ модуль хийх үед
-// ашиглагдах жинхэнэ бүтэц.
-// 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон "Үйлдэл"
-// баганын Засах/Устгах товч ажиллахгүй байсан цоорхойг засав.
-// Урьд нь ЗӨВХӨН энэ HARDCODED статик массив харагддаг, товчнууд
-// `disabled` байсан (тайлбар: "НББ модуль хийгдсэний дараа
-// идэвхжинэ"). Одоо income_subcategories (migration 0132)
-// хүснэгэлээр дамжуулан бодит tenant тус бүрийн жагсаалт болгож,
-// Нэмэх/Засах/Устгах бүрэн ажиллагаатай болгов. Анх удаа энэ tenant
-// табруу ирэхэд, доорх анхны 10 нэрийг автоматаар үрждэг (seed).
+// 2026-09-24 (83): Хэрэглэгчийн хүсэлтээр — мэргэжлийн нягтлангийн
+// шаардлагад нийцүүлж, "Орлогын дэд ангилал" (зөвхөн чөлeeт текст,
+// үргэлж 5610 лүү ордог байсан)-ыг ХАРИЛЦАН ДАНСАНД ХОЛБОГДДОГ,
+// БОДИТООР ажилладаг систем болгож НЭГТГЭВ ("Зарлагын ангилал"-тай
+// хамт). Ангилал бүр яг ТОДОРХОЙ данстай холбогдож, ирээдүйд
+// "Гүйлгээ бүртгэл" модаль баригдахад тэр данс руу л шууд бичигдэнэ.
 const INCOME_CATEGORIES = [
   'Айл, эрх, зогсоол, агуулах',
   'Аж ахуйн нэгж',
@@ -232,19 +228,37 @@ const INCOME_CATEGORIES = [
   'Бусад',
   'Хаалтны хэтэрсэн хугацаа, түр зогсолтын төлбөр',
 ];
+// 2026-09-24 (83): Шинэ "Зарлагын ангилал" — үндсэн 8 зардлын
+// дансыг (7010-7080) яг тэдгээрийн нэрээр урьдчилан холбож үрждэнэ
+// (хэрэглэгч дараа нь чөлeeтэй нэмж/eeрчилж болно).
+const EXPENSE_CATEGORIES = [
+  { name: 'Цалин хүүлсний зардал', account_code: '7010' },
+  { name: 'Нийгмийн даатгалын зардал', account_code: '7020' },
+  { name: 'Засвар үйлчилгээний зардал', account_code: '7030' },
+  { name: 'Тохижилтын зардал', account_code: '7040' },
+  { name: 'Цэвэрлэгээний зардал', account_code: '7050' },
+  { name: 'Бусад тогтмол зардал', account_code: '7060' },
+  { name: 'Элэгдлийн зардал', account_code: '7070' },
+  { name: 'Найдваргүй авлагын зардал', account_code: '7080' },
+];
 
-function useIncomeSubcategories(hoaId) {
+function useCategoryRows(hoaId, table, defaultSeed) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from('income_subcategories').select('*').eq('tenant_id', hoaId).order('sort_order');
+    const { data } = await supabase.from(table).select('*').eq('tenant_id', hoaId).order('sort_order');
     if (data && data.length > 0) {
       setRows(data);
     } else {
-      const seedRows = INCOME_CATEGORIES.map((name, i) => ({ tenant_id: hoaId, name, sort_order: i }));
-      const { data: inserted } = await supabase.from('income_subcategories').insert(seedRows).select();
+      const seedRows = defaultSeed.map((item, i) => ({
+        tenant_id: hoaId,
+        name: typeof item === 'string' ? item : item.name,
+        account_code: typeof item === 'string' ? null : item.account_code,
+        sort_order: i,
+      }));
+      const { data: inserted } = await supabase.from(table).insert(seedRows).select();
       setRows(inserted || []);
     }
     setLoading(false);
@@ -253,35 +267,49 @@ function useIncomeSubcategories(hoaId) {
   return { rows, loading, reload: load };
 }
 
-function IncomeCategoriesPlaceholder({ hoaId }) {
-  const { rows, loading, reload } = useIncomeSubcategories(hoaId);
+// 2026-09-24 (83): Орлого/Зарлагын ангиллын менежментийн НЭГ дундын
+// компонент (Rule of two) — ЯГ ИЖИЛ CRUD бүтэц, зөвхөн хүснэгэл
+// (table) БОЛОН харгалзах дансны ангилал (accountCategory) ялгаатай.
+function CategoryManagerTab({ hoaId, table, accountCategory, title, defaultSeed, noteBody }) {
+  const { accounts } = useChartOfAccounts(hoaId);
+  const { rows, loading, reload } = useCategoryRows(hoaId, table, defaultSeed);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [editAccount, setEditAccount] = useState('');
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newAccount, setNewAccount] = useState('');
   const { confirm, ConfirmDialog } = useConfirm();
+
+  const relevantAccounts = accounts.filter((a) => a.category === accountCategory);
+  function accountLabel(code) {
+    const acc = relevantAccounts.find((a) => a.code === code);
+    return acc ? `${acc.code} — ${acc.name}` : (code ? code : '— Холбоогүй —');
+  }
 
   function startEdit(row) {
     setEditingId(row.id);
     setEditValue(row.name);
+    setEditAccount(row.account_code || '');
   }
   async function saveEdit() {
     if (!editValue.trim()) return;
-    await supabase.from('income_subcategories').update({ name: editValue.trim() }).eq('id', editingId);
+    await supabase.from(table).update({ name: editValue.trim(), account_code: editAccount || null }).eq('id', editingId);
     setEditingId(null);
     reload();
   }
   async function handleDelete(row) {
-    const ok = await confirm({ title: 'Дэд ангилал устгах', message: `"${row.name}" дэд ангиллыг устгах уу?` });
+    const ok = await confirm({ title: 'Ангилал устгах', message: `"${row.name}" ангиллыг устгах уу?` });
     if (!ok) return;
-    await supabase.from('income_subcategories').delete().eq('id', row.id);
+    await supabase.from(table).delete().eq('id', row.id);
     reload();
   }
   async function handleAdd() {
     if (!newName.trim()) return;
     const maxOrder = rows.reduce((m, r) => Math.max(m, r.sort_order), -1);
-    await supabase.from('income_subcategories').insert({ tenant_id: hoaId, name: newName.trim(), sort_order: maxOrder + 1 });
+    await supabase.from(table).insert({ tenant_id: hoaId, name: newName.trim(), account_code: newAccount || null, sort_order: maxOrder + 1 });
     setNewName('');
+    setNewAccount('');
     setAdding(false);
     reload();
   }
@@ -290,14 +318,18 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
     <div>
       <div className="ds-card p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Орлогын дэд ангилал</div>
-          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ дэд ангилал нэмэх</button>
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">{title}</div>
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ ангилал нэмэх</button>
         </div>
         {adding && (
           <div className="flex items-center gap-2 mb-3">
-            <input className="ds-input flex-1" placeholder="Шинэ дэд ангиллын нэр" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
+            <input className="ds-input flex-1" placeholder="Шинэ ангиллын нэр" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
+            <select className="ds-input" style={{ minWidth: 240 }} value={newAccount} onChange={(e) => setNewAccount(e.target.value)}>
+              <option value="">— Данс сонгох —</option>
+              {relevantAccounts.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+            </select>
             <button className="ds-btn-primary" onClick={handleAdd}>Хадгалах</button>
-            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setNewName(''); }}>Цуцлах</button>
+            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setNewName(''); setNewAccount(''); }}>Цуцлах</button>
           </div>
         )}
         {loading ? (
@@ -307,6 +339,7 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
             <thead>
               <tr>
                 <th className="py-2 px-2">НЭР</th>
+                <th className="py-2 px-2">ХОЛБОГДСОН ДАНС</th>
                 <th className="py-2 px-2 text-right">ҮЙЛДЭЛ</th>
               </tr>
             </thead>
@@ -317,6 +350,14 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
                     {editingId === row.id ? (
                       <input className="ds-input w-full" value={editValue} onChange={(e) => setEditValue(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && saveEdit()} />
                     ) : row.name}
+                  </td>
+                  <td className="py-2 px-2 text-mutedtext">
+                    {editingId === row.id ? (
+                      <select className="ds-input w-full" value={editAccount} onChange={(e) => setEditAccount(e.target.value)}>
+                        <option value="">— Данс сонгох —</option>
+                        {relevantAccounts.map((a) => <option key={a.code} value={a.code}>{a.code} — {a.name}</option>)}
+                      </select>
+                    ) : accountLabel(row.account_code)}
                   </td>
                   <td className="py-2 px-2 text-right whitespace-nowrap">
                     {editingId === row.id ? (
@@ -337,15 +378,37 @@ function IncomeCategoriesPlaceholder({ hoaId }) {
           </table>
         )}
       </div>
-      <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed">
-        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг, юу хийдэггүй вэ</div>
-        <p className="mb-2">Эндээс тохируулсан нэрс нь зөвхөн "Гүйлгээ бүртгэл — Орлого — Орлого нэмэх" модалийн "Дэд ангилал" dropdown жагсаалтад харагдана. Энэ жагсаалт нь ямар нэг тодорхой дансанд шууд заагдаагүй, чөлөөт текст шинж чанартай.</p>
-        <p className="mb-2"><b>НББ-ийн дансанд хэрхэн тусгагдах вэ:</b> Та дээрх жагсаалтаас аль нь сонгосон ч, гүйлгээ бүр яг ижил нэг данс — 5610 "Бусад орлого"-нд бичигдэнэ (дэд ангиллын нэрээс үл хамаарна). өөрөөр хэлбэл, "Банкны хүүгийн орлого" эсвэл "Зогсоолын хураамж" аль алийг сонгосон ч, журналын бичилт адилхан 5610 дансанд орно — зөвхөн гүйлгээний тайлбар (сар, зорилго) л ялгаатай харагдана.</p>
-        <p className="mb-2"><b>Тэгэхээр яагаад энэ тохиргоо хэрэгтэй вэ:</b> Дансанд нөлөөгүй ч, СӨХ-ны дотоод санхүүгийн бүртгэлийг цэгцтэй, ойлгомжтой байлгах зорилготой (жиш нь тайлан, жагсаалт харахад "юу вэ" гэдгийг тодорхой ялгах). Нэр солих, нэмэх, устгах, дараалал өөрчлөх нь Нягтлан бодох бүртгэлийн модульд хамааралтай.</p>
-        <p>Зөвхөн Орлогын дэд ангилалд хамаарна. Зарлагын дэд ангилал (Урсгал зардал, Хөрөнгө оруулалтын зардал гэх мэт) энд ОРООГҮй — учир нь тэдгээрийн зарим нэр (жиш нь "Цалин хөлсний зардал", "НДШ зардал") нь тодорхой дансанд (7010, 7020 г.м) шууд, нэрээр нь холбогдсон тул нэрийг өөрчлөх нь тайланг буруу ангилуулах эрсдэлтэй. Иймд Зарлагын ангилалыг өөрчлөхийг зөвлөдөггүй.</p>
-      </div>
+      <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed">{noteBody}</div>
       <ConfirmDialog />
     </div>
+  );
+}
+
+function IncomeCategoriesTab({ hoaId }) {
+  return (
+    <CategoryManagerTab
+      hoaId={hoaId} table="income_subcategories" accountCategory="income" title="Орлогын ангилал"
+      defaultSeed={INCOME_CATEGORIES.map((name) => ({ name, account_code: '5610' }))}
+      noteBody={<>
+        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
+        <p className="mb-2">Ангилал бүр НЭГ тодорхой ДАНСАНД (жиш нь 5110 "Гишүүдийн татвар", 5410 "Түрээсийн орлого", 5610 "Бусад орлого") холбогдоно. Ирээдүйд "Гүйлгээ бүртгэл" боловсруулагдахад, тухайн ангиллыг сонгоход журналын бичилт ЯГ ХОЛБОГДСОН данс руу шууд бичигдэнэ.</p>
+        <p>ҮҮсгэсний дараа ХОЛБОГДСОН данс тус бүрийг чөлeeтэй eeрчилж болно — гэхдээ данс сольсны дараа, тэр ангиллаар ХУУЧИН бичигдсэн журналын бичилтүүд OMHOX данс дээрээ үлдэнэ (ретроактив eeрчлөгдөхгүй).</p>
+      </>}
+    />
+  );
+}
+
+function ExpenseCategoriesTab({ hoaId }) {
+  return (
+    <CategoryManagerTab
+      hoaId={hoaId} table="expense_subcategories" accountCategory="expense" title="Зарлагын ангилал"
+      defaultSeed={EXPENSE_CATEGORIES}
+      noteBody={<>
+        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
+        <p className="mb-2">үндсэн 8 зардлын ангилал (Цалин, НДШ, Засвар үйлчилгээ, Тохижилт, Цэвэрлэгээ, Бусад тогтмол, Элэгдэл, Найдваргүй авлага) харгалзах дансандаа (7010-7080) урьдчилан холбогдсон байна. Шинэ ангилал нэмж, тодорхой данстай холбож болно.</p>
+        <p>Цалин/НДШ/Элэгдэл зэрэг үндсэн зардлыг Employees.jsx/FixedAssets.jsx-ийн автомат журнал ХАРИН энд бус, ЯГ ТЭР дансны кодоор (7010, 7020, 7070 г.м) шууд бичдэг. Иймд эдгээр ангиллын ХОЛБОГДСОН данс кодыг eeрчлөхийг зөвлөдөггүй — зөвхөн ШИНЭ, тусгай зардлын ангилал нэмэхэд ашиглана уу.</p>
+      </>}
+    />
   );
 }
 
@@ -1335,7 +1398,8 @@ const TARIFF_TABS = [
 // Нэхэмжлэл - Төлбөрийн хоцрогдол - Хүримтлалын сан - Нэмэгдэл -
 // Татвар, шимтгэл.
 const NBB_TABS = [
-  { key: 'income_cats', label: 'Орлогын дэд ангилал' },
+  { key: 'income_cats', label: 'Орлогын ангилал' },
+  { key: 'expense_cats', label: 'Зарлагын ангилал' },
   { key: 'invoice', label: 'Нэхэмжлэх' },
   { key: 'monthly_report', label: 'Өмнөх сарын тайлан мэдээ' },
   { key: 'overdue', label: 'Төлбөрийн хоцрогдол' },
@@ -1396,7 +1460,8 @@ export default function FinConfig() {
               </button>
             ))}
           </div>
-          {nbbTab === 'income_cats' && <IncomeCategoriesPlaceholder hoaId={hoaId} />}
+          {nbbTab === 'income_cats' && <IncomeCategoriesTab hoaId={hoaId} />}
+          {nbbTab === 'expense_cats' && <ExpenseCategoriesTab hoaId={hoaId} />}
           {nbbTab === 'invoice' && <InvoiceScheduleCard hoaId={hoaId} />}
           {nbbTab === 'monthly_report' && <MonthlyReportScheduleCard hoaId={hoaId} />}
           {nbbTab === 'overdue' && <OverdueCard hoaId={hoaId} />}
