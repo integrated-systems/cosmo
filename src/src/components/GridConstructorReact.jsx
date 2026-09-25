@@ -8,7 +8,7 @@ import { useAlert } from '../hooks/useAlert';
 // (standalone, imperative DOM-той хэрэгсэл)-ийг React-т зохимжтой
 // (idiomatic) архитектураар дахин бичив. Үвр кодтой ХАРЬЦУУЛБАЛ:
 //
-//   1) Imperative DOM (document.createElement/appendChild) БүРЭН
+//   1) Imperative DOM (document.createElement/appendChild) БҮРЭН
 //      арилж, slots/polygons-ыг declarative JSX .map()-ээр render
 //      хийнэ — React-ийн өврийн diffing engine-д даалгана.
 //   2) Continuous drag төлвийг (pointermove бүрд ажилладаг) useRef-д
@@ -20,7 +20,7 @@ import { useAlert } from '../hooks/useAlert';
 //      "canUndo/canRedo" boolean-ыг state болгоно (товчны disabled
 //      төлөөнд л render хэрэгтэй тул).
 //
-// ХАМРАХ ХүРЭЭ (энэ туршилтын шатанд): Слот (2:1/1:2), Агуулах (1:1),
+// ХАМРАХ ХҮРЭЭ (энэ туршилтын шатанд): Слот (2:1/1:2), Агуулах (1:1),
 // Полигон зурах, зөөх, устгах, undo/redo, JSON export, zoom. Чөлөөт
 // текст элементийг үүнэ шатанд ОРХИСОН (хэрэглэгчийн дахин
 // тайлбарласан "гол даалгавар"-т ороогүй).
@@ -273,6 +273,7 @@ export default function GridConstructorReact({ hoaId }) {
   const [marqueeRect, setMarqueeRect] = useState(null); // {x,y,w,h} - "чирж хүрээгээр сонгох" үзүүлэлт
 
   function handleGridPointerDown(e) {
+    if (vertexEditPolygonId) { setVertexEditPolygonId(null); return; }
     if (e.target.closest('[data-slot-id]')) return; // одоо буй слот өврийн listener-тэй
     if (tool === 'text' || tool === 'compass') return; // өврийн listener-тэй
     if (tool === 'polygon') { polyDrawDraggingRef.current = true; return; }
@@ -481,8 +482,8 @@ export default function GridConstructorReact({ hoaId }) {
   }
 
   useEffect(() => {
-    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); handlePolygonPointerMove(e); handleLinePointerMove(e); handlePolyDrawPointerMove(e); }
-    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); handlePolygonPointerUp(e); handleLinePointerUp(e); handlePolyDrawPointerUp(e); }
+    function onMove(e) { handleGridPointerMove(e); handleSlotPointerMove(e); handleTextPointerMove(e); handlePolygonPointerMove(e); handleLinePointerMove(e); handlePolyDrawPointerMove(e); handleVertexPointerMove(e); }
+    function onUp(e) { handleGridPointerUp(e); handleSlotPointerUp(e); handleTextPointerUp(e); handlePolygonPointerUp(e); handleLinePointerUp(e); handlePolyDrawPointerUp(e); handleVertexPointerUp(e); }
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     return () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
@@ -612,6 +613,7 @@ export default function GridConstructorReact({ hoaId }) {
   const polygonMoveRef = useRef(null);
   const [draggingPolyDelta, setDraggingPolyDelta] = useState(null);
   function handlePolygonPointerDown(e, p) {
+    if (e.button !== 0) return; // 2026-09-24: баруун товч (button=2) энд орохгүй, onContextMenu-ээр тусад нь зохицуулна
     e.stopPropagation();
     polygonMoveRef.current = { id: p.id, startClientX: e.clientX, startClientY: e.clientY, points: p.points };
   }
@@ -636,6 +638,45 @@ export default function GridConstructorReact({ hoaId }) {
     }
     polygonMoveRef.current = null;
     setDraggingPolyDelta(null);
+  }
+  // 2026-09-24: Хэрэглэгчийн хүсэлт — зурчихсан полигон дээр баруун
+  // товчоор дарж, оройнуудыг (аль нэгийг нь) СНЕПГҮй (торонд наалдахгүй,
+  // чөлeeтэй) чирж, хэлбэрийг нарийвчлан засах боломж. Полигон бүтэн
+  // зeeх (`handlePolygonPointerDown`/torSnap ашигладаг) логикоос ялгаатай
+  // — энд ЗӨВХӨН НЭГ орой л хөдөлж, snap ОГТ хэрэглэгдэхгүй.
+  const [vertexEditPolygonId, setVertexEditPolygonId] = useState(null);
+  const vertexMoveRef = useRef(null);
+  const [draggingVertex, setDraggingVertex] = useState(null);
+  function handlePolygonContextMenu(e, p) {
+    e.preventDefault();
+    e.stopPropagation();
+    setVertexEditPolygonId(p.id);
+  }
+  function handleVertexPointerDown(e, polyId, vertexIndex) {
+    e.stopPropagation();
+    e.preventDefault();
+    vertexMoveRef.current = { polyId, vertexIndex, startClientX: e.clientX, startClientY: e.clientY };
+  }
+  function handleVertexPointerMove(e) {
+    const m = vertexMoveRef.current;
+    if (!m) return;
+    const dx = (e.clientX - m.startClientX) / zoom;
+    const dy = (e.clientY - m.startClientY) / zoom;
+    m.candidate = { dx, dy };
+    setDraggingVertex({ polyId: m.polyId, vertexIndex: m.vertexIndex, dx, dy });
+  }
+  function handleVertexPointerUp() {
+    const m = vertexMoveRef.current;
+    if (!m) return;
+    if (m.candidate) {
+      pushHistory();
+      const { dx, dy } = m.candidate;
+      setPolygons((prev) => prev.map((p) => (p.id === m.polyId
+        ? { ...p, points: p.points.map((pt, i) => (i === m.vertexIndex ? { x: pt.x + dx, y: pt.y + dy } : pt)) }
+        : p)));
+    }
+    vertexMoveRef.current = null;
+    setDraggingVertex(null);
   }
   const lineMoveRef = useRef(null);
   const [draggingLineDelta, setDraggingLineDelta] = useState(null);
@@ -691,6 +732,7 @@ export default function GridConstructorReact({ hoaId }) {
   }
   useEffect(() => {
     function onKeyDown(e) {
+      if (e.key === 'Escape' && vertexEditPolygonId) { setVertexEditPolygonId(null); return; }
       if (tool !== 'polygon') return;
       if (e.key === 'Enter' && polyPoints.length >= 3) finishPolygon(polyPoints);
       else if (e.key === 'Escape') setPolyPoints([]);
@@ -699,7 +741,7 @@ export default function GridConstructorReact({ hoaId }) {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool, polyPoints, strokeColor]);
+  }, [tool, polyPoints, strokeColor, vertexEditPolygonId]);
 
   // ---------------- JSON export (үвр кодтой ижил схем — ирээдүйн Supabase холболтод бэлэн) ----------------
   function exportJson() {
@@ -832,8 +874,14 @@ export default function GridConstructorReact({ hoaId }) {
 
       <div className="text-[10.5px] text-mutedtext">
         Зогсоол: хоосон нүднээс зэргэлдээ нүд рүү чирж 2 нүд холбоход слот үүснэ · Агуулах: хоосон нүд дээр дарахад 1 нүдэд слот үүснэ ·
-        Слот дээр дарж чирвэл байрлал өөрчлөгднө, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална · Ctrl+дарах (эсвэл Cmd) - олон слот сонгох, хоосон нүднээс хол чирэх - рүүгүүлээр олноор сонгох, Escape - сонголт цэвэрлэх.
+        Слот дээр дарж чирвэл байрлал eeрчлөгднe, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална · Ctrl+дарах (эсвэл Cmd) - олон слот сонгох, хоосон нүднээс хол чирэх - рүүгүүлээр олноор сонгох, Escape - сонголт цэвэрлэх · Полигон дээр баруун товчоор дарвал оройнуудыг (снепгүй) чирж хэлбэрийг нарийвчлан засах боломжтой, Escape дарж гарна.
       </div>
+
+      {vertexEditPolygonId && (
+        <div className="text-[11px] text-customBlue bg-customBlue/10 border border-customBlue/30 rounded px-3 py-1.5">
+          Орой засварлаж байна — цэгүүдийг чөлeeтэй (снепгүй) чирж болно. Дуусгах: Escape эсвэл хоосон газар дарна уу.
+        </div>
+      )}
 
       {/* ---------------- canvas ---------------- */}
       <div className="flex-1 overflow-auto overscroll-contain rounded border border-bordercol" data-no-pull-refresh>
@@ -919,7 +967,11 @@ export default function GridConstructorReact({ hoaId }) {
           <svg style={{ position: 'absolute', left: 0, top: 0, width: cols * ec, height: rows * ec, pointerEvents: 'none' }}>
             {polygons.map((p) => {
               const delta = draggingPolyDelta && draggingPolyDelta.id === p.id ? draggingPolyDelta : { dx: 0, dy: 0 };
-              const pts = p.points.map((pt) => ({ x: pt.x + delta.dx, y: pt.y + delta.dy }));
+              const isVertexEditing = vertexEditPolygonId === p.id;
+              const pts = p.points.map((pt, i) => {
+                const vDelta = draggingVertex && draggingVertex.polyId === p.id && draggingVertex.vertexIndex === i ? draggingVertex : null;
+                return { x: pt.x + delta.dx + (vDelta ? vDelta.dx : 0), y: pt.y + delta.dy + (vDelta ? vDelta.dy : 0) };
+              });
               const cx = (pts.reduce((s, pt) => s + pt.x, 0) / pts.length) * zoom;
               const cy = (pts.reduce((s, pt) => s + pt.y, 0) / pts.length) * zoom;
               return (
@@ -928,6 +980,7 @@ export default function GridConstructorReact({ hoaId }) {
                   className={!p.strokeColor || !p.labelColor ? 'text-slate-400 dark:text-mutedtext' : ''}
                   style={{ pointerEvents: 'auto', cursor: 'grab' }}
                   onPointerDown={(e) => handlePolygonPointerDown(e, p)}
+                  onContextMenu={(e) => handlePolygonContextMenu(e, p)}
                 >
                   <polygon
                     points={pts.map((pt) => `${pt.x * zoom},${pt.y * zoom}`).join(' ')}
@@ -956,6 +1009,17 @@ export default function GridConstructorReact({ hoaId }) {
                       {p.sqm}м2
                     </text>
                   )}
+                  {/* 2026-09-24: баруун товчоор идэвхжүүлсэн орой засах горим —
+                      цэг бүр СНЕПГҮй (чөлeeтэй) чирэгдэнэ. */}
+                  {isVertexEditing && pts.map((pt, i) => (
+                    <circle
+                      key={i}
+                      cx={pt.x * zoom} cy={pt.y * zoom} r={6}
+                      fill="#5fe0d0" stroke="#0b132b" strokeWidth={1.5}
+                      style={{ cursor: 'move', pointerEvents: 'auto' }}
+                      onPointerDown={(e) => handleVertexPointerDown(e, p.id, i)}
+                    />
+                  ))}
                 </g>
               );
             })}
