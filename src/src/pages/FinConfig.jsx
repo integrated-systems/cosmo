@@ -444,16 +444,127 @@ function SettingsField({ label, hint, value, onChange }) {
   );
 }
 
+// 2026-09-25 (86): Хэрэглэгчийн хүсэлтээр "Хуримтлалын сан"-г
+// зориулалтаар (Ариутгалын зардлын хуримтлал, Их засварын хуримтлал,
+// Лифт засварын хуримтлал г.м — хотхон бүрийн онцлогоос хамаарна)
+// ангилж, нэмэх/устгах боломжтой жагсаалт болгов. Хуучин ганц
+// "monthly_reserve_amount" тоо (ямар ч бусад код уншиж, ашигладаггүй
+// байсан) орхигдоно.
+function useReserveFundCategories(hoaId) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  async function load() {
+    setLoading(true);
+    const { data } = await supabase.from('reserve_fund_categories').select('*').eq('tenant_id', hoaId).order('sort_order');
+    setRows(data || []);
+    setLoading(false);
+  }
+  useEffect(() => { if (hoaId) load(); }, [hoaId]);
+  return { rows, loading, reload: load };
+}
+
 function ReserveFundCard({ hoaId }) {
-  const { settings, loading, save } = useFinSettings(hoaId);
-  const [amount, setAmount] = useState('');
-  useEffect(() => { if (settings) setAmount(settings.monthly_reserve_amount ?? 0); }, [settings]);
-  if (loading || !settings) return <div className="ds-card p-4 text-center text-mutedtext text-sm">Ачаалж байна...</div>;
+  const { rows, loading, reload } = useReserveFundCategories(hoaId);
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAmount, setNewAmount] = useState('');
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  const total = rows.reduce((s, r) => s + Number(r.monthly_amount || 0), 0);
+
+  function startEdit(row) {
+    setEditingId(row.id);
+    setEditName(row.name);
+    setEditAmount(String(row.monthly_amount));
+  }
+  async function saveEdit() {
+    if (!editName.trim()) return;
+    await supabase.from('reserve_fund_categories').update({ name: editName.trim(), monthly_amount: Number(editAmount) || 0 }).eq('id', editingId);
+    setEditingId(null);
+    reload();
+  }
+  async function handleDelete(row) {
+    const ok = await confirm({ title: 'Зориулалт устгах', message: `"${row.name}" зориулалтыг устгах уу?` });
+    if (!ok) return;
+    await supabase.from('reserve_fund_categories').delete().eq('id', row.id);
+    reload();
+  }
+  async function handleAdd() {
+    if (!newName.trim()) return;
+    const maxOrder = rows.reduce((m, r) => Math.max(m, r.sort_order), -1);
+    await supabase.from('reserve_fund_categories').insert({ tenant_id: hoaId, name: newName.trim(), monthly_amount: Number(newAmount) || 0, sort_order: maxOrder + 1 });
+    setNewName(''); setNewAmount(''); setAdding(false);
+    reload();
+  }
+
   return (
-    <div className="ds-card p-4" style={{ maxWidth: 420 }}>
-      <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Хуримтлалын санд сар бүр төлөрүүлэх дүн</div>
-      <SettingsField label="Сарын хуримтлалын сан (₮/сар)" value={amount} onChange={setAmount} />
-      <button className="ds-btn-primary" onClick={() => save({ monthly_reserve_amount: +amount || 0 })}>Хадгалах</button>
+    <div>
+      <div className="ds-card p-4 mb-4" style={{ maxWidth: 560 }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Хуримтлалын сангийн зориулалт</div>
+          <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ зориулалт нэмэх</button>
+        </div>
+        {adding && (
+          <div className="flex items-center gap-2 mb-3">
+            <input className="ds-input flex-1" placeholder="Жиш: Их засварын хуримтлал" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
+            <input type="number" className="ds-input" style={{ width: 140 }} placeholder="₮/сар" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} />
+            <button className="ds-btn-primary" onClick={handleAdd}>Хадгалах</button>
+            <button className="ds-btn-secondary" onClick={() => { setAdding(false); setNewName(''); setNewAmount(''); }}>Цуцлах</button>
+          </div>
+        )}
+        {loading ? (
+          <div className="text-center text-mutedtext py-4">Ачаалж байна...</div>
+        ) : rows.length === 0 ? (
+          <div className="text-center text-mutedtext py-4 text-[12px]">Зориулалт алга — "+ Шинэ зориулалт нэмэх" дарж эхэлнэ vv</div>
+        ) : (
+          <table className="ds-table w-full">
+            <thead>
+              <tr><th className="py-2 px-2">ЗОРИУЛАЛТ</th><th className="py-2 px-2 text-right">САРЫН ДүН (₮)</th><th className="py-2 px-2 text-right">ҮЙЛДЭЛ</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-bordercol/50">
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td className="py-2 px-2 text-customBlue">
+                    {editingId === row.id ? <input className="ds-input w-full" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus onKeyDown={(e) => e.key === 'Enter' && saveEdit()} /> : row.name}
+                  </td>
+                  <td className="py-2 px-2 text-right">
+                    {editingId === row.id ? <input type="number" className="ds-input w-full text-right" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} /> : `${formatMoney(row.monthly_amount)}₮`}
+                  </td>
+                  <td className="py-2 px-2 text-right whitespace-nowrap">
+                    {editingId === row.id ? (
+                      <>
+                        <button className="ds-btn-secondary" onClick={saveEdit}>Хадгалах</button>
+                        <button className="ds-btn-secondary" onClick={() => setEditingId(null)}>Цуцлах</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="ds-icon-btn" onClick={() => startEdit(row)}><EditIcon /></button>
+                        <button className="ds-icon-btn danger" onClick={() => handleDelete(row)}><DeleteIcon /></button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-slate-300 dark:border-bordercol">
+                <td className="py-2 px-2 font-semibold text-slate-900 dark:text-white">НИЙТ (сар бүр)</td>
+                <td className="py-2 px-2 text-right font-semibold text-slate-900 dark:text-white">{formatMoney(total)}₮</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+      <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed" style={{ maxWidth: 560 }}>
+        <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг, юу хийдэггүй вэ</div>
+        <p className="mb-2">ҮҮнд бүртгэсэн зориулалт бүр СөХ-ийн дотоод санхүүгийн зорилтот хуваарилалт (жиш нь их засвар/лифт засварт хэдэн төгрөг зориулах eeд байгааг тодорхойлох) — гэхдээ <b>сар бүр орлогоос АВТОМАТААР ТАТАГДДАГГҮй, ямар ч журналын бичилт үүсгэдэггүй.</b> Зөвхөн ТӨЛӨВЛӨГӨӨ, ТООЦООЛОЛ хийхэд ашиглана уу.</p>
+        <p>Хэрэв үүнийг БОДИТООР сар бүр орлогоос автоматаар суутгаж, тусгай журналын бичилт үүсгэдэг болгохыг хүсвэл — тодорхой хэлээрэй, үүнд нэмэлт ажил шаардлагатай.</p>
+      </div>
+      <ConfirmDialog />
     </div>
   );
 }
