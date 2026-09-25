@@ -19,12 +19,13 @@
 // background/текст ХАМТАД төлбөрийн eнгeeр солигдож байсан нь "хэт
 // эрээн мяраан" харагдуулж байсан тул, ОДОО ЗӨВХӨН хүрээ л (border)
 // төлбөрийн eнгeeр тодруулагдана — background, текст үргэлж
-// НЕЙТРАЛЬ хэвээр үлдэнэ.
+// НЕЙТРАЛЬ хэвээр үлдэнэ. (2-р туршилт: 1px, opacity 100% — үүнээс
+// өмнө border-2, opacity 70% байсан.)
 const COLOR_CLASSES = {
-  customYellow: { border: 'border-[#f8f23d99]' },
-  customRed: { border: 'border-red-500/70' },
-  customBlue: { border: 'border-blue-500/70' },
-  customGreen: { border: 'border-emerald-500/70' },
+  customYellow: { border: 'border-[#f8f23d]' },
+  customRed: { border: 'border-red-500' },
+  customBlue: { border: 'border-blue-500' },
+  customGreen: { border: 'border-emerald-500' },
 };
 const NEUTRAL_CLASS = 'bg-slate-500/[0.10] text-slate-400 dark:text-mutedtext hover:border-slate-400';
 const NEUTRAL_BORDER = 'border-slate-500/30';
@@ -65,7 +66,7 @@ export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow
                               key={it.id}
                               onClick={it.onClick}
                               style={{ width: '58px', height: '44px' }}
-                              className={`rounded flex flex-col items-center justify-center border-2 shrink-0 transition-colors ${NEUTRAL_CLASS} ${borderClass}`}
+                              className={`rounded flex flex-col items-center justify-center border shrink-0 transition-colors ${NEUTRAL_CLASS} ${borderClass}`}
                             >
                               <div className="text-[10px] font-semibold leading-tight">{it.code}</div>
                               {it.area && <div className="text-[8px] opacity-80 leading-tight">{it.area}м²</div>}
