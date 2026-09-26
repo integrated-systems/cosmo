@@ -470,6 +470,7 @@ function useReserveFundCategories(hoaId) {
 function ReserveFundCard({ hoaId }) {
   const { user } = useAuth();
   const { rows, loading, reload } = useReserveFundCategories(hoaId);
+  const { settings: finSettings, loading: finLoading, save: saveFinSettings } = useFinSettings(hoaId);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editAmount, setEditAmount] = useState('');
@@ -602,18 +603,51 @@ function ReserveFundCard({ hoaId }) {
           </table>
         )}
         {!loading && rows.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol flex items-center gap-3">
-            <button className="ds-btn-primary" onClick={postMonthlyAllocation} disabled={posting || postedThisMonth === true}>
-              {posting ? 'Бичиж байна...' : postedThisMonth === true ? 'Энэ сар аль хэдийн хуваарилагдсан ✓' : 'Энэ сарын хуваарилалт хийх'}
-            </button>
-            {postError && <span className="text-[11px] text-customRed">{postError}</span>}
+          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol">
+            {/* 2026-09-26 (90): Гараар/Автоматаар горим сонгох тоггл —
+                pg_cron (1.6.4, энэ Supabase project дээр аль хэдийн
+                суулгагдсан)-ээр eдөр бүр шалгаж, тохируулсан eдөр
+                болмогц (ЭНЭ САР posted эсэхийг шалгаж, давхардуулахгүй)
+                автоматаар Дт 4110/Кт 4120 бичилт үүсгэнэ. */}
+            {!finLoading && (
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-[11px] text-mutedtext">Горим:</span>
+                <div className="flex rounded-md overflow-hidden border border-slate-300 dark:border-bordercol">
+                  <button
+                    className={`px-3 py-1 text-[11px] ${!finSettings?.reserve_auto_post ? 'bg-customBlue text-white' : 'bg-transparent text-mutedtext hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                    onClick={() => saveFinSettings({ reserve_auto_post: false })}
+                  >Гараар</button>
+                  <button
+                    className={`px-3 py-1 text-[11px] ${finSettings?.reserve_auto_post ? 'bg-customBlue text-white' : 'bg-transparent text-mutedtext hover:bg-slate-100 dark:hover:bg-white/5'}`}
+                    onClick={() => saveFinSettings({ reserve_auto_post: true })}
+                  >Автоматаар</button>
+                </div>
+                {finSettings?.reserve_auto_post && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-mutedtext">Сарын</span>
+                    <input
+                      type="number" min={1} max={28} className="ds-input text-center" style={{ width: 60 }}
+                      value={finSettings?.reserve_auto_post_day ?? 1}
+                      onChange={(e) => { const d = Math.min(28, Math.max(1, Number(e.target.value) || 1)); saveFinSettings({ reserve_auto_post_day: d }); }}
+                    />
+                    <span className="text-[11px] text-mutedtext">-нд автоматаар үүснэ</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <button className="ds-btn-primary" onClick={postMonthlyAllocation} disabled={posting || postedThisMonth === true}>
+                {posting ? 'Бичиж байна...' : postedThisMonth === true ? 'Энэ сар аль хэдийн хуваарилагдсан ✓' : 'Энэ сарын хуваарилалт хийх (гараар)'}
+              </button>
+              {postError && <span className="text-[11px] text-customRed">{postError}</span>}
+            </div>
           </div>
         )}
       </div>
       <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed" style={{ maxWidth: 560 }}>
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
         <p className="mb-2">Үүнд бүртгэсэн зориулалт бүр СөХ-ийн дотоод санхүүгийн зорилтот хуваарилалт. "Энэ сарын хуваарилалт хийх" товч дарахад, <b>СөХ-ны орлогод НЭМЭЛТЭЭР ХҮРДЭГГҮй, зөвхөн эздийн эрхийн дотоод шилжүүлэг</b> (Дт 4110 Хязгаарлалтгүй нөөц / Кт 4120 Хязгаарлалттай нөөц) үүснэ — нийт Эздийн эрхийн дүн өөрчлөгдөхгүй, зөвхөн "энэ хэсгийг зориулалттайгаар тусгаарлав" гэсэн тэмдэглэгээ бөгөөд, Ф1 (А маягт)-ийн "2.3.2 б) хязгаарлалттай" мөрт харагдана.</p>
-        <p>Сар бүр л 1 удаа дарж болно (давхар бичихээс хамгаалагдсан). Өмчлөгчийн төлбөрт (нэхэмжлэлд) ЭНЭ дүн НЭМЭГДЭХГҮй.</p>
+        <p>Сар бүр л 1 удаа үүснэ (давхар бичихээс хамгаалагдсан) — Гараар товчоор эсвэл Автоматаар (тохируулсан eдөр pg_cron-оор) аль ч аргаар үүссэн ч үр дүн ижил. Өмчлөгчийн төлбөрт (нэхэмжлэлд) ЭНЭ дүн НЭМЭГДЭХГҮй.</p>
       </div>
       <ConfirmDialog />
     </div>
