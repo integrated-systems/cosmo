@@ -212,7 +212,7 @@ function TariffCatalog({ hoaId, category, title, fixedNames }) {
 
 
 // 2026-09-24 (83): Хэрэглэгчийн хүсэлтээр — мэргэжлийн нягтлангийн
-// шаардлагад нийцүүлж, "Орлогын дэд ангилал" (зөвхөн чөлeeт текст,
+// шаардлагад нийцүүлж, "Орлогын дэд ангилал" (зөвхөн чөлөөт текст,
 // үргэлж 5610 лүү ордог байсан)-ыг ХАРИЛЦАН ДАНСАНД ХОЛБОГДДОГ,
 // БОДИТООР ажилладаг систем болгож НЭГТГЭВ ("Зарлагын ангилал"-тай
 // хамт). Ангилал бүр яг ТОДОРХОЙ данстай холбогдож, ирээдүйд
@@ -234,7 +234,7 @@ const INCOME_CATEGORIES = [
 ];
 // 2026-09-24 (83): Шинэ "Зарлагын ангилал" — үндсэн 8 зардлын
 // дансыг (7010-7080) яг тэдгээрийн нэрээр урьдчилан холбож үрждэнэ
-// (хэрэглэгч дараа нь чөлeeтэй нэмж/eeрчилж болно).
+// (хэрэглэгч дараа нь чөлөөтэй нэмж/eөрчилж болно).
 const EXPENSE_CATEGORIES = [
   { name: 'Цалин хүүлсний зардал', account_code: '7010' },
   { name: 'Нийгмийн даатгалын зардал', account_code: '7020' },
@@ -396,7 +396,7 @@ function IncomeCategoriesTab({ hoaId }) {
       noteBody={<>
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
         <p className="mb-2">Ангилал бүр НЭГ тодорхой ДАНСАНД (жиш нь 5110 "Гишүүдийн татвар", 5410 "Түрээсийн орлого", 5610 "Бусад орлого") холбогдоно. "Санхүү → Нягтлан бодох бүртгэл → Журналын бичилт" таб дээрх "+ Орлого бүртгэх" товчоор энэ ангиллыг сонгоход, журналын бичилт ЯГ ХОЛБОГДСОН данс руу шууд бичигдэнэ.</p>
-        <p>ҮҮсгэсний дараа ХОЛБОГДСОН данс тус бүрийг чөлeeтэй eeрчилж болно — гэхдээ данс сольсны дараа, тэр ангиллаар ХУУЧИН бичигдсэн журналын бичилтүүд OMHOX данс дээрээ үлдэнэ (ретроактив eeрчлөгдөхгүй).</p>
+        <p>ҮҮсгэсний дараа ХОЛБОГДСОН данс тус бүрийг чөлөөтэй eөрчилж болно — гэхдээ данс сольсны дараа, тэр ангиллаар ХУУЧИН бичигдсэн журналын бичилтүүд ХУУЧИН данс дээрээ үлдэнэ (ретроактив eөрчлөгдөхгүй).</p>
       </>}
     />
   );
@@ -409,8 +409,8 @@ function ExpenseCategoriesTab({ hoaId }) {
       defaultSeed={EXPENSE_CATEGORIES}
       noteBody={<>
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
-        <p className="mb-2">үндсэн 8 зардлын ангилал (Цалин, НДШ, Засвар үйлчилгээ, Тохижилт, Цэвэрлэгээ, Бусад тогтмол, Элэгдэл, Найдваргүй авлага) харгалзах дансандаа (7010-7080) урьдчилан холбогдсон байна. Шинэ ангилал нэмж, тодорхой данстай холбож болно.</p>
-        <p>Цалин/НДШ/Элэгдэл зэрэг үндсэн зардлыг Employees.jsx/FixedAssets.jsx-ийн автомат журнал ХАРИН энд бус, ЯГ ТЭР дансны кодоор (7010, 7020, 7070 г.м) шууд бичдэг. Иймд эдгээр ангиллын ХОЛБОГДСОН данс кодыг eeрчлөхийг зөвлөдөггүй — зөвхөн ШИНЭ, тусгай зардлын ангилал нэмэхэд ашиглана уу.</p>
+        <p className="mb-2">Үндсэн 8 зардлын ангилал (Цалин, НДШ, Засвар үйлчилгээ, Тохижилт, Цэвэрлэгээ, Бусад тогтмол, Элэгдэл, Найдваргүй авлага) харгалзах дансандаа (7010-7080) урьдчилан холбогдсон байна. Шинэ ангилал нэмж, тодорхой данстай холбож болно.</p>
+        <p>Цалин/НДШ/Элэгдэл зэрэг үндсэн зардлыг Employees.jsx/FixedAssets.jsx-ийн автомат журнал ХАРИН энд бус, ЯГ ТЭР дансны кодоор (7010, 7020, 7070 г.м) шууд бичдэг. Иймд эдгээр ангиллын ХОЛБОГДСОН данс кодыг eөрчлөхийг зөвлөдөггүй — зөвхөн ШИНЭ, тусгай зардлын ангилал нэмэхэд ашиглана уу.</p>
       </>}
     />
   );
@@ -484,7 +484,7 @@ function ReserveFundCard({ hoaId }) {
   const total = rows.reduce((s, r) => s + Number(r.monthly_amount || 0), 0);
 
   // 2026-09-25 (87): "Энэ сарын хуваарилалт хийх" товч — Дт 4110
-  // (Хязгаарлалтгүй нeeц) / Кт 4120 (Хязгаарлалттай нeeц) журналын
+  // (Хязгаарлалтгүй нөөц) / Кт 4120 (Хязгаарлалттай нөөц) журналын
   // бичилт үүсгэнэ. ЭНЭ САР аль хэдийн posted эсэхийг шалгаж (source_
   // type='reserve_allocation'), давхар бичихээс сэргийлнэ.
   useEffect(() => {
@@ -716,12 +716,12 @@ function OverdueCard({ hoaId }) {
 // (paid) мөрийг хэрэглэгчийн шинэ, тодорхой хүсэлтээр (өмнөх
 // "үргэлж анхдагч, сонголт үгүй" шийдвэрийг эргүүлэн) БУСАД 3 мөртэй
 // адил ЗАСВАРЛАХ БОЛОМЖТОЙ болгов.
-// 2026-09-24 (2): Хэрэглэгчийн хүсэлтээр — 4 eнгeeс сонгодог байсныг
-// tailwind.config.js дэх БүХ 10 custom eнгeeр (customColors.js-ийн
+// 2026-09-24 (2): Хэрэглэгчийн хүсэлтээр — 4 өнгөөс сонгодог байсныг
+// tailwind.config.js дэх БүХ 10 custom өнгөөр (customColors.js-ийн
 // НЭГДСЭН жагсаалтаас) сонгодог болгов. Дугуй цуваа хэлбэрээр 10
-// eнгe хэт зай эзлэх тул, зургийн программ шиг DROPDOWN (сонгосон
-// eнгийг товч дээр харуулж, дарахад жагсаалт нээгддэг) болгож
-// eeрчлөв.
+// өнгө хэт зай эзлэх тул, зургийн программ шиг DROPDOWN (сонгосон
+// өнгийг товч дээр харуулж, дарахад жагсаалт нээгддэг) болгож
+// eөрчлөв.
 function ColorSwatchPicker({ value, onChange, disabled }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
@@ -745,7 +745,7 @@ function ColorSwatchPicker({ value, onChange, disabled }) {
         className={`flex items-center gap-1.5 px-2 py-1 rounded border border-slate-300 dark:border-bordercol${disabled ? ' opacity-40 cursor-default' : ' hover:border-slate-400 dark:hover:border-mutedtext'}`}
       >
         <span className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ background: selected?.hex || 'transparent' }} />
-        <span className="text-[11px] text-slate-700 dark:text-mutedtext whitespace-nowrap">{selected?.label || 'Анхдагч (eнгөгүй)'}</span>
+        <span className="text-[11px] text-slate-700 dark:text-mutedtext whitespace-nowrap">{selected?.label || 'Анхдагч (өнгөгүй)'}</span>
         <span className="text-[9px] text-mutedtext">▾</span>
       </button>
       {open && !disabled && (
@@ -756,7 +756,7 @@ function ColorSwatchPicker({ value, onChange, disabled }) {
             className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-[11px] text-left hover:bg-slate-100 dark:hover:bg-white/5 ${(!value || value === 'default') ? 'bg-slate-100 dark:bg-white/5' : ''}`}
           >
             <span className="w-4 h-4 rounded-full border border-dashed border-slate-400 shrink-0" />
-            <span className="text-slate-700 dark:text-mutedtext">Анхдагч (eнгөгүй)</span>
+            <span className="text-slate-700 dark:text-mutedtext">Анхдагч (өнгөгүй)</span>
           </button>
           {CUSTOM_COLORS.map((c) => (
             <button
