@@ -36,7 +36,7 @@ export function formatOwnedRatio(owned, total) {
 //   бүртгэгдсэн машины тоо тул хэвээр үлдэв)
 // - talbaiOwnerCount: clientele мврийн тоо ("Талбай өмчлөгч")
 // - harilzagchCount: 2026-08-19 хэрэглэгч олсон алдаа: өмнө нь
-//   clientele.reg_no-ийн ДАВХАРДААГүй тоог "Харилцагч байгууллага" гэж
+//   clientele.reg_no-ийн ДАВХАРДААГҮй тоог "Харилцагч байгууллага" гэж
 //   таамагласан байсан (Харилцагчийн бүртгэл /providers хуудас үүсэхээс
 //   ӨМНв бичигдсэн). Одоо жинхэнэ "providers" хүснэгэл (үйлчилгээ
 //   үзүүлэгч байгууллагууд) байгаа тул TvvНИЙ мврийн тоог шууд ашиглана.
@@ -46,7 +46,7 @@ export function formatOwnedRatio(owned, total) {
 // tenant_id-тэй хамт (composite key) бүлэглэсэн тул нэг л tenant-
 // ийн scope-д ч, олон tenant-ийг нэгтгэхэд ч зөв ажиллана (өөр
 // tenant-ийн ижил building_no санамсаргүй нийлэхгүй).
-export function computeTenantStats(owners, clientele, units, parkingSpots, storageUnits, providers) {
+export function computeTenantStats(owners, clientele, units, basementFloors, providers) {
   const arrLen = (v) => (Array.isArray(v) ? v.length : 0);
 
   const residentCount = owners.reduce((s, o) => s + (o.people_count || 0), 0);
@@ -73,15 +73,35 @@ export function computeTenantStats(owners, clientele, units, parkingSpots, stora
     }
   }
 
+  // 2026-09-27 (92): Зогсоол/Агуулахын НИЙТ тоо нь unit_parking/
+  // unit_storage хүснэгэл (хэрэглэгддэггүй, хуучирсан) БИШ, харин
+  // "Хаягжилт тохиргоо > Зогсоол, Агуулах, Талбай" таб-ын GridConstructorReact
+  // компонент eөрийн БүХ давхаргын (floor_key) дэд таб-д (basement_floors.
+  // layout_json.slots) зурсан бодит слотуудын нийлбэр байх ёстойг
+  // хэрэглэгч олж заав. kind==='slot' → зогсоол, kind==='warehouse' → агуулах.
+  let parkingTotal = 0;
+  let storageTotal = 0;
+  basementFloors.forEach((f) => {
+    const slots = f.layout_json?.slots || [];
+    slots.forEach((s) => {
+      if (s.kind === 'slot') parkingTotal += 1;
+      else if (s.kind === 'warehouse') storageTotal += 1;
+    });
+  });
+
   return {
     buildingCount: buildingKeys.length,
     entranceCount,
     residentCount,
     child05,
     child618,
-    toot: { owned: owners.length, total: units.length },
-    parking: { owned: parkingsOwned, total: parkingSpots.length },
-    storage: { owned: storagesOwned, total: storageUnits.length },
+    // 2026-09-27 (92): "Тоот" эзэмшигчийн тоо нь ЗӨВХӨН building_no-тэй
+    // (`Сууц өмчлөгч` таб) өмчлөгчид байх ёстой — "Зогсоол, агуулах
+    // дангаар өмчлөгч" (building_no=null) нэмж тооцох үед тоот бүхий
+    // өмчлөгчээс илүү тоо гаргадаг байсныг хэрэглэгч олж заав.
+    toot: { owned: owners.filter((o) => o.building_no).length, total: units.length },
+    parking: { owned: parkingsOwned, total: parkingTotal },
+    storage: { owned: storagesOwned, total: storageTotal },
     vehicleCount,
     talbaiOwnerCount: clientele.length,
     harilzagchCount: providers.length,
@@ -98,20 +118,18 @@ export function useTenantStats(hoaId) {
     setLoading(true);
 
     Promise.all([
-      fetchAllRows(() => supabase.from('owners').select('people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('owners').select('building_no,people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('clientele').select('storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
-      fetchAllRows(() => supabase.from('unit_parking').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
-      fetchAllRows(() => supabase.from('unit_storage').select('id').eq('tenant_id', hoaId).eq('hidden', false)),
+      fetchAllRows(() => supabase.from('basement_floors').select('layout_json').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('providers').select('id').eq('tenant_id', hoaId)),
-    ]).then(([ownersRes, clienteleRes, unitsRes, parkingRes, storageRes, providersRes]) => {
+    ]).then(([ownersRes, clienteleRes, unitsRes, basementRes, providersRes]) => {
       if (cancelled) return;
       setStats(computeTenantStats(
         ownersRes.data ?? [],
         clienteleRes.data ?? [],
         unitsRes.data ?? [],
-        parkingRes.data ?? [],
-        storageRes.data ?? [],
+        basementRes.data ?? [],
         providersRes.data ?? [],
       ));
       setLoading(false);

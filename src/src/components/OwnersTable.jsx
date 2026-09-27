@@ -15,6 +15,8 @@ function findLayoutRow(unitLayouts, r) {
   );
 }
 
+import PaymentStatusLegend from './PaymentStatusLegend';
+
 export default function OwnersTable({ rows, unitLayouts = [], loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId, year, getYearSummary, overdueColor, atRiskColor, pendingColor, paidColor }) {
   const { gridParkingSpots, gridStorageSpots } = useGridSpots(hoaId);
   // Ихэнх тохиолдолд tenant бүхэлдээ НЭГ дугаарлалтын бүтэц ашиглана
@@ -33,7 +35,12 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
   });
 
   return (
-    <div className="ds-table-wrap">
+    <div>
+      <div className="text-xs text-mutedtext mb-2">
+        Таблицын мөр дээр дарж өмчлөгчийн мэдээллийг дэлгэрэнгүй харна уу. Төлөлт баганын өнгөний тайлбар:
+        <PaymentStatusLegend paidColor={paidColor} pendingColor={pendingColor} overdueColor={overdueColor} atRiskColor={atRiskColor} />
+      </div>
+      <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
@@ -126,6 +133,7 @@ export default function OwnersTable({ rows, unitLayouts = [], loading, loadError
           Нийт: <span className="text-slate-900 dark:text-white font-medium">{rows.length}</span>
         </div>
       </div>
+    </div>
     </div>
   );
 }

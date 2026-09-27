@@ -15,13 +15,20 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // useGridSpots-ийн LIVE жагсаалттай хамт үзүүлж, дугаар шинэчлэл
 // (дахин нэрлэлт) даруй тусгагдана (OwnerInfoModal/OwnersTable-д
 // олсонтой ижил алдааг үүнд давтахгүйн тулд).
+import PaymentStatusLegend from './PaymentStatusLegend';
+
 export default function ClienteleTable({ rows, loading, loadError, onRowClick, onEdit, onDelete, canEdit = true, canDelete = true, hoaId, year, getYearSummary, overdueColor, atRiskColor, pendingColor, paidColor }) {
   const { gridParkingSpots, gridStorageSpots, gridLandPlots } = useGridSpots(hoaId);
   // 2026-09-13: Хэрэглэгчийн хүсэлтээр — "Хуулийн этгээдийн нэр" (legal_entity_name)
   // баганаар A-Z дараалалд оруулав.
   const sortedRows = [...rows].sort((a, b) => (a.legal_entity_name || '').localeCompare(b.legal_entity_name || '', undefined, { numeric: true, sensitivity: 'base' }));
   return (
-    <div className="ds-table-wrap">
+    <div>
+      <div className="text-xs text-mutedtext mb-2">
+        Таблицын мөр дээр дарж өмчлөгчийн мэдээллийг дэлгэрэнгүй харна уу. Төлөлт баганын өнгөний тайлбар:
+        <PaymentStatusLegend paidColor={paidColor} pendingColor={pendingColor} overdueColor={overdueColor} atRiskColor={atRiskColor} />
+      </div>
+      <div className="ds-table-wrap">
       <div className="flex-1 overflow-auto overscroll-contain">
         <table className="ds-table">
           <thead>
@@ -100,6 +107,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
           Нийт: <span className="text-slate-900 dark:text-white font-medium">{rows.length}</span>
         </div>
       </div>
+    </div>
     </div>
   );
 }

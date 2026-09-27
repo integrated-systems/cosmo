@@ -7,7 +7,7 @@ import { computeTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
 
 // SUPERSYSADMIN "Usage" хуудас — 2026-09-08 (31): Supabase-ийн дэд
 // бүтцийн хэрэглээ (file storage, egress г.м.) БИШ, харин Cosmo
-// БүТЭЭГДЭХүүНИЙ бодит хэрэглээг (tenant тус бүрийн мэдээллийн
+// БҮТЭЭГДЭХҮҮНИЙ бодит хэрэглээг (tenant тус бүрийн мэдээллийн
 // эзлэхүүн) харуулна. Management API/PAT шаардахгүй тул нэмэлт
 // аюулгүй байдлын эрсдэлгүй — зөвхөн одоо байгаа RLS/SUPERSYSADMIN
 // загвараар ажиллана.
@@ -25,20 +25,23 @@ export default function Usage() {
       setLoading(true);
       const [
         { data: tenantRows }, { data: ownerRows }, { data: unitRows }, { data: assetRows },
-        { data: fullOwnerRows }, { data: fullClienteleRows }, { data: layoutRows }, { data: parkingRows }, { data: storageRows }, { data: providerRows },
+        { data: fullOwnerRows }, { data: fullClienteleRows }, { data: layoutRows }, { data: basementRows }, { data: providerRows },
       ] = await Promise.all([
         fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, created_at')),
         fetchAllRows(() => supabase.from('owners').select('tenant_id')),
         fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id')),
         fetchAllRows(() => supabase.from('fixed_assets').select('tenant_id')),
-        // 2026-09-08 (32): Зүүн Sidebar-ийн доод инфо картын мврүүдийг
+        // 2026-09-08 (32): Зүүн Sidebar-ийн доод инфо картын мвруудийг
         // (Sidebar.jsx, useTenantStats.js-тэй ИЖИЛ логик, Rule of two)
         // БүХ tenant-ээр нь нэгтгэн Usage хуудсанд ч харуулав.
-        fetchAllRows(() => supabase.from('owners').select('tenant_id,people_count,child_0_5,child_6_18,storages,parkings,vehicles')),
+        fetchAllRows(() => supabase.from('owners').select('tenant_id,building_no,people_count,child_0_5,child_6_18,storages,parkings,vehicles')),
         fetchAllRows(() => supabase.from('clientele').select('tenant_id,storages,parkings,vehicles')),
         fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('hidden', false)),
-        fetchAllRows(() => supabase.from('unit_parking').select('id').eq('hidden', false)),
-        fetchAllRows(() => supabase.from('unit_storage').select('id').eq('hidden', false)),
+        // 2026-09-27 (92): unit_parking/unit_storage (хэрэглэгддэггүй,
+        // хуучирсан)-ийн оронд basement_floors.layout_json.slots-оос
+        // бодит зогсоол/агуулахын тоог тооцоолно (useTenantStats.js-тэй
+        // ЯГ ИЖИЛ логик).
+        fetchAllRows(() => supabase.from('basement_floors').select('tenant_id,layout_json')),
         fetchAllRows(() => supabase.from('providers').select('id')),
       ]);
       setTenants(tenantRows || []);
@@ -54,8 +57,7 @@ export default function Usage() {
         fullOwnerRows || [],
         fullClienteleRows || [],
         layoutRows || [],
-        parkingRows || [],
-        storageRows || [],
+        basementRows || [],
         providerRows || [],
       ));
       setLoading(false);

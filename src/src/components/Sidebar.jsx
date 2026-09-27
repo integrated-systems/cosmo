@@ -232,8 +232,8 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
                 <div className="flex justify-between py-[1px]"><span>Тоот</span><span>{formatOwnedRatio(stats.toot.owned, stats.toot.total)}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Зогсоол</span><span>{formatOwnedRatio(stats.parking.owned, stats.parking.total)}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Агуулах</span><span>{formatOwnedRatio(stats.storage.owned, stats.storage.total)}</span></div>
-                <div className="flex justify-between py-[1px]"><span>Бүртгэлтэй машин</span><span>{stats.vehicleCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Талбай өмчлөгч</span><span>{stats.talbaiOwnerCount}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Бүртгэлтэй машин</span><span>{stats.vehicleCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Харилцагч байгууллага</span><span>{stats.harilzagchCount}</span></div>
               </>
             )}
