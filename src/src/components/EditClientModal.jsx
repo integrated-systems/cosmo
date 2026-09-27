@@ -71,8 +71,9 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
   // тохиромжтой, зөрчилдөөнгүй болно).
   useEffect(() => {
     setForm((f) => {
-      const next = sumLinkedSqm(f.gridLandPlots, gridLandPlots) ?? '';
-      if (next === f.sqm) return f; // 2026-09-04: үнэн өөрчлөлт байхгүй л бол state-г бариулгүй (setForm/re-render саатуулж, эффектийн давталтаас урьдчилан сэргийлнэ).
+      const raw = sumLinkedSqm(f.gridLandPlots, gridLandPlots);
+      const next = raw != null ? Number(raw).toFixed(2) : '';
+      if (next === f.sqm) return f; // 2026-09-04: үнэн eeрчлөлт байхгүй л бол state-г бариулгүй (setForm/re-render саатуулж, эффектийн давталтаас урьдчилан сэргийлнэ).
       return { ...f, sqm: next };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,7 +151,7 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
       </div>
 
       {/* 2026-09-02: Хэрэглэгчийн хүсэлт — "Талбай өмчлөгч" (аж ахуйн
-          нэгж) л Зогсоол/Агуулах/Талбай (полигон) БүГДийг "Конструктор
+          нэгж) л Зогсоол/Агуулах/Талбай (полигон) БҮГДийг "Конструктор
           (React)"-оос сонгож холбож болно (Сууц өмчлөгчид зөвхөн
           Зогсоол/Агуулах-ыг л зөвшөөрнэ). */}
       <SpotSelectField
