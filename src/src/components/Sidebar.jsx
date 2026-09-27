@@ -5,6 +5,7 @@ import HoaSwitcher from './HoaSwitcher';
 import { useAuth } from '../lib/AuthContext';
 import { useTenants } from '../hooks/useTenants';
 import { useTenantStats, formatOwnedRatio } from '../hooks/useTenantStats';
+import { useLatestVersion } from '../hooks/useLatestVersion';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { supabase } from '../lib/supabaseClient';
 import { fetchAllRows } from '../lib/fetchAllRows';
@@ -28,6 +29,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
   const { tenants } = useTenants();
   const { hoaId = DEFAULT_TENANT_ID } = useParams();
   const { stats } = useTenantStats(hoaId);
+  const { version: latestVersion } = useLatestVersion();
   const { can: canAccess } = useAccessRules(hoaId);
   const { hasFeature } = usePlanFeatures(hoaId);
   const [msgrUnread, setMsgrUnread] = useState(0);
@@ -238,7 +240,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
               </>
             )}
           </div>
-          <div className="mt-2 text-[9px] text-darktext">Version 3.11.260814</div>
+          <div className="mt-2 text-[9px] text-darktext">{latestVersion ? `Version ${latestVersion}` : 'Version —'}</div>
         </div>
       </div>
     </aside>

@@ -26,7 +26,7 @@ export default function Topbar({ theme, onToggleTheme }) {
   const [tosOpen, setTosOpen] = useState(false);
   const [tosText, setTosText] = useState('');
   // 2026-08-30: Мессенжерийн push notification-ийг STAFF тал хүлээн
-  // авахын тулд БүРТГүүЛЭХ UI шаардлагатай байсан — өмнө нь ЗөВХөН
+  // авахын тулд БҮРТГҮҮЛЭХ UI шаардлагатай байсан — өмнө нь ЗӨВХӨН
   // OwnerApp-ийн Профайл хуудсанд л ийм товч байсан тул admin/staff
   // хэзээ ч push мэдэгдэл хүлээж авдаггүй байв.
   const { supported: pushSupported, subscribed: pushSubscribed, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushNotifications(hoaId);
@@ -62,7 +62,10 @@ export default function Topbar({ theme, onToggleTheme }) {
   // цэсний гарчгийг ашиглана — энэ нь тусдаа "Хянах самбар" хуудас
   // БИШ, зүгээр л үүний нэг хэсэг.
   const votingItem = ALL_ITEMS.find((i) => i.path === '/voting');
-  const title = current?.label || (pathAfterHoa.startsWith('/voting') ? votingItem?.label : null) || 'Хянах самбар';
+  const title = current?.label
+    || (pathAfterHoa.startsWith('/voting') ? votingItem?.label : null)
+    || (pathAfterHoa === '/about-program' ? 'Программын тухай' : null)
+    || 'Хянах самбар';
 
   return (
     <header className="h-[50px] bg-white dark:bg-appbg border-b border-slate-200 dark:border-bordercol

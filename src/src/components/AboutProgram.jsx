@@ -5,6 +5,7 @@ import { formatDate } from '../lib/format';
 import { renderMarkdown } from '../lib/renderMarkdown';
 import { useAuth } from '../lib/AuthContext';
 import { useConfirm } from '../hooks/useConfirm';
+import { useLatestVersion } from '../hooks/useLatestVersion';
 import TabButton from './TabButton';
 import Modal from './Modal';
 import { EditIcon, DeleteIcon } from './icons/Icons';
@@ -21,7 +22,7 @@ import { EditIcon, DeleteIcon } from './icons/Icons';
 // хэт өргөн болохгүйгээр хязгаарлав (жижиг дэлгэцэд бүрэн респонсив).
 const TABS = [
   { key: 'guide', label: 'Ашиглах заавар' },
-  { key: 'changelog', label: 'Хөгжүүлсэн лог' },
+  { key: 'changelog', label: 'Change Log' },
   { key: 'copyright', label: 'Зохиогчийн эрх' },
 ];
 
@@ -33,6 +34,7 @@ export default function AboutProgram() {
   const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
+  const { version: latestVersion, reload: reloadVersion } = useLatestVersion();
 
   const isCopyright = tab === 'copyright';
 
@@ -58,22 +60,29 @@ export default function AboutProgram() {
     const { error } = await supabase.from('program_docs').delete().eq('id', doc.id);
     if (error) { window.alert(error.message); return; }
     load();
+    reloadVersion();
   }
 
   async function handleTogglePublish(doc) {
     const { error } = await supabase.from('program_docs').update({ is_published: !doc.is_published }).eq('id', doc.id);
     if (error) { window.alert(error.message); return; }
     load();
+    reloadVersion();
   }
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
         {TABS.map((t) => (
           <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
           </TabButton>
         ))}
+        {tab === 'changelog' && latestVersion && (
+          <div className="ds-card px-3 py-1.5 ml-auto text-[11px] text-mutedtext">
+            Одоогийн хувилбар: <span className="text-customBlue font-semibold">{latestVersion}</span>
+          </div>
+        )}
       </div>
 
       <div className="max-w-[960px] w-full mx-auto flex flex-col gap-3">
@@ -89,7 +98,7 @@ export default function AboutProgram() {
         {!loading && list.length === 0 && (
           <div className="ds-card p-6 text-center text-[12px] text-mutedtext">
             {tab === 'guide' && 'Заавар хараахан нэмэгдээгүй байна.'}
-            {tab === 'changelog' && 'Хөгжүүлсэн лог хараахан нэмэгдээгүй байна.'}
+            {tab === 'changelog' && 'Change Log хараахан нэмэгдээгүй байна.'}
             {tab === 'copyright' && 'Зохиогчийн эрхийн мэдээлэл хараахан нэмэгдээгүй байна.'}
           </div>
         )}
@@ -135,7 +144,7 @@ export default function AboutProgram() {
         onClose={() => { setEditing(null); setAdding(false); }}
         doc={editing}
         docType={tab}
-        onSaved={load}
+        onSaved={() => { load(); reloadVersion(); }}
       />
       <ConfirmDialog />
     </>
