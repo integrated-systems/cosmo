@@ -481,6 +481,17 @@ function ReserveFundCard({ hoaId }) {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState('');
   const [postedThisMonth, setPostedThisMonth] = useState(null); // null=шалгаж байна, true/false
+  const [pendingDay, setPendingDay] = useState(1);
+  const [daySaving, setDaySaving] = useState(false);
+  const [daySaved, setDaySaved] = useState(false);
+  useEffect(() => { if (finSettings?.reserve_auto_post_day) setPendingDay(finSettings.reserve_auto_post_day); }, [finSettings?.reserve_auto_post_day]);
+  async function saveAutoPostDay() {
+    setDaySaving(true);
+    await saveFinSettings({ reserve_auto_post_day: pendingDay });
+    setDaySaving(false);
+    setDaySaved(true);
+    setTimeout(() => setDaySaved(false), 2000);
+  }
 
   const total = rows.reduce((s, r) => s + Number(r.monthly_amount || 0), 0);
 
@@ -548,7 +559,7 @@ function ReserveFundCard({ hoaId }) {
     <div>
       <div className="ds-card p-4 mb-4" style={{ maxWidth: 560 }}>
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Хуримтлалын сангийн зориулалт</div>
+          <div className="text-[13px] font-semibold text-slate-900 dark:text-white">Хуримтлалын сан</div>
           <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Шинэ зориулалт нэмэх</button>
         </div>
         {adding && (
@@ -606,7 +617,7 @@ function ReserveFundCard({ hoaId }) {
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-bordercol">
             {/* 2026-09-26 (90): Гараар/Автоматаар горим сонгох тоггл —
                 pg_cron (1.6.4, энэ Supabase project дээр аль хэдийн
-                суулгагдсан)-ээр eдөр бүр шалгаж, тохируулсан eдөр
+                суулгагдсан)-ээр өдөр бүр шалгаж, тохируулсан өдөр
                 болмогц (ЭНЭ САР posted эсэхийг шалгаж, давхардуулахгүй)
                 автоматаар Дт 4110/Кт 4120 бичилт үүсгэнэ. */}
             {!finLoading && (
@@ -627,27 +638,39 @@ function ReserveFundCard({ hoaId }) {
                     <span className="text-[11px] text-mutedtext">Сарын</span>
                     <input
                       type="number" min={1} max={28} className="ds-input text-center" style={{ width: 60 }}
-                      value={finSettings?.reserve_auto_post_day ?? 1}
-                      onChange={(e) => { const d = Math.min(28, Math.max(1, Number(e.target.value) || 1)); saveFinSettings({ reserve_auto_post_day: d }); }}
+                      value={pendingDay}
+                      onChange={(e) => setPendingDay(Math.min(28, Math.max(1, Number(e.target.value) || 1)))}
                     />
-                    <span className="text-[11px] text-mutedtext">-нд автоматаар үүснэ</span>
+                    <span className="text-[11px] text-mutedtext">-нд автоматаар татна</span>
+                    <button className="ds-btn-primary" onClick={saveAutoPostDay} disabled={daySaving}>
+                      {daySaving ? 'Хадгалж байна...' : daySaved ? 'Хадгалагдлаа ✓' : 'Хадгалах'}
+                    </button>
                   </div>
                 )}
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <button className="ds-btn-primary" onClick={postMonthlyAllocation} disabled={posting || postedThisMonth === true}>
-                {posting ? 'Бичиж байна...' : postedThisMonth === true ? 'Энэ сар аль хэдийн хуваарилагдсан ✓' : 'Энэ сарын хуваарилалт хийх (гараар)'}
-              </button>
-              {postError && <span className="text-[11px] text-customRed">{postError}</span>}
-            </div>
+            {!finSettings?.reserve_auto_post && (
+              <div className="flex items-center gap-3">
+                <button className="ds-btn-primary" onClick={postMonthlyAllocation} disabled={posting || postedThisMonth === true}>
+                  {posting ? 'Бичиж байна...' : postedThisMonth === true ? 'Энэ сар аль хэдийн хуваарилагдсан ✓' : 'Энэ сарын хуримтлалыг татах'}
+                </button>
+                {postError && <span className="text-[11px] text-customRed">{postError}</span>}
+              </div>
+            )}
           </div>
         )}
       </div>
       <div className="ds-card p-4 text-[11.5px] text-mutedtext leading-relaxed" style={{ maxWidth: 560 }}>
         <div className="font-semibold text-slate-900 dark:text-white mb-2">Энэ тохиргоо юу хийдэг вэ</div>
-        <p className="mb-2">Үүнд бүртгэсэн зориулалт бүр СөХ-ийн дотоод санхүүгийн зорилтот хуваарилалт. "Энэ сарын хуваарилалт хийх" товч дарахад, <b>СөХ-ны орлогод НЭМЭЛТЭЭР ХҮРДЭГГҮй, зөвхөн эздийн эрхийн дотоод шилжүүлэг</b> (Дт 4110 Хязгаарлалтгүй нөөц / Кт 4120 Хязгаарлалттай нөөц) үүснэ — нийт Эздийн эрхийн дүн өөрчлөгдөхгүй, зөвхөн "энэ хэсгийг зориулалттайгаар тусгаарлав" гэсэн тэмдэглэгээ бөгөөд, Ф1 (А маягт)-ийн "2.3.2 б) хязгаарлалттай" мөрт харагдана.</p>
-        <p>Сар бүр л 1 удаа үүснэ (давхар бичихээс хамгаалагдсан) — Гараар товчоор эсвэл Автоматаар (тохируулсан eдөр pg_cron-оор) аль ч аргаар үүссэн ч үр дүн ижил. Өмчлөгчийн төлбөрт (нэхэмжлэлд) ЭНЭ дүн НЭМЭГДЭХГҮй.</p>
+        <p className="mb-2">Дээрх жагсаалтад бүртгэсэн зориулалт бүр нь СөХ-ийн санхүүгийн тайланд тусгагдах, тодорхой зорилготой (жиш нь их засвар, лифт засвар) хуримтлалын хэмжээг тодорхойлно. Эдгээрийн нийт дүнг "Хуримтлалыг татах" үйлдэл гүйцэтгэх бүрд, дараах журналын бичилт үүснэ:</p>
+        <p className="mb-2 pl-3 border-l-2 border-slate-300 dark:border-bordercol">Дт 4110 "Хязгаарлалтгүй нөөц"<br/>Кт 4120 "Хязгаарлалттай нөөц"</p>
+        <p className="mb-2">Энэ бол Эздийн эрхийн (Equity) дотоод ангиллын шилжүүлэг тул, СөХ-ийн нийт эздийн эрхийн дүнд ЯМАР Ч нөлөe үзүүлэхгүй — зөвхөн аль хэдийн бий болсон хуримтлагдсан үр дүнгийн нэг хэсгийг тодорхой зориулалтаар "тусгаарлан" тэмдэглэх ач холбогдолтой. ҮҮнээс үүдэн, өмчлөгчдийн сарын төлбөрт (нэхэмжлэлд) ямар ч нэмэлт дүн бичигдэхгүй. Тусгаарлагдсан дүн Ф1 (Санхүүгийн байдлын тайлан)-ийн "2.3.2 Хязгаарлалттай" мөрөөр тайлагдана.</p>
+        <p className="mb-2">Гүйцэтгэх горимоо доор сонгоно уу:</p>
+        <ul className="mb-2 pl-4 list-disc space-y-1">
+          <li><b>Гараар:</b> Хариуцсан ажилтан сар бүр "Энэ сарын хуримтлалыг татах" товчийг дардаг.</li>
+          <li><b>Автоматаар:</b> Сарын тодорхой өдрийг зааж өгөхөд, тухайн өдөр (Улаанбаатарын цагаар шөнийн 02:00 цагт) систем eөрөe шалгаж, бичилтийг үүсгэнэ.</li>
+        </ul>
+        <p>Аль ч горимоор ч, нэг сард нэг л удаа бичигдэх бөгөөд, давхар бичигдэхээс автоматаар хамгаалагдсан.</p>
       </div>
       <ConfirmDialog />
     </div>
