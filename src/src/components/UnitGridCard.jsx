@@ -36,6 +36,8 @@ const COLOR_CLASSES = {
 const NEUTRAL_CLASS = 'bg-slate-500/[0.10] text-slate-400 dark:text-mutedtext hover:border-slate-400';
 const NEUTRAL_BORDER = 'border-slate-500/30';
 
+import PaymentStatusLegend from './PaymentStatusLegend';
+
 export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow', atRiskColor = 'customRed', pendingColor = 'default', paidColor = 'customGreen' }) {
   const buildings = [...new Set(cells.map((c) => c.buildingNo))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
 
@@ -45,7 +47,12 @@ export default function UnitGridCard({ cells, hint, overdueColor = 'customYellow
 
   return (
     <div className="ds-card p-4">
-      {hint && <div className="text-xs text-mutedtext mb-3">{hint}</div>}
+      {hint && (
+        <div className="text-xs text-mutedtext mb-3">
+          {hint}
+          <PaymentStatusLegend paidColor={paidColor} pendingColor={pendingColor} overdueColor={overdueColor} atRiskColor={atRiskColor} />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         {buildings.map((b) => {

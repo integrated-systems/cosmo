@@ -332,7 +332,7 @@ export default function Property() {
       ) : (
         <>
           {tab === 'household' && (
-            <UnitGridCard cells={householdCells} hint="Байр сонгоод тоот дээр дарж дэлгэрэнгүй харах" overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} paidColor={paidColor} />
+            <UnitGridCard cells={householdCells} hint="Тоотыг сонгож дараад өмчлөгчийн мэдээллийг дэлгэрэнгүй харна уу." overdueColor={overdueColor} atRiskColor={atRiskColor} pendingColor={pendingColor} paidColor={paidColor} />
           )}
           {tab === 'gridSpots' && (
             <GridSpotsViewer
@@ -342,6 +342,10 @@ export default function Property() {
               onSlotClick={handleGridSlotClick}
               onPolygonClick={handleGridPolygonClick}
               getLinkBorderColor={getLinkBorderColor}
+              overdueColor={overdueColor}
+              atRiskColor={atRiskColor}
+              pendingColor={pendingColor}
+              paidColor={paidColor}
             />
           )}
         </>

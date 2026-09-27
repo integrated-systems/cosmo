@@ -55,7 +55,9 @@ function cellsRange(slots, lines, texts, compasses, cellSize) {
   return { cols: maxCol + 2, rows: maxRow + 2 };
 }
 
-export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, onSlotClick, onPolygonClick, getLinkBorderColor }) {
+import PaymentStatusLegend from './PaymentStatusLegend';
+
+export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, onSlotClick, onPolygonClick, getLinkBorderColor, overdueColor, atRiskColor, pendingColor, paidColor }) {
   const [floors, setFloors] = useState([]);
   const [activeFloor, setActiveFloor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +131,10 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
           <button className="ds-btn-secondary" onClick={() => setZoom((z) => Math.min(2, z + 0.1))}>+</button>
         </div>
       </div>
-      <div className="text-[10.5px] text-mutedtext">Слот, агуулах, талбай дээр дарж дэлгэрэнгүй харах эсвэл шинээр бүртгэх</div>
+      <div className="text-[10.5px] text-mutedtext">
+        Слот, агуулах, талбайг сонгож дараад өмчлөгчийн мэдээллийг дэлгэрэнгүй харна уу.
+        <PaymentStatusLegend paidColor={paidColor} pendingColor={pendingColor} overdueColor={overdueColor} atRiskColor={atRiskColor} />
+      </div>
       <div className="overflow-auto overscroll-contain" style={{ maxHeight: 'calc(100vh - 320px)' }} data-no-pull-refresh>
         <div style={{ position: 'relative', width: cols * ec, height: rows * ec }}>
           <div
@@ -147,7 +152,7 @@ export default function GridSpotsViewer({ hoaId, resolveSlot, resolvePolygon, on
             const hasCustomFill = !!s.fillColor;
             const hasCustomLabel = !!s.labelColor;
             // 2026-09-20: эзэмшигчийн төлбөр төлөлт "хугацаа хэтэрсэн"/
-            // "эрсдэлтэй" үед л, зөвхөн ХүРЭЭНИЙ eнгийг (дүүргэлт/текст
+            // "эрсдэлтэй" үед л, зөвхөн ХҮРЭЭНИЙ eнгийг (дүүргэлт/текст
             // ОГТ хөндэхгүй) давхцуулж тодруулна. Ямар ч tenant/floor-д
             // адил үйлчилнэ (Property.jsx-ийн getLinkBorderColor нь
             // tenant/floor-той холбоотой хатуу кодлолгүй).
