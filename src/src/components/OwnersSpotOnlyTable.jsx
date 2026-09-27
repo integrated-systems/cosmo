@@ -81,6 +81,12 @@ export default function OwnersSpotOnlyTable({ rows, loading, loadError, onRowCli
           </tbody>
         </table>
       </div>
+
+      <div className="ds-table-summary">
+        <div>
+          Нийт: <span className="text-slate-900 dark:text-white font-medium">{rows.length}</span>
+        </div>
+      </div>
     </div>
     </div>
   );
