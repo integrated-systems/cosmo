@@ -176,6 +176,7 @@ export default function Property() {
       people_count: form.people !== '' ? Number(form.people) : null,
       child_0_5: form.child1 !== '' ? Number(form.child1) : 0,
       child_6_18: form.child2 !== '' ? Number(form.child2) : 0,
+      pet_count: form.petCount !== '' ? Number(form.petCount) : 0,
       has_grid_parking: form.hasGridParking,
       grid_parkings: form.gridParkings,
       has_grid_storage: form.hasGridStorage,
