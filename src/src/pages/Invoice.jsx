@@ -560,8 +560,9 @@ export default function Invoice() {
         </div>
       )}
 
-      <div className="ds-card p-4">
-        <table className="ds-table w-full">
+      <div className="ds-table-wrap">
+        <div className="flex-1 overflow-auto overscroll-contain">
+          <table className="ds-table w-full">
           <thead>
             <tr>
               <th className="py-2 px-2"></th>
@@ -611,7 +612,8 @@ export default function Invoice() {
               </>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
       <AlertDialog />
     </>

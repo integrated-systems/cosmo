@@ -23,7 +23,7 @@ export default function ClienteleTable({ rows, loading, loadError, onRowClick, o
   // баганаар A-Z дараалалд оруулав.
   const sortedRows = [...rows].sort((a, b) => (a.legal_entity_name || '').localeCompare(b.legal_entity_name || '', undefined, { numeric: true, sensitivity: 'base' }));
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="text-xs text-mutedtext mb-2">
         Таблицын мөр дээр дарж өмчлөгчийн мэдээллийг дэлгэрэнгүй харна уу. Төлөлт баганын өнгөний тайлбар:
         <PaymentStatusLegend paidColor={paidColor} pendingColor={pendingColor} overdueColor={overdueColor} atRiskColor={atRiskColor} />
