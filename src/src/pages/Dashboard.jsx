@@ -100,7 +100,7 @@ export default function Dashboard() {
             `Талбай өмчлөгч - ${fin.totalDebt.client.count}/${fin.totalDebt.client.total}`,
           ] : []} />
         <StatCard label="НИЙТ ОРШИН СУУГЧ" value={tenantStats ? String(tenantStats.residentCount) : '—'} valueColor="text-slate-900 dark:text-text"
-          detail={tenantStats ? [`0-6 насны хүүхэд - ${tenantStats.child05}`, `6-18 насны хүүхэд - ${tenantStats.child618}`, `Тэжээвэр амьтан - ${tenantStats.petCount}`] : []} />
+          detail={tenantStats ? [`Хүүхэд 0-6 нас - ${tenantStats.child05}`, `Хүүхэд 6-18 нас - ${tenantStats.child618}`, `Тэжээвэр амьтан - ${tenantStats.petCount}`] : []} />
       </div>
 
       {/* 2. Орлого/Зарлага график + Төлбөрийн явц */}
