@@ -231,6 +231,7 @@ export default function Sidebar({ isOpen, isMobile, onToggle, isSuperSysAdmin })
                 <div className="flex justify-between py-[1px]"><span>Оршин суугч</span><span>{stats.residentCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Хүүхэд 0-5 нас</span><span>{stats.child05}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Хүүхэд 6-18 нас</span><span>{stats.child618}</span></div>
+                <div className="flex justify-between py-[1px]"><span>Тэжээвэр амьтан</span><span>{stats.petCount}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Тоот</span><span>{formatOwnedRatio(stats.toot.owned, stats.toot.total)}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Зогсоол</span><span>{formatOwnedRatio(stats.parking.owned, stats.parking.total)}</span></div>
                 <div className="flex justify-between py-[1px]"><span>Агуулах</span><span>{formatOwnedRatio(stats.storage.owned, stats.storage.total)}</span></div>

@@ -21,9 +21,10 @@ export function formatOwnedRatio(owned, total) {
 // - buildingCount/entranceCount: unit_layouts-аас (structure_type=
 //   'entrance' үед орцны тоог entrance_no-оор ялгаж тоолно, 'floor'
 //   үед байр бүр 1 орцтой гэж үзнэ)
-// - residentCount/child05/child618: owners.people_count-ийн НИЙЛБЭР л
-//   (child_0_5/child_6_18 нь тэр НИЙТ дотор аль хэдийн ОРСОН дэд бүлэг —
-//   дахин нэмдэггүй)
+// - residentCount/child05/child618/petCount: owners.people_count/
+//   pet_count-ийн НИЙЛБЭР л (child_0_5/child_6_18 нь тэр НИЙТ дотор
+//   аль хэдийн ОРСОН дэд бүлэг — дахин нэмдэггүй, харин pet_count нь
+//   бие даасан тоо, "Ам бүл" дотор ороогүй)
 // - toot/parking/storage: {owned, total} обьект — total нь "Хаягжилт
 //   тохиргоо" хуудсаар үүссэн НИЙТ грид/бүсчлэлийн тоо (unit_layouts/
 //   unit_parking/unit_storage), owned нь эзэмшигчтэй тоо (owners
@@ -52,6 +53,7 @@ export function computeTenantStats(owners, clientele, units, basementFloors, pro
   const residentCount = owners.reduce((s, o) => s + (o.people_count || 0), 0);
   const child05 = owners.reduce((s, o) => s + (o.child_0_5 || 0), 0);
   const child618 = owners.reduce((s, o) => s + (o.child_6_18 || 0), 0);
+  const petCount = owners.reduce((s, o) => s + (o.pet_count || 0), 0);
 
   const vehicleCount = owners.reduce((s, o) => s + arrLen(o.vehicles), 0)
     + clientele.reduce((s, c) => s + arrLen(c.vehicles), 0);
@@ -95,6 +97,7 @@ export function computeTenantStats(owners, clientele, units, basementFloors, pro
     residentCount,
     child05,
     child618,
+    petCount,
     // 2026-09-27 (92): "Тоот" эзэмшигчийн тоо нь ЗӨВХӨН building_no-тэй
     // (`Сууц өмчлөгч` таб) өмчлөгчид байх ёстой — "Зогсоол, агуулах
     // дангаар өмчлөгч" (building_no=null) нэмж тооцох үед тоот бүхий
@@ -118,7 +121,7 @@ export function useTenantStats(hoaId) {
     setLoading(true);
 
     Promise.all([
-      fetchAllRows(() => supabase.from('owners').select('building_no,people_count,child_0_5,child_6_18,storages,parkings,vehicles').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('owners').select('building_no,people_count,child_0_5,child_6_18,pet_count,storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('clientele').select('storages,parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
       fetchAllRows(() => supabase.from('basement_floors').select('layout_json').eq('tenant_id', hoaId)),
