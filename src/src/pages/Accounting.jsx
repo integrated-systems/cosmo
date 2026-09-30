@@ -435,7 +435,7 @@ function TrialBalanceTab({ hoaId }) {
   const isBalanced = Math.abs(grandTotalDebit - grandTotalCredit) < 1;
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="text-[12px] text-mutedtext mb-3">
         Дансны төлөвлөгөөний данс бүр дээр хийгдсэн бүх журналын бичилтийн нийлбэр үлдэгдэл — зөвхөн бичилттэй (идэвхтэй) данснууд харагдана.
       </div>
@@ -1154,7 +1154,7 @@ function CashFlowStatementTab({ hoaId }) {
           <div className="flex justify-between text-[12.5px] py-0.5"><span>Санхүүжилтийн гүйлгээ</span><span>{formatMoney(financingFlow)}₮</span></div>
           {otherFlow !== 0 && <div className="flex justify-between text-[12.5px] py-0.5"><span>Бусад</span><span>{formatMoney(otherFlow)}₮</span></div>}
           <div className="flex justify-between text-[13px] font-semibold pt-2 mt-2 border-t border-slate-200 dark:border-bordercol">
-            <span>Мөнгөн хөрөнгийн цэвэр eөрчлөлт</span><span>{formatMoney(totalCashNet)}₮</span>
+            <span>Мөнгөн хөрөнгийн цэвэр өөрчлөлт</span><span>{formatMoney(totalCashNet)}₮</span>
           </div>
         </div>
         <div className="ds-card p-3">
@@ -1438,7 +1438,7 @@ export default function Accounting() {
   const [tab, setTab] = useState('coa');
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="flex gap-2 mb-4 flex-wrap">
         <TabButton active={tab === 'coa'} onClick={() => setTab('coa')}>Дансны төлөвлөгөө</TabButton>
         <TabButton active={tab === 'journal'} onClick={() => setTab('journal')}>Журналын бичилт</TabButton>

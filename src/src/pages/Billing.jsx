@@ -55,10 +55,10 @@ export default function Billing() {
       fetchAllRows(() => supabase.from('tenants').select('id, name, plan_key, status, billing_status, billing_next_date, billing_note')),
       // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой:
       // "тоотын тоо" (төлбөрт шууд нөлeeлдөг) бүх owners мөрийг
-      // (Дан зогсоол/агуулах эмчлэгч, буюу building_no хоосон мөрүүдийг
-      // ч оролцуулан) тоолдог байсан тул, ЖИНХЭНЭ тоотгүй эмчлэгчийг ч
+      // (Дан зогсоол/агуулах өмчлөгч, буюу building_no хоосон мөрүүдийг
+      // ч оролцуулан) тоолдог байсан тул, ЖИНХЭНЭ тоотгүй өмчлөгчийг ч
       // "тоот" гэж буруу төлбөрт тооцож байв. Одоо зөвхөн бодит тоот
-      // (building_no бий) эмчлэгчийг л тоолно.
+      // (building_no бий) өмчлөгчийг л тоолно.
       fetchAllRows(() => supabase.from('owners').select('tenant_id').not('building_no', 'is', null)),
       supabase.from('app_settings').select('value').eq('key', 'suspended_message').single(),
       supabase.from('app_settings').select('value').eq('key', 'terms_of_service').single(),
@@ -181,7 +181,7 @@ export default function Billing() {
   if (loading) return <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>;
 
   return (
-    <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-[10px]">
+    <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-[10px] flex-1 min-h-0">
       <div>
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багцын тариф</div>
         <div className="grid grid-cols-5 gap-[10px]">

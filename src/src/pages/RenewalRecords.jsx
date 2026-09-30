@@ -42,7 +42,7 @@ export default function RenewalRecords() {
   if (loading) return <div className="ds-card p-6 text-center text-[12px] text-mutedtext">Ачаалж байна...</div>;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 flex-1 min-h-0">
       <div className="ds-toolbar">
         <select className="ds-select min-w-[220px]" value={tenantFilter} onChange={(e) => setTenantFilter(e.target.value)}>
           <option value="">Бүх СӨХ</option>
@@ -50,7 +50,7 @@ export default function RenewalRecords() {
         </select>
       </div>
 
-      <div>
+      <div className="flex flex-col flex-1 min-h-0">
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Багцын шилжилтийн түүх</div>
         <div className="ds-table-wrap">
           <div className="flex-1 overflow-auto overscroll-contain">
@@ -81,7 +81,7 @@ export default function RenewalRecords() {
         </div>
       </div>
 
-      <div>
+      <div className="flex flex-col flex-1 min-h-0">
         <div className="text-[11px] font-semibold tracking-wide text-mutedtext uppercase mb-2">Төлбөр төлөлтийн түүх</div>
         <div className="ds-table-wrap">
           <div className="flex-1 overflow-auto overscroll-contain">

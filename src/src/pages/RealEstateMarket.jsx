@@ -123,8 +123,8 @@ export default function RealEstateMarket() {
       {/* Сар бүрийн зах зээлийн үнэ — бүх (Орон сууц/Зогсоол/Агуулах)
           үнийг НЭГ хүснэгэлд харуулна, Owners.jsx-ийн хүснэгэлийн
           дизайныг дахин ашигласан. Дээр нь "Сар нэмэх" товчтой түүлбэр */}
-      <div className="ds-card p-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="ds-card p-4 flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between mb-3 shrink-0">
           <div className="text-sm font-semibold text-slate-900 dark:text-white">Хотхоны зах зээлийн бодит үнэлгээ (сүүлийн 12 сар)</div>
           <button className="ds-btn-primary" onClick={() => setAdding(true)}>+ Сар нэмэх</button>
         </div>

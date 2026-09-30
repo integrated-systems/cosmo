@@ -287,7 +287,7 @@ function EmployeeList({ employees, search, positions, loading, onEdit, onDelete,
   const totalBaseSalary = employees.filter((e) => e.status === 'active').reduce((s, e) => s + Number(e.base_salary), 0);
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
@@ -402,7 +402,7 @@ async function postPayrollJournal(hoaId, rows, additionsByCode, userId, period) 
 
 function PayrollPreview({ rows, totals }) {
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="ds-table-wrap">
         <div className="flex-1 overflow-auto overscroll-contain">
           <table className="ds-table">
@@ -830,7 +830,7 @@ export default function Employees() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="ds-toolbar flex-wrap justify-between mb-3">
         {tab === 'list' ? (
           <>
