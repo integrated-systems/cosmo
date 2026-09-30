@@ -22,6 +22,44 @@ body {
 ::-webkit-scrollbar { width: 1.5px; height: 1.5px; }
 ::-webkit-scrollbar-thumb { border-radius: 3px; }
 
+/* 2026-09-30: Хүснэгэлийн хэвтээ scroll-ийн бариул — том дэлгэц
+   (1920x1080 гэх мэт) дээр багана хэт олон бол хүснэгэл өргөнөөрөө
+   багтахгүй, mouse-той хэрэглэгч дээрх 1.5px hairline scrollbar-ыг
+   анзаарахгүй өнгөрөх эрсдэлтэй тул зөвхөн `.ds-table-wrap`-ийн
+   scroll container-т (бусад апп даяарх hairline scrollbar-д
+   нөлөөлөхгүй) iOS/macOS-ийн "overlay" загвар: transparent track,
+   хагас тунгалаг thumb, hover үед бага зэрэг тодроод анимацитайгаар
+   алга болно. Firefox-т `scrollbar-width`/`scrollbar-color`-оор
+   ижил үр дүнд хүрнэ. */
+.ds-table-wrap > div {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+.dark .ds-table-wrap > div {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.ds-table-wrap > div::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.ds-table-wrap > div::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ds-table-wrap > div::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+.ds-table-wrap > div::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
+}
+.dark .ds-table-wrap > div::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+.dark .ds-table-wrap > div::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 /* ============================================================
    ГЛОБАЛ ХҮСНЭГЭЛИЙН КЛАСС ("Сууц өмчлөгчийн бүртгэл" хуудсаас
    гарган авсан загвар) — хэрэглэгчийн 2026-08-12 тодорхой заавар:
