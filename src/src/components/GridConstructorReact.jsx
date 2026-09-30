@@ -641,8 +641,8 @@ export default function GridConstructorReact({ hoaId }) {
   }
   // 2026-09-24: Хэрэглэгчийн хүсэлт — зурчихсан полигон дээр баруун
   // товчоор дарж, оройнуудыг (аль нэгийг нь) СНЕПГҮй (торонд наалдахгүй,
-  // чөлeeтэй) чирж, хэлбэрийг нарийвчлан засах боломж. Полигон бүтэн
-  // зeeх (`handlePolygonPointerDown`/torSnap ашигладаг) логикоос ялгаатай
+  // чөлөөтэй) чирж, хэлбэрийг нарийвчлан засах боломж. Полигон бүтэн
+  // зөөх (`handlePolygonPointerDown`/torSnap ашигладаг) логикоос ялгаатай
   // — энд ЗӨВХӨН НЭГ орой л хөдөлж, snap ОГТ хэрэглэгдэхгүй.
   const [vertexEditPolygonId, setVertexEditPolygonId] = useState(null);
   const vertexMoveRef = useRef(null);
@@ -772,7 +772,7 @@ export default function GridConstructorReact({ hoaId }) {
   const editingLine = useMemo(() => lines.find((l) => l.id === editingLineId), [lines, editingLineId]);
 
   return (
-    <div className="ds-card p-3" style={{ height: 'calc(100vh - 220px)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="ds-card p-3 flex flex-col flex-1 min-h-0" style={{ gap: 10 }}>
       {/* 2026-08-31 (2): давхарга сонгох + хадгалах/нийтлэх/импорт — талбайн ажилтан тусгаар (draft/published 2 түвшин) хандалахад зориулав. */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded border border-bordercol overflow-hidden">
@@ -874,12 +874,12 @@ export default function GridConstructorReact({ hoaId }) {
 
       <div className="text-[10.5px] text-mutedtext">
         Зогсоол: хоосон нүднээс зэргэлдээ нүд рүү чирж 2 нүд холбоход слот үүснэ · Агуулах: хоосон нүд дээр дарахад 1 нүдэд слот үүснэ ·
-        Слот дээр дарж чирвэл байрлал eeрчлөгднe, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална · Ctrl+дарах (эсвэл Cmd) - олон слот сонгох, хоосон нүднээс хол чирэх - рүүгүүлээр олноор сонгох, Escape - сонголт цэвэрлэх · Полигон дээр баруун товчоор дарвал оройнуудыг (снепгүй) чирж хэлбэрийг нарийвчлан засах боломжтой, Escape дарж гарна.
+        Слот дээр дарж чирвэл байрлал өөрчлөгдөнө, дарахад (чиргэлгүй) засах цонх нээгдэнэ · Полигон: тор дээр дарж оройнуудаа байрлуулж, эхний цэг дээр дарах эсвэл Enter дарахад хаагдана, Backspace сүүлийн цэгийг арилгана, Escape цуцална · Ctrl+дарах (эсвэл Cmd) - олон слот сонгох, хоосон нүднээс хол чирэх - рүүгүүлээр олноор сонгох, Escape - сонголт цэвэрлэх · Полигон дээр баруун товчоор дарвал оройнуудыг (снепгүй) чирж хэлбэрийг нарийвчлан засах боломжтой, Escape дарж гарна.
       </div>
 
       {vertexEditPolygonId && (
         <div className="text-[11px] text-customBlue bg-customBlue/10 border border-customBlue/30 rounded px-3 py-1.5">
-          Орой засварлаж байна — цэгүүдийг чөлeeтэй (снепгүй) чирж болно. Дуусгах: Escape эсвэл хоосон газар дарна уу.
+          Орой засварлаж байна — цэгүүдийг чөлөөтэй (снепгүй) чирж болно. Дуусгах: Escape эсвэл хоосон газар дарна уу.
         </div>
       )}
 
@@ -1010,7 +1010,7 @@ export default function GridConstructorReact({ hoaId }) {
                     </text>
                   )}
                   {/* 2026-09-24: баруун товчоор идэвхжүүлсэн орой засах горим —
-                      цэг бүр СНЕПГҮй (чөлeeтэй) чирэгдэнэ. */}
+                      цэг бүр СНЕПГҮЙ (чөлөөтэй) чирэгдэнэ. */}
                   {isVertexEditing && pts.map((pt, i) => (
                     <circle
                       key={i}
