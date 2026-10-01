@@ -28,7 +28,7 @@ export function formatOwnedRatio(owned, total) {
 // - toot/parking/storage: {owned, total} обьект — total нь "Хаягжилт
 //   тохиргоо" хуудсаар үүссэн НИЙТ грид/бүсчлэлийн тоо (unit_layouts/
 //   unit_parking/unit_storage), owned нь эзэмшигчтэй тоо (owners
-//   бүгд+clientele-ийн parkings/storages массив). Sidebar-т "owned/total"
+//   бүгд+clientele-ийн grid_parkings/grid_storages массив). Sidebar-т "owned/total"
 //   индикатор хэлбэрээр (100% дүүрмэгц зүгээр "total") үзүүлнэ — менежерт
 //   бүртгэл хэр гүйцэд байгааг харуулна (2026-08-19 хэрэглэгч тодорхой
 //   заасан).
@@ -58,10 +58,14 @@ export function computeTenantStats(owners, clientele, units, basementFloors, pro
   const vehicleCount = owners.reduce((s, o) => s + arrLen(o.vehicles), 0)
     + clientele.reduce((s, c) => s + arrLen(c.vehicles), 0);
 
-  const storagesOwned = owners.reduce((s, o) => s + arrLen(o.storages), 0)
-    + clientele.reduce((s, c) => s + arrLen(c.storages), 0);
-  const parkingsOwned = owners.reduce((s, o) => s + arrLen(o.parkings), 0)
-    + clientele.reduce((s, c) => s + arrLen(c.parkings), 0);
+  // 2026-09-30 БОДИТ АЛДАА ЗАСАВ — `parkings`/`storages` нь хуучин,
+  // хэрэглэгддэггүй багана (үргэлж хоосон); бодит грид-холбоос
+  // `grid_parkings`/`grid_storages`-д хадгалагддаг тул Sidebar-ийн
+  // "Зогсоол"/"Агуулах" мөр хэдийг ч бүртгэсэн "0" харуулдаг байв.
+  const storagesOwned = owners.reduce((s, o) => s + arrLen(o.grid_storages), 0)
+    + clientele.reduce((s, c) => s + arrLen(c.grid_storages), 0);
+  const parkingsOwned = owners.reduce((s, o) => s + arrLen(o.grid_parkings), 0)
+    + clientele.reduce((s, c) => s + arrLen(c.grid_parkings), 0);
 
   const buildingKey = (u) => `${u.tenant_id}:${u.building_no}`;
   const buildingKeys = [...new Set(units.map(buildingKey))];
@@ -121,8 +125,8 @@ export function useTenantStats(hoaId) {
     setLoading(true);
 
     Promise.all([
-      fetchAllRows(() => supabase.from('owners').select('building_no,people_count,child_0_5,child_6_18,pet_count,storages,parkings,vehicles').eq('tenant_id', hoaId)),
-      fetchAllRows(() => supabase.from('clientele').select('storages,parkings,vehicles').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('owners').select('building_no,people_count,child_0_5,child_6_18,pet_count,grid_storages,grid_parkings,vehicles').eq('tenant_id', hoaId)),
+      fetchAllRows(() => supabase.from('clientele').select('grid_storages,grid_parkings,vehicles').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('tenant_id', hoaId).eq('hidden', false)),
       fetchAllRows(() => supabase.from('basement_floors').select('layout_json').eq('tenant_id', hoaId)),
       fetchAllRows(() => supabase.from('providers').select('id').eq('tenant_id', hoaId)),

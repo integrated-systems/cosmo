@@ -34,8 +34,8 @@ export default function Usage() {
         // 2026-09-08 (32): Зүүн Sidebar-ийн доод инфо картын мвруудийг
         // (Sidebar.jsx, useTenantStats.js-тэй ИЖИЛ логик, Rule of two)
         // БүХ tenant-ээр нь нэгтгэн Usage хуудсанд ч харуулав.
-        fetchAllRows(() => supabase.from('owners').select('tenant_id,building_no,people_count,child_0_5,child_6_18,storages,parkings,vehicles')),
-        fetchAllRows(() => supabase.from('clientele').select('tenant_id,storages,parkings,vehicles')),
+        fetchAllRows(() => supabase.from('owners').select('tenant_id,building_no,people_count,child_0_5,child_6_18,grid_storages,grid_parkings,vehicles')),
+        fetchAllRows(() => supabase.from('clientele').select('tenant_id,grid_storages,grid_parkings,vehicles')),
         fetchAllRows(() => supabase.from('unit_layouts').select('tenant_id,building_no,structure_type,entrance_no').eq('hidden', false)),
         // 2026-09-27 (92): unit_parking/unit_storage (хэрэглэгддэггүй,
         // хуучирсан)-ийн оронд basement_floors.layout_json.slots-оос
