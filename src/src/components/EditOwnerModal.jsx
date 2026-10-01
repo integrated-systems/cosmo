@@ -4,22 +4,7 @@ import { SimpleListField, SpotSelectField, VehicleListField } from './formFields
 import { useUnitLayouts, fetchTakenUnitKeys } from '../hooks/useUnitLayouts';
 import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
 import { supabase } from '../lib/supabaseClient';
-
-// 2026-09-30 БОДИТ АЛДАА ЗАСАВ — Зогсоол/Агуулахын хоосон слот дээр
-// дарж "Сууц өмчлөгч нэмэх" сонгоход, сонгосон тоот АЛЬ ХЭДИЙН
-// эзэмшигдсэн байсан ч (өөр өмчлөгч бүртгэлтэй байсан ч) системд
-// огт шалгадаггүй, үргэлж ШИНЭ (хуулбар) өмчлөгч үүсгэдэг байв. Доорх
-// mergeGridSpotLists() нь тухайн тоотын одоо байгаа өмчлөгчийн
-// зогсоол/агуулахын жагсаалт руу шинэ слотыг (давхардуулахгүй) нэмнэ.
-function mergeGridSpotLists(existing, incoming) {
-  const existingArr = existing || [];
-  const ids = new Set(existingArr.map((x) => x.id));
-  const merged = [...existingArr];
-  for (const it of (incoming || [])) {
-    if (!ids.has(it.id)) merged.push(it);
-  }
-  return merged;
-}
+import { mergeGridSpotLists } from '../lib/spotVehicleFormat';
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
 // 2026-08-13 хэрэглэгчийн өгсөн 2 screenshot-той тулгаж бүтээв. Хэдэн ч
@@ -264,18 +249,12 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
           <select className="ds-select w-full" value={selectedUnitKey} onChange={(e) => handleUnitChange(e.target.value)}>
             <option value="">Сонгоно уу</option>
             {unitOptions.map((u) => (
-              <option key={`${u.floor}-${u.doorNo}`} value={`${u.floor}|${u.doorNo}`}>
-                {u.code}{isGridSpotNewFlow && isUnitTaken(form.buildingNo, u.floor, u.doorNo) ? ' · эзэмшигдсэн' : ''}
-              </option>
+              <option key={`${u.floor}-${u.doorNo}`} value={`${u.floor}|${u.doorNo}`}>{u.code}</option>
             ))}
           </select>
         </div>
       </div>
-      {existingOwnerId && (
-        <div className="mb-4 text-[11px] text-customBlue bg-customBlue/10 rounded px-3 py-2">
-          Энэ тоотод өмчлөгч аль хэдийн бүртгэлтэй байна — доорх мэдээлэл түүнийх. Хадгалбал энэ зогсоол/агуулахыг шинэ хуулбар үүсгэхгүй, яг түүнд НЭМНЭ.
-        </div>
-      )}
+
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²) — тоотоос автоматаар</label>
         <input

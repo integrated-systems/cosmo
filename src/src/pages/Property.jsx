@@ -249,7 +249,7 @@ export default function Property() {
     await loadAll();
   }
 
-  async function handleSaveClient(form) {
+  async function handleSaveClient(form, existingClientId) {
     const payload = {
       legal_entity_name: form.legalEntityName || null,
       reg_no: form.regNo || null,
@@ -279,7 +279,12 @@ export default function Property() {
     } else if (addingGridSpot) {
       // 2026-09-02: "Зогсоол, Агуулах, Талбай" табаас шинэ Талбай
       // өмчлөгч үүсгэх үед (полигон эсвэл сонголтоор "Талбай өмчлөгч").
-      const { error } = await supabase.from('clientele').insert({ tenant_id: hoaId, ...payload });
+      // 2026-09-30: Хуулийн этгээдийн нэрээр autocomplete-аас одоо
+      // байгаа Талбай өмчлөгчийг сонгосон бол (existingClientId) шинэ
+      // хуулбар биш, яг түүнийг л шинэчилнэ.
+      const { error } = existingClientId
+        ? await supabase.from('clientele').update(payload).eq('id', existingClientId)
+        : await supabase.from('clientele').insert({ tenant_id: hoaId, ...payload });
       if (error) { alert(error.message); return; }
       setAddingGridSpot(null);
     } else {

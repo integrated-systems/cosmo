@@ -4,6 +4,21 @@
 // файл болгов (Rule of two). 2026-08-19: Зогсоол/Агуулах-ыг unit_parking/
 // unit_storage-аас сонгодог dropdown болгосны дагуу {floor,no} хуучин
 // чөлөөт бичвэрийн бүтцээс {id,floorLevel,code} snapshot бүтэц рүү шилжив.
+// 2026-09-30: Зогсоол/Агуулахын хоосон слотыг аль хэдийн БҮРТГЭЛТЭЙ
+// Сууц/Талбай өмчлөгчид холбоход ашиглагддаг — тухайн өмчлөгчийн
+// ОДОО байгаа слотын жагсаалт руу шинэ слотыг давхардуулахгүй нэмнэ
+// (EditOwnerModal.jsx БОЛОН EditClientModal.jsx хоёуланд ижил
+// ашиглагддаг тул Rule of two-ийн дагуу энд тусад нь гаргав).
+export function mergeGridSpotLists(existing, incoming) {
+  const existingArr = existing || [];
+  const ids = new Set(existingArr.map((x) => x.id));
+  const merged = [...existingArr];
+  for (const it of (incoming || [])) {
+    if (!ids.has(it.id)) merged.push(it);
+  }
+  return merged;
+}
+
 export function summarizeSpots(items) {
   if (!items || items.length === 0) return '—';
   return items.filter((it) => it.code).map((it) => `${it.floorLevel} ${it.code}`).join(', ') || '—';

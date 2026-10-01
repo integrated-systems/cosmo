@@ -28,7 +28,7 @@ export function useUnitLayouts(hoaId) {
     const buildingRows = rows.filter((r) => r.building_no === buildingNo);
     const units = buildingRows
       .slice()
-      .sort((a, b) => (b.floor - a.floor) || (a.door_no - b.door_no))
+      .sort((a, b) => (a.floor - b.floor) || (a.door_no - b.door_no))
       .map((r) => ({
         floor: r.floor,
         doorNo: r.door_no,
@@ -44,7 +44,7 @@ export function useUnitLayouts(hoaId) {
 // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — хэрэглэгчийн олсон цоорхой: "Тоот"
 // dropdown нь зөвхөн физик бүтцийг (аль тоот оршин байгааг) уншдаг
 // байсан бөгөөд, аль тоот АЛЬ ХЭДИЙН ЭЗЭМШИГДСЭН эсэхийг ОГТ шалгадаг
-// байгаагүй тул, НЭГ тоотод 2 eeр эмчлэгч давхар бүртгэгдэх боломжтой
+// байгаагүй тул, НЭГ тоотод 2 eeр өмчлөгч давхар бүртгэгдэх боломжтой
 // байв. ҮҮнийг засахын тулд, `owners` хүснэгэлээс АЛЬ ХЭДИЙН
 // эзэмшигдсэн (Байр|Давхар|Тоот) хослолуудыг татаж, dropdown-оос хасна.
 export async function fetchTakenUnitKeys(hoaId, excludeOwnerId) {

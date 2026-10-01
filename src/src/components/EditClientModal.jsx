@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useGridSpots, fetchTakenGridIds, sumLinkedSqm } from '../hooks/useGridSpots';
+import { supabase } from '../lib/supabaseClient';
+import { mergeGridSpotLists } from '../lib/spotVehicleFormat';
 
 // "Талбай өмчлөгч бүртгэл" (/clientele) хуудасны Нэмэх/Засах модаль —
 // EditOwnerModal.jsx-ийн бүтэц/загварыг дахин ашигласан (Rule of two).
 export default function EditClientModal({ open, onClose, client, onSave, hoaId, initialGridSpot }) {
+  // Зогсоол/Агуулахын хоосон слотыг шинээр нэмж буй (client=null) үед л
+  // холбогдох — Хуулийн этгээдийн нэрээр аль хэдийн бүртгэлтэй Талбай
+  // өмчлөгчийг хайж, сонговол түүнийх рүү формыг автоматаар ачаална.
+  const isGridSpotNewFlow = !client && !!initialGridSpot;
+  const [existingClientId, setExistingClientId] = useState(null);
+  const [clientSuggestions, setClientSuggestions] = useState([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const { gridParkingSpots, gridStorageSpots, gridLandPlots, loading: gridSpotsLoading } = useGridSpots(hoaId);
   const [takenGridParkingIds, setTakenGridParkingIds] = useState(new Set());
   const [takenGridStorageIds, setTakenGridStorageIds] = useState(new Set());
@@ -84,6 +93,49 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
     setForm((f) => ({ ...f, [field]: val }));
   }
 
+  // 2026-09-30: "Хуулийн этгээдийн нэр" талбарт бичиж эхэлмэгц "Талбай
+  // өмчлөгч бүртгэл" хүснэгэлээс тохирох нэр (эхний үсгээр таарсан)
+  // autocomplete-ээр санал болгоно — VotingEditPage.jsx-ийн нэр
+  // дэвшигчийн autocomplete-той ижил зарчим (Rule of two).
+  useEffect(() => {
+    if (!isGridSpotNewFlow || existingClientId) { setClientSuggestions([]); return; }
+    const q = form.legalEntityName.trim();
+    if (!q) { setClientSuggestions([]); return; }
+    let cancelled = false;
+    supabase.from('clientele').select('*').eq('tenant_id', hoaId)
+      .ilike('legal_entity_name', `${q}%`).limit(8)
+      .then(({ data }) => { if (!cancelled) setClientSuggestions(data || []); });
+    return () => { cancelled = true; };
+  }, [form.legalEntityName, isGridSpotNewFlow, existingClientId, hoaId]);
+
+  function pickExistingClient(c) {
+    setExistingClientId(c.id);
+    setClientSuggestions([]);
+    setSuggestOpen(false);
+    setForm((f) => ({
+      ...f,
+      legalEntityName: c.legal_entity_name || '',
+      regNo: c.reg_no || '',
+      propertyNo: c.property_no || '',
+      ceoName: c.ceo_first_name_last_name || '',
+      mobile: c.mobile || '',
+      phone: c.phone || '',
+      email: c.email || '',
+      contractNo: c.contract_no || '',
+      contractStart: c.contract_start || '',
+      contractEnd: c.contract_end || '',
+      hasGridParking: c.has_grid_parking || f.hasGridParking,
+      gridParkings: mergeGridSpotLists(c.grid_parkings, f.gridParkings),
+      hasGridStorage: c.has_grid_storage || f.hasGridStorage,
+      gridStorages: mergeGridSpotLists(c.grid_storages, f.gridStorages),
+      hasGridLand: c.has_grid_land || f.hasGridLand,
+      gridLandPlots: mergeGridSpotLists(c.grid_land_plots, f.gridLandPlots),
+      hasVehicle: c.has_vehicle || f.hasVehicle,
+      vehicles: c.vehicles?.length ? c.vehicles : f.vehicles,
+      note: c.note || '',
+    }));
+  }
+
   return (
     <Modal
       open={open}
@@ -93,14 +145,37 @@ export default function EditClientModal({ open, onClose, client, onSave, hoaId, 
       footer={
         <>
           <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
-          <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
+          <button className="ds-btn-primary" onClick={() => onSave?.(form, existingClientId)}>Хадгалах</button>
         </>
       }
     >
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <div>
+        <div className="relative">
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Хуулийн этгээдийн нэр</label>
-          <input className="ds-input w-full" value={form.legalEntityName} onChange={(e) => set('legalEntityName', e.target.value)} />
+          <input
+            className="ds-input w-full"
+            value={form.legalEntityName}
+            onChange={(e) => {
+              set('legalEntityName', e.target.value);
+              if (existingClientId) setExistingClientId(null);
+              setSuggestOpen(true);
+            }}
+            onFocus={() => setSuggestOpen(true)}
+            onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
+          />
+          {isGridSpotNewFlow && suggestOpen && clientSuggestions.length > 0 && (
+            <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white dark:bg-sidebg border border-slate-200 dark:border-bordercol rounded-lg shadow-lg p-1">
+              {clientSuggestions.map((c) => (
+                <button
+                  key={c.id} type="button"
+                  onMouseDown={() => pickExistingClient(c)}
+                  className="block w-full text-left px-2 py-1.5 text-[12px] rounded hover:bg-slate-100 dark:hover:bg-appbg text-slate-900 dark:text-white"
+                >
+                  {c.legal_entity_name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Регистрийн дугаар</label>
