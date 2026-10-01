@@ -187,7 +187,7 @@ export default function Property() {
     };
   }
 
-  async function handleSaveOwner(form) {
+  async function handleSaveOwner(form, existingOwnerId) {
     if (editingOwner) {
       const { error } = await supabase.from('owners').update(ownerPayload(form)).eq('id', editingOwner.id);
       if (error) { alert(error.message); return; }
@@ -201,7 +201,13 @@ export default function Property() {
       // слот дээр дарж шинэ Сууц өмчлөгч үүсгэх үед байр/тоот сонгоогүй
       // байх тул unit_layouts-ийн эхний тоотыг л анхдагчаар авна
       // (EditOwnerModal-ийн form.buildingNo/floor/doorNo талбар).
-      const { error } = await supabase.from('owners').insert({ tenant_id: hoaId, ...ownerPayload(form) });
+      // 2026-09-30 БОДИТ АЛДАА ЗАСАВ — Тоот dropdown-оос АЛЬ ХЭДИЙН
+      // эзэмшигдсэн тоот сонговол (EditOwnerModal-ийн existingOwnerId),
+      // ШИНЭ (хуулбар) бичлэг үүсгэхгүй, харин яг тэр одоо байгаа
+      // өмчлөгчийг л шинэчилж, грид слотыг түүнд нэмнэ.
+      const { error } = existingOwnerId
+        ? await supabase.from('owners').update(ownerPayload(form)).eq('id', existingOwnerId)
+        : await supabase.from('owners').insert({ tenant_id: hoaId, ...ownerPayload(form) });
       if (error) { alert(error.message); return; }
       setAddingGridSpot(null);
     }

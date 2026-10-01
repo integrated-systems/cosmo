@@ -3,6 +3,23 @@ import Modal from './Modal';
 import { SimpleListField, SpotSelectField, VehicleListField } from './formFields/ListFields';
 import { useUnitLayouts, fetchTakenUnitKeys } from '../hooks/useUnitLayouts';
 import { useGridSpots, fetchTakenGridIds } from '../hooks/useGridSpots';
+import { supabase } from '../lib/supabaseClient';
+
+// 2026-09-30 БОДИТ АЛДАА ЗАСАВ — Зогсоол/Агуулахын хоосон слот дээр
+// дарж "Сууц өмчлөгч нэмэх" сонгоход, сонгосон тоот АЛЬ ХЭДИЙН
+// эзэмшигдсэн байсан ч (өөр өмчлөгч бүртгэлтэй байсан ч) системд
+// огт шалгадаггүй, үргэлж ШИНЭ (хуулбар) өмчлөгч үүсгэдэг байв. Доорх
+// mergeGridSpotLists() нь тухайн тоотын одоо байгаа өмчлөгчийн
+// зогсоол/агуулахын жагсаалт руу шинэ слотыг (давхардуулахгүй) нэмнэ.
+function mergeGridSpotLists(existing, incoming) {
+  const existingArr = existing || [];
+  const ids = new Set(existingArr.map((x) => x.id));
+  const merged = [...existingArr];
+  for (const it of (incoming || [])) {
+    if (!ids.has(it.id)) merged.push(it);
+  }
+  return merged;
+}
 
 // suh.html-ийн загварт тулгуурласан "Сууц өмчлөгч засах" модал —
 // 2026-08-13 хэрэглэгчийн өгсөн 2 screenshot-той тулгаж бүтээв. Хэдэн ч
@@ -29,6 +46,11 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   const { buildings, loading: layoutsLoading } = useUnitLayouts(hoaId);
   const [takenUnitKeys, setTakenUnitKeys] = useState(new Set());
   const [takenLoading, setTakenLoading] = useState(true);
+  // Зогсоол/Агуулахын хоосон слотыг шинээр нэмж буй (owner=null) үед
+  // л холбогдох — Байр/Тоот сонгож болох ба ЭЗЭМШИГДСЭН тоот сонговол
+  // доор тухайн өмчлөгчийг хайж ачаална (давхар бичлэг үүсгэхгүй).
+  const isGridSpotNewFlow = !owner && !!initialGridSpot;
+  const [existingOwnerId, setExistingOwnerId] = useState(null);
 
   // 2026-09-13 БОДИТ АЛДАА ЗАСАВ — доор "unitOptions"-ыг шүүж, автомат
   // сонголтыг ч зөвхөн СУЛ тоот руу л чиглүүлэхэд ашиглана (аль хэдийн
@@ -137,7 +159,65 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
   // хасна, гэхдээ ОДООГИЙН сонгогдсон (Засах үед eeрийнхee) тоотыг
   // хэвээр үзүүлнэ.
   const isUnitTaken = (buildingNo, floor, doorNo) => takenUnitKeys.has(`${buildingNo}|${floor}|${doorNo}`);
-  const unitOptions = allUnitOptions.filter((u) => !isUnitTaken(form.buildingNo, u.floor, u.doorNo) || (u.floor === form.floor && u.doorNo === form.doorNo));
+  // Зогсоол/Агуулахын слот холбох урсгалд (isGridSpotNewFlow) эзэмшигдсэн
+  // тоотыг ХАСАХГҮЙ — учир нь яг тэр тоотыг зориудаар сонгож, одоо байгаа
+  // өмчлөгчид шинэ слотыг НЭМЭХ боломжтой байх ёстой (доорх effect харна).
+  const unitOptions = isGridSpotNewFlow
+    ? allUnitOptions
+    : allUnitOptions.filter((u) => !isUnitTaken(form.buildingNo, u.floor, u.doorNo) || (u.floor === form.floor && u.doorNo === form.doorNo));
+
+  // 2026-09-30: Зогсоол/Агуулахын хоосон слотыг нэмж буй үед Тоот
+  // dropdown-оос ЭЗЭМШИГДСЭН тоот сонговол, тухайн тоотын одоо байгаа
+  // өмчлөгчийг Supabase-аас хайж ачаалж, формыг түүнийх рүү сольж
+  // (grid спотыг нь шинэ слоттой НЭГТГЭЖ) харуулна — Хадгалахад ШИНЭ
+  // хуулбар үүсгэхгүй, яг тэр одоо байгаа өмчлөгчийг л шинэчилнэ.
+  useEffect(() => {
+    if (!isGridSpotNewFlow) return;
+    if (form.buildingNo === '' || form.floor === '' || form.doorNo === '') return;
+    if (!isUnitTaken(form.buildingNo, form.floor, form.doorNo)) {
+      if (existingOwnerId) {
+        setExistingOwnerId(null);
+        setForm((f) => ({
+          ...f,
+          propertyNo: '', firstname: '', lastname: '', regno: '', ownDate: '',
+          phones: [''], emails: [''], people: '', child1: '', child2: '', petCount: '',
+          note: '',
+        }));
+      }
+      return;
+    }
+    let cancelled = false;
+    supabase.from('owners').select('*')
+      .eq('tenant_id', hoaId).eq('building_no', form.buildingNo).eq('floor', form.floor).eq('door_no', form.doorNo)
+      .limit(1).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setExistingOwnerId(data.id);
+        setForm((f) => ({
+          ...f,
+          propertyNo: data.property_no || '',
+          firstname: data.firstname || '',
+          lastname: data.lastname || '',
+          regno: data.regno || '',
+          ownDate: data.own_date || '',
+          phones: data.phones?.length ? data.phones : [''],
+          emails: data.emails?.length ? data.emails : [''],
+          people: data.people_count ?? '',
+          child1: data.child_0_5 ?? '',
+          child2: data.child_6_18 ?? '',
+          petCount: data.pet_count ?? '',
+          hasGridParking: data.has_grid_parking || f.hasGridParking,
+          gridParkings: mergeGridSpotLists(data.grid_parkings, f.gridParkings),
+          hasGridStorage: data.has_grid_storage || f.hasGridStorage,
+          gridStorages: mergeGridSpotLists(data.grid_storages, f.gridStorages),
+          hasVehicle: data.has_vehicle || f.hasVehicle,
+          vehicles: data.vehicles?.length ? data.vehicles : f.vehicles,
+          note: data.note || '',
+        }));
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGridSpotNewFlow, hoaId, form.buildingNo, form.floor, form.doorNo]);
 
   function handleBuildingChange(val) {
     const b = buildings.find((x) => x.buildingNo === val);
@@ -166,7 +246,7 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
       footer={
         <>
           <button className="ds-btn-secondary" onClick={onClose}>Хаах</button>
-          <button className="ds-btn-primary" onClick={() => onSave?.(form)}>Хадгалах</button>
+          <button className="ds-btn-primary" onClick={() => onSave?.(form, existingOwnerId)}>Хадгалах</button>
         </>
       }
     >
@@ -184,11 +264,18 @@ export default function EditOwnerModal({ open, onClose, owner, onSave, hoaId, in
           <select className="ds-select w-full" value={selectedUnitKey} onChange={(e) => handleUnitChange(e.target.value)}>
             <option value="">Сонгоно уу</option>
             {unitOptions.map((u) => (
-              <option key={`${u.floor}-${u.doorNo}`} value={`${u.floor}|${u.doorNo}`}>{u.code}</option>
+              <option key={`${u.floor}-${u.doorNo}`} value={`${u.floor}|${u.doorNo}`}>
+                {u.code}{isGridSpotNewFlow && isUnitTaken(form.buildingNo, u.floor, u.doorNo) ? ' · эзэмшигдсэн' : ''}
+              </option>
             ))}
           </select>
         </div>
       </div>
+      {existingOwnerId && (
+        <div className="mb-4 text-[11px] text-customBlue bg-customBlue/10 rounded px-3 py-2">
+          Энэ тоотод өмчлөгч аль хэдийн бүртгэлтэй байна — доорх мэдээлэл түүнийх. Хадгалбал энэ зогсоол/агуулахыг шинэ хуулбар үүсгэхгүй, яг түүнд НЭМНЭ.
+        </div>
+      )}
       <div className="mb-4">
         <label className="block text-[11px] text-slate-500 dark:text-mutedtext mb-1">Талбай (м²) — тоотоос автоматаар</label>
         <input
