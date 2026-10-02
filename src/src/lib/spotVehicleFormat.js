@@ -9,6 +9,16 @@
 // ОДОО байгаа слотын жагсаалт руу шинэ слотыг давхардуулахгүй нэмнэ
 // (EditOwnerModal.jsx БОЛОН EditClientModal.jsx хоёуланд ижил
 // ашиглагддаг тул Rule of two-ийн дагуу энд тусад нь гаргав).
+// 2026-09-30 БОДИТ АЛДАА ЗАСАВ — "+ Грид зогсоол/агуулах/талбай нэмэх"
+// товч дарахад шууд ХООСОН ({id:'',code:'',floorLevel:''}) мөр
+// нэмэгддэг (SpotSelectField.add()), хэрэглэгч тэр мөрөнд бодит слот
+// СОНГОХГҮЙгээр Хадгалах дарвал тэр хоосон мөр DB-д шууд бичигддэг
+// байв (жишээ: "Амила цэцэрлэг" клиент дээр олдсон) — ийм "сонгогдоогүй"
+// мөрийг Хадгалахын өмнө цэвэрлэнэ.
+export function dropIncompleteGridSpots(items) {
+  return (items || []).filter((it) => it && it.id);
+}
+
 export function mergeGridSpotLists(existing, incoming) {
   const existingArr = existing || [];
   const ids = new Set(existingArr.map((x) => x.id));

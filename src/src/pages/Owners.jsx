@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { DEFAULT_TENANT_ID } from '../config/tenant';
 import { formatDoorNo, formatUnitCode } from '../lib/ownersFormat';
+import { dropIncompleteGridSpots } from '../lib/spotVehicleFormat';
 import EditOwnerModal from '../components/EditOwnerModal';
 import EditOwnerSpotOnlyModal from '../components/EditOwnerSpotOnlyModal';
 import OwnersToolbar from '../components/OwnersToolbar';
@@ -131,9 +132,9 @@ export default function Owners() {
       child_6_18: form.child2 !== '' ? Number(form.child2) : 0,
       pet_count: form.petCount !== '' ? Number(form.petCount) : 0,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,
@@ -174,9 +175,9 @@ export default function Owners() {
       child_6_18: 0,
       pet_count: 0,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,

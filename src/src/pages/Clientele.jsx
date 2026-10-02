@@ -8,6 +8,7 @@ import ClientInfoModal from '../components/ClientInfoModal';
 import EditClientModal from '../components/EditClientModal';
 import { useConfirm } from '../hooks/useConfirm';
 import { fetchAllRows } from '../lib/fetchAllRows';
+import { dropIncompleteGridSpots } from '../lib/spotVehicleFormat';
 import { useAccessRules } from '../hooks/useAccessRules';
 import { useInvoicePayments } from '../hooks/useInvoicePayments';
 
@@ -76,11 +77,11 @@ export default function Clientele() {
       contract_start: form.contractStart || null,
       contract_end: form.contractEnd || null,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_grid_land: form.hasGridLand,
-      grid_land_plots: form.gridLandPlots,
+      grid_land_plots: dropIncompleteGridSpots(form.gridLandPlots),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,

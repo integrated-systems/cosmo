@@ -14,7 +14,7 @@ import GridSpotsViewer from '../components/GridSpotsViewer';
 import { useAlert } from '../hooks/useAlert';
 import { fetchAllRows } from '../lib/fetchAllRows';
 import { formatUnitCode } from '../lib/ownersFormat';
-import { extractGridItemUuid } from '../lib/spotVehicleFormat';
+import { extractGridItemUuid, dropIncompleteGridSpots } from '../lib/spotVehicleFormat';
 import { useInvoicePayments } from '../hooks/useInvoicePayments';
 import { customColorHex } from '../lib/customColors';
 
@@ -178,9 +178,9 @@ export default function Property() {
       child_6_18: form.child2 !== '' ? Number(form.child2) : 0,
       pet_count: form.petCount !== '' ? Number(form.petCount) : 0,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,
@@ -236,9 +236,9 @@ export default function Property() {
       child_0_5: 0,
       child_6_18: 0,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,
@@ -263,11 +263,11 @@ export default function Property() {
       contract_start: form.contractStart || null,
       contract_end: form.contractEnd || null,
       has_grid_parking: form.hasGridParking,
-      grid_parkings: form.gridParkings,
+      grid_parkings: dropIncompleteGridSpots(form.gridParkings),
       has_grid_storage: form.hasGridStorage,
-      grid_storages: form.gridStorages,
+      grid_storages: dropIncompleteGridSpots(form.gridStorages),
       has_grid_land: form.hasGridLand,
-      grid_land_plots: form.gridLandPlots,
+      grid_land_plots: dropIncompleteGridSpots(form.gridLandPlots),
       has_vehicle: form.hasVehicle,
       vehicles: form.vehicles,
       note: form.note || null,
