@@ -197,7 +197,14 @@ export default function Invoice() {
       // (unit_layouts / grid_land_plot) ID тул, тухайн нэгжийг ОДОО
       // эзэмшиж буй өмчлөгчийг эргүүлж хайх шаардлагатай болов.
       if (committedIds.ownerIds.length) {
-        const { data: units } = await supabase.from('unit_layouts').select('id, building_no, floor, door_no').in('id', committedIds.ownerIds);
+        // 2026-10-04 БОДИТ АЛДАА ЗАСАВ — `.in('id', committedIds.ownerIds)`
+        // нэг дор олон зуун ID (жишээ нь 866) дамжуулахад PostgREST-ийн
+        // GET хүсэлтийн URL уртын хязгаарт хүрч query бүрэн хоосон
+        // буцаадаг байв (АЛБАН ЁСНЫ алдаа биш, зүгээр л хоосон массив
+        // буцаадаг тул анзаарагдахгүй) — үүний үр дүнд БүХ Сууц
+        // өмчлөгчийн нэр "Эзэнгүй" гэж харагдаж байсан. clientele-ийн
+        // allClients-той ижил хязгааргүй fetchAllRows загварт шилжүүлэв.
+        const { data: units } = await fetchAllRows(() => supabase.from('unit_layouts').select('id, building_no, floor, door_no').eq('tenant_id', hoaId));
         const { data: ownersData } = await fetchAllRows(() => supabase.from('owners').select('firstname, lastname, building_no, floor, door_no, has_grid_parking, grid_parkings, has_grid_storage, grid_storages').eq('tenant_id', hoaId));
         (units || []).forEach((u) => {
           const owner = (ownersData || []).find((o) => o.building_no === u.building_no && o.floor === u.floor && o.door_no === u.door_no);
