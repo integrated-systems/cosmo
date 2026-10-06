@@ -891,12 +891,12 @@ function InvoiceScheduleCard({ hoaId }) {
       <div className="text-[13px] font-semibold text-slate-900 dark:text-white mb-3">Нэхэмжлэх илгээх хуваарь</div>
       <SettingsField
         label="Нэхэмжлэх бүртгэх календарийн өдөр"
-        hint='Энэ өдөр "Нягтлан бодох бүртгэл — Журналд нэхэмжлэх бүртгэх" табын "Энэ сарын нэхэмжлэл бүртгэх" товч автоматаар дарагдана.'
+        hint='Энэ өдөр "Нэхэмжлэх" хуудасны "Нэхэмжлэх үүсгэх" болон "Үүсгэсэн нэхэмжлэхийг илгээх" хоёр товч автоматаар дарагдаж, тухайн сарын нэхэмжлэх Supabase-д хадгалагдана (журналын бичилттэй хамт).'
         value={form.invoice_register_day} onChange={(v) => setForm((f) => ({ ...f, invoice_register_day: v }))}
       />
       <SettingsField
         label="Нэхэмжлэх илгээх календарийн өдөр"
-        hint="Энэ өдөр бүртгэгдсэн нэхэмжлэхийг автоматаар илгээнэ."
+        hint="Энэ өдөр бүртгэгдсэн нэхэмжлэхийг доорх идэвхтэй сувгаар (одоогоор зөвхөн Мессенжер холбогдсон) эзэмшигчдэд автоматаар илгээнэ."
         value={form.invoice_send_day} onChange={(v) => setForm((f) => ({ ...f, invoice_send_day: v }))}
       />
       <div className="mb-4">
