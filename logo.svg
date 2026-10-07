@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="coreGrad" x1="8" y1="8" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="2" y1="20" x2="38" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3b82f6" stop-opacity="0.15"/>
+      <stop offset="0.5" stop-color="#93c5fd" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#3b82f6" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <!-- Cosmo — эргэлдэх орбит + гол цθм (Integrated Systems-ийн "Cosmo" код нэрийг сансрын
+       дγрслэлээр илэрхийлнэ, олон СθХ=нэг платформ дээр эргэлддэг олон биет гэсэн санаа) -->
+  <ellipse cx="20" cy="20" rx="18" ry="6.4" stroke="url(#ringGrad)" stroke-width="1.6" transform="rotate(-18 20 20)"/>
+  <ellipse cx="20" cy="20" rx="18" ry="6.4" stroke="url(#ringGrad)" stroke-width="1.1" opacity="0.5" transform="rotate(18 20 20)"/>
+  <circle cx="20" cy="20" r="8.5" fill="url(#coreGrad)"/>
+  <circle cx="17" cy="17" r="2.4" fill="#ffffff" opacity="0.35"/>
+</svg>
