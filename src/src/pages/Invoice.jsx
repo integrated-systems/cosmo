@@ -462,8 +462,17 @@ export default function Invoice() {
   useEffect(() => {
     if (previewRows || invoices.length === 0) { if (!previewRows) setCommittedBreakdown([]); return; }
     (async () => {
+      // 2026-10-07 БОДИТ АЛДАА ЗАСАВ — өмнө нь `.in('invoice_id',
+      // invoices.map(...))` нэхэмжлэхийн тоо их (жишээ нь 906) үед
+      // PostgREST-ийн GET хүсэлтийн URL уртын хязгаарт хүрч query
+      // дуугүй хоосон буцдаг байв (яг адил unit_layouts нэрийн алдаатай
+      // ижил шалтгаан) — үүний үр дүнд задаргааны карт (СӨХ-ны
+      // төлбөр/Зогсоол/Агуулах) үргэлж 0.00₮ харагддаг байв. Одоо
+      // PostgREST-ийн embedded-join filter ашиглаж, ID жагсаалт огт
+      // дамжуулахгүйгээр шүүнэ.
       const { data } = await fetchAllRows(() =>
-        supabase.from('invoice_items').select('description, amount').in('invoice_id', invoices.map((i) => i.id))
+        supabase.from('invoice_items').select('description, amount, invoices!inner(tenant_id, period_year, period_month)')
+          .eq('invoices.tenant_id', hoaId).eq('invoices.period_year', year).eq('invoices.period_month', month)
       );
       const totals = {};
       (data || []).forEach((li) => { totals[li.description] = (totals[li.description] || 0) + Number(li.amount); });
